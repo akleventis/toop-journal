@@ -1,0 +1,24 @@
+# Node
+node_modules/
+package-lock.json
+renderer/node_modules/
+renderer/package-lock.json
+dist/
+*.log
+
+# Vite / Tailwind
+renderer/node_modules/
+renderer/dist/
+renderer/.vite/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# TypeScript
+*.tsbuildinfo
+
+notes.txt
+release/

@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    // core settings
+    "target": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"], // browser api's
+    "module": "ESNext", // modern es modules (import/export)
+    "moduleResolution": "Bundler",
+
+    // react/jsx settings
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+
+    // type checking
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+
+    // build settings
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["vite/client"], // vite client types
+
+    // path mapping
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/shared/*": ["../shared/*"]
+    }
+  },
+  "include": ["src"] // only compile files in the src directory
+}

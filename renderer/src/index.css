@@ -1,0 +1,165 @@
+/* CSS Custom Properties */
+:root {
+  color-scheme: light dark;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  --border-radius: 4px;
+  --p-out-horizontal: 20px;
+  --p-out-vertical: 10px;
+}
+
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Element Styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+input {
+  padding: 4px;
+}
+
+select {
+  padding: 4px;
+}
+
+button {
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  padding: 4px;
+  border: none;
+  background: var(--secondary-bg);
+}
+
+button:hover {
+  background-color: var(--third-bg) !important;
+}
+
+/* Component Styles */
+.nav-link {
+  width: 80px;
+  padding: 5px;
+}
+
+.calendar-header {
+  padding: 2px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.calendar-day {
+  border-radius: var(--border-radius);
+  text-align: center;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle {
+  width: 30px;
+  height: 15px;
+  border-radius: 15px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.password-toggle-slider {
+  width: 11px;
+  height: 11px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  transition: left 0.3s;
+}
+
+.loading {
+  cursor: progress;
+}
+
+/* react-simple-wysiwyg styles */
+.rsw-editor {
+  height: 100%;
+  border: none !important;
+  margin: var(--p-out-vertical) var(--p-out-horizontal);
+  line-height: 1.5;
+}
+.rsw-toolbar {
+  border: none !important;
+}
+
+/* Media Queries */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #333;
+    --secondary-bg: #222222;
+    --third-bg: #111;
+  }
+  body { background: var(--app-bg); color: white; }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --app-bg: #ddd;
+    --secondary-bg: #f0f0f0;
+    --third-bg: #e0e0e0;
+  }
+  body { background: var(--app-bg); color: black; }
+}
+
+@media (min-width: 768px) {
+  .calendar-day {
+    width: 25px !important;
+    height: 25px !important;
+    font-size: 12px !important;
+    padding: 3px !important;
+  }
+  
+  .calendar-header {
+    font-size: 12px !important;
+    padding: 3px !important;
+  }
+  
+  .calendar-grid {
+    grid-template-columns: repeat(7, 25px) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .calendar-day {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 14px !important;
+    padding: 4px !important;
+  }
+  
+  .calendar-header {
+    font-size: 14px !important;
+    padding: 4px !important;
+  }
+  
+  .calendar-grid {
+    grid-template-columns: repeat(7, 30px) !important;
+  }
+}

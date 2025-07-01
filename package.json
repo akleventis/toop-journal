@@ -1,0 +1,49 @@
+{
+  "name": "toop-journal",
+  "version": "1.0.0",
+  "author": "tooper",
+  "description": "personal electron-based journaling app with react",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akleventis/toop-journal.git"
+  },
+  "main": "dist/main/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "concurrently -k \"npm run electron\" \"npm --prefix renderer run dev\"",
+    "electron": "npm run build:main && electron dist/main/main.js",
+    "build:main": "tsc -p tsconfig.main.json",
+    "app:dir": "electron-builder --dir",
+    "app:dist": "electron-builder"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "electron": "^37.1.0",
+    "typescript": "^5.8.3",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.850.0",
+    "idb": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.toopjournal.app",
+    "productName": "toop journal",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "cloudsync/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg",
+      "icon": "assets/icon_v1.png"
+    }
+  }
+}
