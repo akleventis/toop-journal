@@ -75,7 +75,7 @@ button:hover {
   justify-content: center;
 }
 
-.password-toggle {
+.toggle {
   width: 30px;
   height: 15px;
   border-radius: 15px;
@@ -84,7 +84,7 @@ button:hover {
   transition: background 0.3s;
 }
 
-.password-toggle-slider {
+.toggle-slider {
   width: 11px;
   height: 11px;
   background: white;

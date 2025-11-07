@@ -1,67 +1,87 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, app } from 'electron';
 
 import { S3Config, Entry, MasterIndex } from '../renderer/lib/types';
 import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client, NoSuchKey } from '@aws-sdk/client-s3';
 
 const MasterIndexFileName = 'masterIndex.json';
+const UserDataPath = app.getPath('userData');
 
 let AWSClient: S3Client | null = null;
 let AWSConfig: S3Config | null = null;
 
 // used to prevent multiple initialization attempts
-let s3ClientInitializing = false;
+let S3ClientInitializing = false;
 
 // ----- AWS Configuration ----- //
-export const createDefaultConfig = (isDev: boolean) => {
-  const { app } = require('electron');
-  let configPath: string;
-  if (isDev) {
-    configPath = path.join(process.cwd(), 'cloudsync', 'config.json');
-  } else {
-    const userDataPath = app.getPath('userData');
-    configPath = path.join(userDataPath, 'config.json');
+// /Users/alexleventis/Library/Application Support/Electron/config.json
+
+// getConfig loads the AWS config from the config.json file and returns null if the config is not found or invalid.
+export const getConfig = (): S3Config | null => {
+  const configPath = path.join(UserDataPath, 'config.json');
+  if (!fs.existsSync(configPath)) {
+    return null;
   }
-
-  if (fs.existsSync(configPath)) {
-    console.log('Config file already exists, skipping creation');
-    return;
+  const config = fs.readFileSync(configPath, 'utf-8');
+  const parsed = JSON.parse(config);
+  if (!isValidAWSConfig(parsed)) {
+    return null;
   }
-
-  const defaultConfig = {
-    aws_access: '',
-    aws_secret: '',
-    aws_bucket: '',
-    aws_region: ''
-  };
-
-  fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
-  console.log('Created default config at:', configPath);
+  return parsed as S3Config;
 };
 
-export const updateConfig = (isDev: boolean, config: S3Config) => {
+export const createConfig = async (config: S3Config) => {
   if (!isValidAWSConfig(config)) {
     throw new Error('invalid aws config');
   }
-  const { app } = require('electron');
-  let configPath: string;
-  if (isDev) {
-    configPath = path.join(process.cwd(), 'cloudsync', 'config.json');
-  } else {
-    const userDataPath = app.getPath('userData');
-    configPath = path.join(userDataPath, 'config.json');
+
+  try {
+    await getAWSClient(config);
+  } catch (error) {
+    console.error('failed to create aws config:', error);
+    throw error;
   }
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-  console.log('Updated config at:', configPath);
+
+  const configPath = path.join(UserDataPath, 'config.json');
+  fs.writeFileSync(configPath, JSON.stringify(config));
+  return config;
+};
+
+export const updateConfig = async (config: S3Config) => {
+  console.log('updating aws config:', config)
+  if (!isValidAWSConfig(config)) {
+    throw new Error('invalid aws config');
+  }
+
+  try {
+    await getAWSClient(config);
+  } catch (error) {
+    console.error('failed to update aws config:', error);
+    throw error;
+  }
+
+  const configPath = path.join(UserDataPath, 'config.json');
+  fs.writeFileSync(configPath, JSON.stringify(config));
+  return config;
+};
+
+export const deleteConfig = async () => {
+  const configPath = path.join(UserDataPath, 'config.json');
+  if (fs.existsSync(configPath)) {
+    fs.rmSync(configPath);
+  }
+  AWSClient = null;
+  AWSConfig = null;
+  console.log('aws config deleted')
 };
 
 // ----- S3 Initialization Operations ----- //
 
 // initializes the S3 client for aws operations. Returns early if already initializing
 // or if client exists. Requires valid aws config.
-export const initS3Client = async (isDev: boolean): Promise<void> => {
-  if (s3ClientInitializing) {
+export const initS3Client = async (): Promise<void> => {
+  if (S3ClientInitializing) {
     console.log('S3 client is already initializing, skipping initialization')
     return;
   }
@@ -72,26 +92,26 @@ export const initS3Client = async (isDev: boolean): Promise<void> => {
     return;
   }
 
-  AWSConfig = loadConfig(isDev);
-  if (!AWSConfig) {
-    throw new Error('invalid aws config');
-  }
-  console.log("AWSConfig", AWSConfig)
+  S3ClientInitializing = true;
 
-  s3ClientInitializing = true;
   try {
-    const client = new S3Client({
-      region: AWSConfig.aws_region,
-      credentials: { accessKeyId: AWSConfig.aws_access, secretAccessKey: AWSConfig.aws_secret },
-    });
-
-    await client.send(new ListObjectsV2Command({ Bucket: AWSConfig.aws_bucket, MaxKeys: 1 }));
-    AWSClient = client;
-  } catch (err) {
-    throw err;
-  } finally {
-    s3ClientInitializing = false;
+    AWSConfig = loadConfig();
+  } catch (error) {
+    S3ClientInitializing = false;
+    console.error('failed to load aws config:', error);
+    throw error;
   }
+
+  try {
+    AWSClient = await getAWSClient(AWSConfig);
+  } catch (error) {
+    S3ClientInitializing = false;
+    console.error('failed to get initialized s3 client:', error);
+    throw error;
+  }
+
+  S3ClientInitializing = false;
+
   try {
     console.log("calling cloudSyncPipeline")
     // await cloudSyncPipeline()
@@ -102,39 +122,40 @@ export const initS3Client = async (isDev: boolean): Promise<void> => {
 };
 
 // loadConfig loads the AWS config from the config.json file
-const loadConfig = (isDev: boolean): S3Config | null => {
-  const { app } = require('electron');
-  let configPath: string;
-  if (isDev) {
-    configPath = path.join(process.cwd(), 'cloudsync', 'config.json');
-  } else {
-    const userDataPath = app.getPath('userData');
-    configPath = path.join(userDataPath, 'config.json');
-  }
-
-  console.log("configPath", configPath)
+const loadConfig = (): S3Config => {
+  const configPath = path.join(UserDataPath, 'config.json');
 
   if (!fs.existsSync(configPath)) {
-    console.error('config.json not found');
-    return null;
+    throw new Error('config.json not found');
   }
 
   const raw = fs.readFileSync(configPath, 'utf-8');
   if (!raw || raw.trim() === '') {
-    console.error('config.json is empty');
-    return null;
+    throw new Error('config.json is empty');
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!isValidAWSConfig(parsed)) {
-      console.error('config.json invalid aws config');
-      return null;
+      throw new Error('config.json invalid aws config');
     }
-    return parsed;
+    return parsed as S3Config;
   } catch {
-    console.error('config.json parse error');
-    return null;
+    throw new Error('config.json parse error');
+  }
+};
+
+// getAWSClient tests if the AWS config is valid by checking if the bucket exists and returns the S3 client if it is. Throws an error if the config is invalid.
+const getAWSClient = async (config: S3Config): Promise<S3Client> => {
+  try {
+    const client = new S3Client({
+      region: config.aws_region,
+      credentials: { accessKeyId: config.aws_access, secretAccessKey: config.aws_secret },
+    });
+    await client.send(new ListObjectsV2Command({ Bucket: config.aws_bucket, MaxKeys: 1 }));
+    return client;
+  } catch (error) {
+    throw error;
   }
 };
 
@@ -154,7 +175,7 @@ const isValidAWSConfig = (config: unknown): config is S3Config => {
 // ----- Cloud Sync Pipeline ----- //
 
 // cloudSyncPipeline syncs master indexes & entries between local and S3
-export const cloudSyncPipeline = async () => {
+export const cloudSyncPipeline = async (): Promise<boolean> => {
   if (!AWSConfig) {
     throw new Error('no aws config found');
   }
@@ -202,6 +223,8 @@ export const cloudSyncPipeline = async () => {
     console.error('failed to put s3 master index:', error);
     throw error;
   }
+
+  return true;
 }
 
 // loadS3MasterIndex loads the masterIndex.json from S3 and returns it in the correct format

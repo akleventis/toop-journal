@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'node:path';
-import { initS3Client, putEntryCloudSync, deleteEntryCloudSync, createDefaultConfig } from './cloudSync';
-import { Entry } from '../renderer/lib/types';
+import { initS3Client, putEntryCloudSync, deleteEntryCloudSync, updateConfig, getConfig, createConfig, deleteConfig, cloudSyncPipeline } from './cloudSync';
+import { Entry, S3Config } from '../renderer/lib/types';
 
 const isDev = !app.isPackaged;
 
@@ -22,7 +22,6 @@ const indexHtmlPath = isDev
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
-  createDefaultConfig(isDev);
   createWindow();
 });
 
@@ -59,13 +58,30 @@ app.on('activate', () => {
 });
 
 // user data path functions
-ipcMain.handle('user-data:createDefaultConfig', (_, isDev: boolean) => {
-  createDefaultConfig(isDev);
+ipcMain.handle('cloud-sync:createConfig', (_, config: S3Config) => {
+  return createConfig(config);
+});
+
+ipcMain.handle('cloud-sync:updateConfig', async (_, config: S3Config) => {
+  return updateConfig(config);
+});
+
+ipcMain.handle('cloud-sync:deleteConfig', async () => {
+  return deleteConfig();
+});
+
+ipcMain.handle('cloud-sync:getConfig', async () => {
+  return getConfig();
 });
 
 // aws sync functions
-ipcMain.handle('cloud-sync:initS3Client', async (_, isDev: boolean) => {
-  await initS3Client(isDev);
+ipcMain.handle('cloud-sync:initS3Client', async () => {
+  await initS3Client();
+});
+
+// sync data
+ipcMain.handle('cloud-sync:cloudSyncPipeline', async () => {
+  return await cloudSyncPipeline();
 });
 
 // master index functions

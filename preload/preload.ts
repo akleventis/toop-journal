@@ -1,5 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron')
-import { Entry } from '../renderer/lib/types';
+import { Entry, S3Config } from '../renderer/lib/types';
 
 // cloud sync functions
 contextBridge.exposeInMainWorld('network', {
@@ -11,7 +11,12 @@ contextBridge.exposeInMainWorld('network', {
 })
 
 contextBridge.exposeInMainWorld('cloudSync', {
-  initS3Client: (forceRefresh: boolean = false, isDev: boolean = false) => ipcRenderer.invoke('cloud-sync:initS3Client', forceRefresh, isDev),
+  initS3Client: (forceRefresh: boolean = false) => ipcRenderer.invoke('cloud-sync:initS3Client', forceRefresh),
+  cloudSyncPipeline: (): Promise<boolean> => ipcRenderer.invoke('cloud-sync:cloudSyncPipeline'),
+  createConfig: (config: S3Config) => ipcRenderer.invoke('cloud-sync:createConfig', config),
+  updateConfig: (config: S3Config) => ipcRenderer.invoke('cloud-sync:updateConfig', config),
+  deleteConfig: () => ipcRenderer.invoke('cloud-sync:deleteConfig'),
+  getConfig: () => ipcRenderer.invoke('cloud-sync:getConfig'),
   putEntryCloudSync: (entry: Entry) => ipcRenderer.invoke('cloud-sync:putEntryCloudSync', entry),
   deleteEntryCloudSync: (id: string) => ipcRenderer.invoke('cloud-sync:deleteEntryCloudSync', id)
 })

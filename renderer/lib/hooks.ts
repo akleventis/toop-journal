@@ -54,7 +54,7 @@ export const usePasswordProtection = () => {
 }
 
 // useNetworkSync hook to monitor network status and reinitialize S3 client when connection is restored
-export const useNetworkSync = (isDev: boolean) => {
+export const useNetworkSync = () => {
   const [syncStatus, setSyncStatus] = useState('initializing');
 
   useEffect(() => {
@@ -66,11 +66,11 @@ export const useNetworkSync = (isDev: boolean) => {
       }
 
       try {
-        await window.cloudSync.initS3Client(isDev);
+        await window.cloudSync.initS3Client();
         setSyncStatus('cloud sync success');
       } catch (err) {
-        console.log("initS3Client error", err)
-        setSyncStatus(err instanceof Error ? err.message : 'unknown error');
+        console.log('cloud sync not initialized')
+        setSyncStatus('cloud sync failed');
       }
     };
 

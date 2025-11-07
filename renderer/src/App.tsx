@@ -64,7 +64,7 @@ function AppContent() {
   }
 
   // monitor network status and reinitialize S3 client when connection is restored
-  useNetworkSync(__IS_DEV__);
+  useNetworkSync();
 
   // show password overlay if protected and not verified
   if (passwordProtected && !passwordVerified) {

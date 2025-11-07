@@ -1,7 +1,12 @@
-import type { Entry } from './renderer/lib/types';
+import type { Entry, S3Config } from './renderer/lib/types';
 
 export interface CloudSyncAPI {
-  initS3Client: (isDev?: boolean) => Promise<void>,
+  initS3Client: () => Promise<void>,
+  cloudSyncPipeline: () => Promise<boolean>,
+  createConfig: (config: S3Config) => Promise<void>,
+  updateConfig: (config: S3Config) => Promise<void>,
+  deleteConfig: () => Promise<void>,
+  getConfig: () => Promise<S3Config>,
   putEntryCloudSync: (entry: Entry) => Promise<void>,
   deleteEntryCloudSync: (id: string) => Promise<void>,
 }
