@@ -1,7 +1,10 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'node:path';
-import { initS3Client, putEntryCloudSync, deleteEntryCloudSync, updateConfig, getConfig, createConfig, deleteConfig, cloudSyncPipeline } from './cloudSync';
+import { cloudSyncPipeline } from './cloudSync';
+import { updateConfig, getConfig, createConfig, deleteConfig } from './cloudsync/aws_config';
+import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
+import { putEntryCloudSync, deleteEntryCloudSync } from './cloudsync/transact';
 
 const isDev = !app.isPackaged;
 

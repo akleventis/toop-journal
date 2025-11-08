@@ -113,8 +113,5 @@ Quick setup:
 ISC
 
 ## TODO
-
-- [ ] Fix production build filepaths
-- [ ] Update AWS config storage
-- [ ] Add proper way to 'build' project
+- [ ] Add proper way to build project & resolve filepaths
 

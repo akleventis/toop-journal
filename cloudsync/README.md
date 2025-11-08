@@ -1,28 +1,29 @@
 # Sync data to AWS S3
 
-TODO: This is wrong. We should store user credentials in a user data directory. Add ui component in /more to accept aws credentials
-
 This feature enables syncing journal entries with an S3 bucket using a `masterIndex.json` file to track updates.
 
 - `masterIndex.json` serves as a an index, tracking entries between local & cloud data stores. Uses 'lastModified' to determine which source should be updated.
 
-To enable cloud sync, you must create a `config.json` file under /cloudsync with valid AWS credentials. This file is not provided by default — it is your responsibility to create and populate it:
+### Configuration
+
+AWS credentials are configured through the UI in the **More** page. The configuration is stored in the user data directory (`config.json`).
+
+To enable cloud sync:
+1. Navigate to the **More** page
+2. Find the "AWS Cloud Sync" section
+3. Toggle the switch to enable cloud sync
+4. Enter your AWS credentials:
+   - **Access Key**: AWS Access Key ID
+   - **Secret Key**: AWS Secret Access Key
+   - **Bucket**: Name of your S3 bucket
+   - **Region**: AWS region where the bucket is located
+5. Click "Save" to validate and save the configuration
 
 On app startup, the following will happen:
-1.  The app will attempt to read your `/cloudsync/config.json` file.
-1.  If found, it will validate the AWS credentials by checking access to the specified bucket.
-1.  If the file is missing or misconfigured, cloud sync will be disabled
-1.  `masterIndex.json` & `/entries/*` files are auto-created upon successful configuration
-
-### Create `/cloudsync/config.json` file
-```json
-{
-  "aws_access": "AWS Secret Access Key",
-  "aws_secret": "AWS Access Key ID",
-  "aws_bucket": "Name of your S3 bucket",
-  "aws_region": "AWS region where the bucket is located"
-}
-```
+1. The app will attempt to read your AWS config from the user data directory
+2. If found, it will validate the AWS credentials by checking access to the specified bucket
+3. If the file is missing or misconfigured, cloud sync will be disabled
+4. `masterIndex.json` & `/entries/*` files are auto-created upon successful configuration
 
 ### Required AWS Policy
 The following permissions must be attached to the IAM user associated with your credentials:
