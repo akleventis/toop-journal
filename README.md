@@ -2,8 +2,6 @@
 
 I've been writing to a journal every day since 2018. Over the past year, the journal app I've been using has become increasingly buggy as I believe I've been overloading it with years of entries. Since it wasn't built for scale, I decided to create a robust, bulletproof alternative with cloud syncing to persist my entries and fully migrate off the current app. 
 
-**NOTE**: This is still a work in progress with some bugs and kinks I'm working through. Currently focused on the build flow and AWS pipeline—while it works, I'm exploring more secure alternatives for adding, persisting, and keeping user credentials safe.
-
 Electron-based application built with React, featuring local IndexedDB storage and optional AWS S3 cloud synchronization for reliable, long-term data persistence.
 
 ## Features
