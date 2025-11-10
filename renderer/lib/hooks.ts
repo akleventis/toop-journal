@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import * as idb from '../db/idb';
 
-// usePasswordProtection hook to handle password protection and initialize app
+/**
+ * usePasswordProtection hook to handle password protection and initialize app.
+ *
+ * @returns {Object} An object containing the password protected state, password verified state, and functions to handle password verification and update password protection state.
+ */
 export const usePasswordProtection = () => {
   const [passwordProtected, setPasswordProtected] = useState(false)
   const [passwordVerified, setPasswordVerified] = useState(false)
@@ -53,7 +57,11 @@ export const usePasswordProtection = () => {
   }
 }
 
-// useNetworkSync hook to monitor network status and reinitialize S3 client when connection is restored
+/**
+ * useNetworkSync hook to monitor network status and reinitialize S3 client when connection is restored.
+ *
+ * @returns {Object} An object containing the sync status.
+ */
 export const useNetworkSync = () => {
   const [syncStatus, setSyncStatus] = useState('initializing');
 

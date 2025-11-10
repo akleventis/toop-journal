@@ -1,13 +1,40 @@
+/**
+ * @file aws_config.ts — AWS configuration operations for cloud sync.
+ *
+ * Handles loading, saving, and deleting AWS configuration data stored in `config.json`.
+ *
+ * Storage locations:
+ * - User data directory: `/Users/{username}/Library/Application Support/Electron/config.json`
+ * - Local storage: `/cloudsync/config.json` (gitignored, created after successful cloud sync setup)
+ * - S3 storage: `{bucket_name}/config.json` (auto-created upon successful cloud sync configuration)
+ *
+ * Overview:
+ * - Stores AWS access key, secret key, bucket name, and region.
+ * - Stored both locally and in S3.
+ * - Used to authenticate the AWS client.
+ *
+ * Example format:
+ * ```json
+ * {
+ *   "aws_access": "your_aws_access_key",
+ *   "aws_secret": "your_aws_secret_key",
+ *   "aws_bucket": "your_aws_bucket_name",
+ *   "aws_region": "your_aws_region"
+ * }
+ * ```
+ */
 import { S3Config } from '../../renderer/lib/types';
 import path from 'node:path';
 import fs from 'node:fs';
-import { state } from '../cloudSync';
-import { getAWSClient } from './aws_client';
+import { setAWSClient } from './aws_client';
+import { state } from './transact';
 
-// ----- AWS Configuration ----- //
-// /Users/alexleventis/Library/Application Support/Electron/config.json
-
-// getConfig loads the AWS config from the config.json file and returns null if the config is not found or invalid.
+/**
+ * Loads the AWS configuration from the `config.json` file.
+ *
+ * @returns {S3Config | null} The loaded configuration, or `null` if not found or invalid.
+ * @remarks Callers are responsible for setting `state.AWSConfig` if needed.
+ */
 export const getConfig = (): S3Config | null => {
     const configPath = path.join(state.UserDataPath, 'config.json');
     if (!fs.existsSync(configPath)) {
@@ -18,45 +45,68 @@ export const getConfig = (): S3Config | null => {
     if (!isValidAWSConfig(parsed)) {
         return null;
     }
-    return parsed as S3Config;
+    return parsed;
 };
 
-export const createConfig = async (config: S3Config) => {
+/**
+ * Creates a new `config.json` file with the provided AWS configuration.
+ * Initializes the AWS client and stores the configuration both in memory and on disk.
+ *
+ * @param {S3Config} config - The AWS configuration object.
+ * @returns {S3Config} The created AWS configuration object.
+ */
+export const createConfig = async (config: S3Config): Promise<S3Config> => {
+    console.log('creating aws config:', config)
     if (!isValidAWSConfig(config)) {
-        throw new Error('invalid aws config');
+        throw new Error('createConfig: invalid aws config');
     }
 
     try {
-        await getAWSClient(config);
+        await setAWSClient(config);
     } catch (error) {
-        console.error('failed to create aws config:', error);
+        console.error('createConfig: failed to create aws config:', error);
         throw error;
     }
 
     const configPath = path.join(state.UserDataPath, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify(config));
+    state.AWSConfig = config;
     return config;
 };
 
-export const updateConfig = async (config: S3Config) => {
+/**
+ * Updates the existing `config.json` file with the provided AWS configuration.
+ * Refreshes the AWS client and updates the configuration in memory and on disk.
+ *
+ * @param {S3Config} config - The updated AWS configuration object.
+ * @returns {S3Config} The updated AWS configuration object.
+ */
+export const updateConfig = async (config: S3Config): Promise<S3Config> => {
     console.log('updating aws config:', config)
     if (!isValidAWSConfig(config)) {
-        throw new Error('invalid aws config');
+        throw new Error('updateConfig: invalid aws config');
     }
 
     try {
-        await getAWSClient(config);
+        await setAWSClient(config);
     } catch (error) {
-        console.error('failed to update aws config:', error);
+        console.error('updateConfig: failed to update aws config:', error);
         throw error;
     }
 
     const configPath = path.join(state.UserDataPath, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify(config));
+    state.AWSConfig = config;
     return config;
 };
 
-export const deleteConfig = async () => {
+/**
+ * Deletes the existing `config.json` file from disk.
+ *
+ * @returns {Promise<void>}
+ */
+export const deleteConfig = async (): Promise<void> => {
+    console.log('deleting aws config')
     const configPath = path.join(state.UserDataPath, 'config.json');
     if (fs.existsSync(configPath)) {
         fs.rmSync(configPath);
@@ -66,7 +116,12 @@ export const deleteConfig = async () => {
     console.log('aws config deleted')
 };
 
-// isValidAWSConfig is a type guard to validate AWSConfig structure
+/**
+ * Type guard that validates whether the given object conforms to the `S3Config` structure.
+ *
+ * @param {unknown} config - The object to validate.
+ * @returns {config is S3Config} `true` if the object is a valid `S3Config`, otherwise `false`.
+ */
 const isValidAWSConfig = (config: unknown): config is S3Config => {
     if (typeof config !== 'object' || config === null) return false;
 

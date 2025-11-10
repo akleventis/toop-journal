@@ -1,17 +1,49 @@
-import { state } from '../cloudSync';
+/**
+ * @file master_index.ts — Master index operations for cloud sync.
+ *
+ * Handles loading, saving, and syncing the master index between local storage and S3.
+ *
+ * Storage locations:
+ * - Local: `/cloudsync/masterIndex.json` (gitignored, created after successful cloud sync setup)
+ * - S3: `{bucket_name}/masterIndex.json` (auto-created after successful cloud sync configuration)
+ *
+ * Overview:
+ * - JSON object containing the last modified time and deleted status of each entry.
+ * - Stored in both S3 and the local database.
+ * - Used to synchronize entries between the local database and S3.
+ * - Updated whenever an entry is created, modified, or deleted.
+ *
+ * Example format:
+ * ```json
+ * {
+ *   "jun.12.2025": {
+ *     "lastModified": 1753581401007,
+ *     "deleted": false
+ *   },
+ *   ...
+ * }
+ * ```
+ */
+
+import { state } from './transact';
 import { MasterIndex, Entry } from '../../renderer/lib/types';
-import { GetObjectCommand, PutObjectCommand, NoSuchKey, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { idbCreateEntry, idbGetEntryById, idbUpdateEntry, idbDeleteEntry, getMainWindow } from './transact';
+import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { idbCreateEntry, idbGetEntryById, idbUpdateEntry, idbDeleteEntry } from './transact';
 import path from 'node:path';
 import fs from 'node:fs';
 
-// loadS3MasterIndex loads the masterIndex.json from S3 and returns it in the correct format
-// it returns null if the format is incorrect
+/**
+ * Loads the master index from S3 and returns it as a `MasterIndex` object.
+ *
+ * @returns {Promise<MasterIndex>} The master index.
+ * @throws Will throw an error if the S3 client or config is not found, or if the master index is not found.
+ */
 export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
     console.log('loading s3 master index');
     if (!state.AWSConfig || !state.AWSClient) {
-      throw new Error('no s3 client or config found');
+      throw new Error('loadS3MasterIndex: no s3 client or config found');
     }
+    var parsed: MasterIndex;
     try {
       const response = await state.AWSClient.send(
         new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName })
@@ -19,37 +51,56 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
       const body = await response.Body?.transformToByteArray();
       const bodyString = body ? new TextDecoder().decode(body) : '{}';
   
-      const parsed = JSON.parse(bodyString);
-      return verifyMasterIndex(parsed);
+      parsed = JSON.parse(bodyString) as MasterIndex;
     } catch (error) {
-      // if master index does not exist, create it in s3
-      if (error instanceof NoSuchKey) {
-        console.log('master index does not exist, creating it in s3');
-        await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName, Body: '{}' }));
-        return {};
-      }
-      console.error('failed to load s3 master index:');
+      console.error('loadS3MasterIndex: failed to load s3 master index');
       throw error;
     }
-  };
-  
-  
-  // loadLocalMasterIndex loads the masterIndex.json from the local filesystem and returns it in the correct format
-  export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
-    const masterIndexPath = path.resolve(process.cwd(), 'cloudsync', state.MasterIndexFileName);
-    const raw = fs.readFileSync(masterIndexPath, 'utf-8');
-    const parsed = JSON.parse(raw);
+    // error bubbles up to caller
     return verifyMasterIndex(parsed);
   };
   
-  // verifyMasterIndex typechecks the parsed input and returns a valid MasterIndex object or an empty object if the input is invalid
-  const verifyMasterIndex = (parsed: unknown): MasterIndex => {
-    if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error('masterIndex is not a valid object');
+  
+  /**
+   * Loads the master index from the local filesystem and returns it as a `MasterIndex` object.
+   *
+   * @returns {Promise<MasterIndex>} The master index.
+   * @throws Will throw an error if the local filesystem is not found, or if the master index is not found.
+   */
+  // Throws an error on nil local filesystem, does not exist, or invalid format.
+  export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
+    console.log('loading local master index');
+    const masterIndexPath = path.resolve(process.cwd(), 'cloudsync', state.MasterIndexFileName);
+    if (!fs.existsSync(masterIndexPath)) {
+      throw new Error('loadLocalMasterIndex: local master index file does not exist');
+    }
+    var raw: string;
+    var parsed: MasterIndex;
+    try {
+      raw = fs.readFileSync(masterIndexPath, 'utf-8');
+      parsed = JSON.parse(raw) as MasterIndex;
+    } catch (error) {
+      console.error('loadLocalMasterIndex: failed to load local master index');
+      throw error;
+    }
+    // error bubbles up to caller
+    return verifyMasterIndex(parsed);
+  };
+  
+  /**
+   * Verifies the master index and returns a valid `MasterIndex` object or an empty object if the input is invalid.
+   *
+   * @param {MasterIndex} masterIndex - The master index to verify.
+   * @returns {MasterIndex} The verified master index.
+   * @throws Will throw an error if the master index is not a valid object.
+   */
+  const verifyMasterIndex = (masterIndex: MasterIndex): MasterIndex => {
+    if (typeof masterIndex !== 'object' || masterIndex === null) {
+      throw new Error('verifyMasterIndex: masterIndex is not a valid object');
     }
   
     const validated: MasterIndex = {};
-    for (const [key, value] of Object.entries(parsed)) {
+    for (const [key, value] of Object.entries(masterIndex)) {
       if (
         typeof value === 'object' &&
         value !== null &&
@@ -58,29 +109,28 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
       ) {
         validated[key] = value as { lastModified: number; deleted: boolean };
       } else {
-        throw new Error('masterIndex is not a valid object');
+        throw new Error('verifyMasterIndex: masterIndex is not a valid object');
       }
     }
-  
     return validated;
   };
   
-  // ----- Sync Master Index ----- //
-  
-  // syncMasterIndex compares local and S3 master indexes and syncs any differences.
-  // for each entry that differs between local and S3, it either:
-  // - downloads from S3 and updates local database (if S3 is newer)
-  // - uploads to S3 (if local is newer)
-  // - handles deletions by removing from the appropriate location
-  // returns the final synced master index
+  /**
+   * Syncs the master index between local and S3.
+   *
+   * @param {MasterIndex} localMasterIndex - The local master index.
+   * @param {MasterIndex} s3MasterIndex - The S3 master index.
+   * @returns {Promise<MasterIndex>} The synced master index.
+   * @throws Will throw an error if the S3 client or config is not found.
+   */
   export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): Promise<MasterIndex> => {
     console.log('syncing master index');
     if (!state.AWSClient) {
-      throw new Error('no s3 client found');
+      throw new Error('syncMasterIndex: no s3 client found');
     }
   
     if (!state.AWSConfig) {
-      throw new Error('no aws config found');
+      throw new Error('syncMasterIndex: no aws config found');
     }
   
     const syncedIndex: MasterIndex = {};
@@ -101,14 +151,14 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
           const bodyString = body ? new TextDecoder().decode(body) : '{}';
           const entry = JSON.parse(bodyString) as Entry;
           if (!entry) {
-            throw new Error(`error creating s3 entry ${id}`);
+            throw new Error(`syncMasterIndex: error creating s3 entry ${id}`);
           }
-          console.log('creating local entry', id);
+          console.log('syncMasterIndex: creating local entry', id);
           await idbCreateEntry(id, entry);
           syncedIndex[id] = s3Index;
           continue;
         } catch (error) {
-          console.error(`error creating local entry ${id}:`);
+          console.error(`syncMasterIndex: error creating local entry ${id}:`);
           throw error;
         }
       }
@@ -116,16 +166,16 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
       // s3 entry does not exist, create it
       if (!s3Index) {
         try {
-          const entry = await idbGetEntryById(id) as Entry;
+          const entry = await idbGetEntryById(id);
           if (!entry) {
-            throw new Error(`error retrieving local entry ${id}`);
+            throw new Error(`syncMasterIndex: error retrieving local entry ${id}`);
           }
-          console.log('creating s3 entry', id);
+          console.log('syncMasterIndex: creating s3 entry', id);
           await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
           syncedIndex[id] = localIndex;
           continue;
         } catch (error) {
-          console.error(`error creating s3 entry ${id}:`);
+          console.error(`syncMasterIndex: error creating s3 entry ${id}:`);
           throw error;
         }
       }
@@ -133,36 +183,36 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
       // local entry is newer, update s3 bucket entry
       if (localIndex.lastModified > s3Index.lastModified) {
         if (localIndex.deleted) {
-          console.log(`local entry is deleted, deleting s3 entry ${id}`);
+          console.log(`syncMasterIndex: local entry is deleted, deleting s3 entry ${id}`);
           // local entry is deleted, delete s3 entry
           try {
             await state.AWSClient.send(new DeleteObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
             syncedIndex[id] = localIndex;
             continue;
           } catch (error) {
-            console.error(`error deleting s3 entry ${id}:`);
+            console.error(`syncMasterIndex: error deleting s3 entry ${id}:`);
             throw error;
           }
         }
   
         // update s3 entry
-        let entry: Entry;
+        let entry: Entry | null;
         try {
-          entry = await idbGetEntryById(id) as Entry;
+          entry = await idbGetEntryById(id);
           if (!entry) {
-            throw new Error(`error retrieving local entry ${id}`);
+            throw new Error(`syncMasterIndex: error retrieving local entry ${id}`);
           }
         } catch (error) {
-          console.error(`error retrieving local entry ${id}:`);
+          console.error(`syncMasterIndex: error retrieving local entry ${id}:`);
           throw error;
         }
         try {
-          console.log(`creating s3 entry ${id}`);
+          console.log(`syncMasterIndex: creating s3 entry ${id}`);
           await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
           syncedIndex[id] = localIndex;
           continue;
         } catch (error) {
-          console.error(`error creating s3 entry ${id}`);
+          console.error(`syncMasterIndex: error creating s3 entry ${id}`);
           throw error;
         }
       }
@@ -175,7 +225,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
             syncedIndex[id] = s3Index;
             continue;
           } catch (error) {
-            console.error(`failed to delete local entry ${id}:`, error);
+            console.error(`syncMasterIndex: failed to delete local entry ${id}:`, error);
             throw error;
           }
         }

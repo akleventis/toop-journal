@@ -224,11 +224,12 @@ export function Password() {
 }
 
 export function AWSConfig() {
+    const defaultConfig: S3Config = { aws_access: '', aws_secret: '', aws_bucket: '', aws_region: '' }
     const [awsConfig, setAwsConfig] = useState<S3Config | null>(null)
-    const [formData, setFormData] = useState<S3Config>({ aws_access: '', aws_secret: '', aws_bucket: '', aws_region: '' })
+    const [formData, setFormData] = useState<S3Config>(defaultConfig)
     const [isEnabled, setIsEnabled] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
-    const [syncStatus, setSyncStatus] = useState<string>('Sync Data')
+    const [syncStatus, setSyncStatus] = useState<string>('Sync')
 
     useEffect(() => {
         const getConfig = async () => {
@@ -268,10 +269,16 @@ export function AWSConfig() {
             setAwsConfig(formData)
             setIsEnabled(true)
         } catch (error) {
+            setFormData(awsConfig ?? defaultConfig)
             alert('AWS config failed, please verify credentials')
             return
         }
         alert('AWS config verified')
+        setModalOpen(false)
+    }
+
+    const handleCancelAWS = () => {
+        setFormData(awsConfig ?? defaultConfig)
         setModalOpen(false)
     }
 
@@ -284,7 +291,7 @@ export function AWSConfig() {
         } catch (error) {
             alert('Sync failed')
         } finally {
-            setSyncStatus('Sync Data')
+            setSyncStatus('Sync')
         }
     }
 
@@ -306,7 +313,7 @@ export function AWSConfig() {
             {isEnabled && (
                 <div style={{ display: 'flex', gap: '5px' }}>
                     <button style={{ fontSize: '12px' }} onClick={() => setModalOpen(true)}>Edit</button>
-                    <button style={{ fontSize: '12px' }} onClick={() => handleSyncAWS()}>{syncStatus ? syncStatus : 'Sync Data'}</button>
+                    <button style={{ fontSize: '12px' }} onClick={() => handleSyncAWS()}>{syncStatus ? syncStatus : 'Sync'}</button>
                 </div>
             )}
             </div>
@@ -314,12 +321,12 @@ export function AWSConfig() {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(28, 28, 28, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '250px' }}>
                         <p style={{ textAlign: 'center' }}>AWS Config</p>
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Access Key" value={awsConfig?.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Secret Key" value={awsConfig?.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Bucket" value={awsConfig?.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Region" value={awsConfig?.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
+                        <input type="text" style={{ fontSize: '10px' }} placeholder="Access Key" value={formData?.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
+                        <input type="text" style={{ fontSize: '10px' }} placeholder="Secret Key" value={formData?.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
+                        <input type="text" style={{ fontSize: '10px' }} placeholder="Bucket" value={formData?.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
+                        <input type="text" style={{ fontSize: '10px' }} placeholder="Region" value={formData?.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
                         <button onClick={handleSaveAWS}>Save</button>
-                        <button onClick={() => setModalOpen(false)}>Cancel</button>
+                        <button onClick={handleCancelAWS}>Cancel</button>
                     </div>
                 </div>
             )}

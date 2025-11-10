@@ -1,4 +1,10 @@
-// Validates ID format: "feb.25.2018"
+/**
+ * Validates ID format: "feb.25.2018"
+ *
+ * @param {string} id - The ID to validate.
+ * @returns {void}
+ * @throws {Error} If the ID is not in the correct format.
+ */
 export function validateID(id: string): void {
   const regex = /^[a-z]{3}\.\d{1,2}\.\d{4}$/;
   if (!regex.test(id)) {
@@ -6,7 +12,12 @@ export function validateID(id: string): void {
   }
 }
 
-// Returns the date parts of a journal date string
+/**
+ * Returns the date parts of a journal date string.
+ *
+ * @param {string} dateStr - The date string to parse.
+ * @returns {Object} An object containing the year, month, day, and weekday.
+ */
 export function getDateParts(dateStr: string) {
   const date = new Date(dateStr.replace(/ at .*/, ''));
   return {
@@ -17,7 +28,13 @@ export function getDateParts(dateStr: string) {
   };
 }
 
-// Validates date format: "Feb 27, 2018 at 15:14:10"
+/**
+ * Validates date format: "Feb 27, 2018 at 15:14:10"
+ *
+ * @param {string} date - The date to validate.
+ * @returns {void}
+ * @throws {Error} If the date is not in the correct format.
+ */
 export function validateDate(date: string): void {
   const regex = /^[A-Z][a-z]{2} \d{1,2}, \d{4} at \d{2}:\d{2}:\d{2}$/;
   if (!regex.test(date)) {
@@ -25,7 +42,11 @@ export function validateDate(date: string): void {
   }
 }
 
-// Formats current date to "Feb 27, 2018 at 15:14:10"
+/**
+ * Formats current date to "Feb 27, 2018 at 15:14:10"
+ *
+ * @returns {string} The formatted date.
+ */
 export function formatCurrentDate(): string {
   const now = new Date();
   const month = now.toLocaleString('en-US', { month: 'short' });
@@ -39,7 +60,11 @@ export function formatCurrentDate(): string {
   return `${month} ${day}, ${year} at ${time}`;
 }
 
-// Formats current date to "2018-02-27"
+/**
+ * Formats current date to "2018-02-27"
+ *
+ * @returns {string} The formatted date.
+ */
 export function formatCurrentDateToYearMonthDay(): string {
   const now = new Date();
   const year = now.getFullYear();
@@ -48,7 +73,13 @@ export function formatCurrentDateToYearMonthDay(): string {
   return `${year}-${month}-${day}`;
 }
 
-// Parses a journal date string in the format 'May 26, 2018 at 16:00:00' to a timestamp
+/**
+ * Parses a journal date string in the format 'May 26, 2018 at 16:00:00' to a timestamp
+ *
+ * @param {string} dateStr - The date string to parse.
+ * @returns {number} The timestamp.
+ * @throws {Error} If the date string is not in the correct format.
+ */
 export function parseJournalDate(dateStr: string): number {
   const [datePart, timePart] = dateStr.split(' at ');
   if (!datePart || !timePart) return NaN;
@@ -76,21 +107,36 @@ export function parseJournalDate(dateStr: string): number {
   return new Date(iso).getTime();
 }
 
-// Generates ID in format: "feb.25.2018"
+/**
+ * Generates ID in format: "feb.25.2018"
+ *
+ * @param {string} date - The date to generate the ID from.
+ * @returns {string} The generated ID.
+ */
 export function generateIdFromDate(date: string): string {
   const [datePart] = date.split(' at ');
   const [month, day, year] = datePart.replace(',', '').split(' ');
   return `${month.toLowerCase()}.${day}.${year}`;
 }
 
-// Encodes HTML entities in a string
+/**
+ * Encodes HTML entities in a string.
+ *
+ * @param {string} rawHtml - The HTML string to encode.
+ * @returns {string} The encoded HTML string.
+ */
 export function encodeHtmlEntities(rawHtml: string): string {
   const textarea = document.createElement('textarea');
   textarea.textContent = rawHtml;
   return textarea.innerHTML;
 }
 
-// Formats a date from ID (e.g., "jun.13.2025") with current time
+/**
+ * Formats a date from ID (e.g., "jun.13.2025") with current time.
+ *
+ * @param {string} id - The ID to format.
+ * @returns {string} The formatted date.
+ */
 export function formatDateFromId(id: string): string {
   const currentDateStr = formatCurrentDate();
   const timePart = currentDateStr.split(' at ')[1];
@@ -99,7 +145,12 @@ export function formatDateFromId(id: string): string {
   return `${month.charAt(0).toUpperCase() + month.slice(1)} ${day}, ${year} at ${timePart}`;
 }
 
-// Converts journal date format to YYYY-MM-DD format for calendar matching
+/**
+ * Converts journal date format to YYYY-MM-DD format for calendar matching.
+ *
+ * @param {string} journalDate - The journal date to convert.
+ * @returns {string} The converted date.
+ */
 export function journalDateToCalendarFormat(journalDate: string): string {
   const [datePart] = journalDate.split(' at ');
   const [month, day, year] = datePart.replace(',', '').split(' ');
@@ -108,12 +159,24 @@ export function journalDateToCalendarFormat(journalDate: string): string {
   return `${year}-${String(monthIndex).padStart(2, '0')}-${String(parseInt(day)).padStart(2, '0')}`;
 }
 
-// Creates YYYY-MM-DD format from year, month, and day numbers
+/**
+ * Creates YYYY-MM-DD format from year, month, and day numbers.
+ *
+ * @param {number} year - The year.
+ * @param {number} month - The month.
+ * @param {number} day - The day.
+ * @returns {string} The created date.
+ */
 export function createCalendarDate(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-// Converts YYYY-MM-DD format to journal date format with current time
+/**
+ * Converts YYYY-MM-DD format to journal date format with current time.
+ *
+ * @param {string} calendarDate - The calendar date to convert.
+ * @returns {string} The converted date.
+ */
 export function calendarDateToJournalFormat(calendarDate: string): string {
   const [year, month, day] = calendarDate.split('-');
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -126,7 +189,12 @@ export function calendarDateToJournalFormat(calendarDate: string): string {
   return `${monthName} ${parseInt(day)}, ${year} at ${currentTime}`;
 }
 
-// Simple hash function for passwords
+/**
+ * Simple hash function for passwords.
+ *
+ * @param {string} password - The password to hash.
+ * @returns {string} The hashed password.
+ */
 export function hashPassword(password: string): string {
   let hash = 0;
   for (let i = 0; i < password.length; i++) {
@@ -140,6 +208,12 @@ export function hashPassword(password: string): string {
 const __decodeCache = new Map<string, string>();
 let __decoder: HTMLTextAreaElement | null = null;
 
+/**
+ * Decodes HTML entities in a string.
+ *
+ * @param {string} encoded - The encoded string to decode.
+ * @returns {string} The decoded string.
+ */
 export function decodeHtmlEntities(encoded: string): string {
   const cached = __decodeCache.get(encoded);
   if (cached !== undefined) return cached;

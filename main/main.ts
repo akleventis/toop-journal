@@ -1,10 +1,9 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'node:path';
-import { cloudSyncPipeline } from './cloudSync';
 import { updateConfig, getConfig, createConfig, deleteConfig } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
-import { putEntryCloudSync, deleteEntryCloudSync } from './cloudsync/transact';
+import { putEntryCloudSync, deleteEntryCloudSync, cloudSyncPipeline } from './cloudsync/transact';
 
 const isDev = !app.isPackaged;
 
@@ -60,7 +59,7 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-// user data path functions
+// AWS config functions
 ipcMain.handle('cloud-sync:createConfig', (_, config: S3Config) => {
   return createConfig(config);
 });
@@ -77,12 +76,12 @@ ipcMain.handle('cloud-sync:getConfig', async () => {
   return getConfig();
 });
 
-// aws sync functions
+// aws client functions
 ipcMain.handle('cloud-sync:initS3Client', async () => {
   await initS3Client();
 });
 
-// sync data
+// cloud sync pipeline functions
 ipcMain.handle('cloud-sync:cloudSyncPipeline', async () => {
   return await cloudSyncPipeline();
 });

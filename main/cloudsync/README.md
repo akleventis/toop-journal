@@ -9,21 +9,22 @@ This feature enables syncing journal entries with an S3 bucket using a `masterIn
 AWS credentials are configured through the UI in the **More** page. The configuration is stored in the user data directory (`config.json`).
 
 To enable cloud sync:
-1. Navigate to the **More** page
-2. Find the "AWS Cloud Sync" section
-3. Toggle the switch to enable cloud sync
-4. Enter your AWS credentials:
+1. Navigate to the **More** page "AWS Cloud Sync" section
+2. Toggle the switch to enable cloud sync
+3. Enter your AWS credentials:
    - **Access Key**: AWS Access Key ID
    - **Secret Key**: AWS Secret Access Key
    - **Bucket**: Name of your S3 bucket
    - **Region**: AWS region where the bucket is located
-5. Click "Save" to validate and save the configuration
+4. Click "Save" to validate and save the configuration
+5. Credentials will be tested against your S3 bucket
+6. `masterIndex.json` & `/entries/*` files are auto-created upon successful configuration
+7. Sync will occur upon app start-up or manually by clicking the 'Sync' button
 
 On app startup, the following will happen:
 1. The app will attempt to read your AWS config from the user data directory
 2. If found, it will validate the AWS credentials by checking access to the specified bucket
 3. If the file is missing or misconfigured, cloud sync will be disabled
-4. `masterIndex.json` & `/entries/*` files are auto-created upon successful configuration
 
 ### Required AWS Policy
 The following permissions must be attached to the IAM user associated with your credentials:
