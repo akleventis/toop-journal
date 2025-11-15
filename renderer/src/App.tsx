@@ -28,7 +28,6 @@ const preloadHtmlDecodeCache = async () => {
 }
 
 function AppContent() {
-  console.log("AppContent")
   const [entries, setEntries] = useState<Entry[]>([])
   const location = useLocation();
   const navigate = useNavigate();

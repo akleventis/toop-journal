@@ -1,8 +1,6 @@
 # Personal Journal App
 
-I've been writing to a journal every day since 2018. Over the past year, the journal app I've been using has become increasingly buggy as I believe I've been overloading it with years of entries. Since it wasn't built for scale, I decided to create a robust, bulletproof alternative with cloud syncing to persist my entries and fully migrate off the current app. 
-
-Electron-based application built with React, featuring local IndexedDB storage and optional AWS S3 cloud synchronization for reliable, long-term data persistence.
+I've been writing to a journal every day since 2018. Over the past year, the journal app I've been using has become increasingly buggy as I've overloaded it with years of entries. Since it wasn't built for scale, I decided to create an alternative with cloud syncing to persist my entries and fully eventually migrate off the current app. 
 
 ## Features
 
@@ -15,8 +13,8 @@ Electron-based application built with React, featuring local IndexedDB storage a
 
 ## Tech Stack
 
-- **Electron** (v37.1.0) - Desktop app framework
-- **React** (v19.1.0) - UI framework
+- **Electron** Desktop app framework
+- **React** UI framework
 - **TypeScript** - Type safety
 - **Vite** - Build tool for renderer process
 - **React Router** - Client-side routing
@@ -28,15 +26,18 @@ Electron-based application built with React, featuring local IndexedDB storage a
 
 ```
 toop-journal/
-├── main/              # Electron main process (Node.js)
-│   ├── main.ts       # Main window setup & IPC handlers
-│   └── cloudSync.ts  # AWS S3 sync logic
-├── renderer/          # React frontend (browser context)
-│   ├── src/          # React components & pages
-│   ├── db/           # IndexedDB operations
-│   └── lib/          # Utilities, types, hooks
-├── preload/          # Preload scripts (bridge between main & renderer)
-└── cloudsync/        # Cloud sync configuration files
+├── main/               # electron main process (node.js)
+│   ├── main.ts         # main window setup & ipc handlers
+│   └── cloudsync/      # aws s3 sync logic
+│       ├── aws_client.ts
+│       ├── aws_config.ts
+│       ├── master_index.ts
+│       └── transact.ts
+├── renderer/           # react frontend (browser context)
+│   ├── src/            # react components & pages
+│   ├── db/             # indexeddb operations
+│   └── lib/            # utilities, types, hooks
+└── preload/            # preload scripts (bridge between main & renderer)
 ```
 
 ## Installation
@@ -68,43 +69,22 @@ This runs:
 - Vite dev server on `http://localhost:5173`
 - TypeScript compilation for main process
 
-## Building
-
-### Build main process:
-```bash
-npm run build:main
-```
-
-### Build renderer:
-```bash
-cd renderer
-npm run build
-```
-
-### Package application:
-```bash
-npm run app:dir    # Build app directory (for testing)
-npm run app:dist   # Create distributable (DMG on macOS)
-```
-
-Built files are output to `release/` directory.
+## Build
+todo
 
 ## Cloud Sync Setup
 
-Cloud sync is optional and uses AWS S3 for backup and synchronization. See [cloudsync/README.md](cloudsync/README.md) for detailed setup instructions.
+Cloud sync is optional and uses AWS S3 for backup and synchronization. See [main/cloudsync/README.md](main/cloudsync/README.md) for detailed setup instructions.
 
 Quick setup:
-1. Create `/cloudsync/config.json` with your AWS credentials
-2. Configure S3 bucket with appropriate IAM permissions
-3. App will automatically sync entries on create/update/delete
+1. Configure S3 bucket with appropriate IAM permissions
+1. Configure AWS credentials through the app's settings (stored in UserData directory)
+1. App will automatically sync entries on create/update/delete
 
 ## Scripts
 
 - `npm start` - Start dev environment (Electron + Vite)
-- `npm run electron` - Run Electron with built main process
-- `npm run build:main` - Compile TypeScript main process
-- `npm run app:dir` - Build app directory for testing
-- `npm run app:dist` - Create distributable package
+- todo
 
 ## License
 

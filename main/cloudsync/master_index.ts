@@ -4,7 +4,7 @@
  * Handles loading, saving, and syncing the master index between local storage and S3.
  *
  * Storage locations:
- * - Local: `/cloudsync/masterIndex.json` (gitignored, created after successful cloud sync setup)
+ * - Local: `main/cloudsync/masterIndex.json` (gitignored, created after successful cloud sync setup)
  * - S3: `{bucket_name}/masterIndex.json` (auto-created after successful cloud sync configuration)
  *
  * Overview:
@@ -70,7 +70,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
   // Throws an error on nil local filesystem, does not exist, or invalid format.
   export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
     console.log('loading local master index');
-    const masterIndexPath = path.resolve(process.cwd(), 'cloudsync', state.MasterIndexFileName);
+    const masterIndexPath = path.join(process.cwd(), 'main', 'cloudsync', state.MasterIndexFileName);
     if (!fs.existsSync(masterIndexPath)) {
       throw new Error('loadLocalMasterIndex: local master index file does not exist');
     }
