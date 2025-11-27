@@ -310,12 +310,12 @@ export function AWSConfig() {
                         style={{ left: isEnabled ? '17px' : '2px' }}
                     />
                 </div>
-            {isEnabled && (
-                <div style={{ display: 'flex', gap: '5px' }}>
-                    <button style={{ fontSize: '12px' }} onClick={() => setModalOpen(true)}>Edit</button>
-                    <button style={{ fontSize: '12px' }} onClick={() => handleSyncAWS()}>{syncStatus ? syncStatus : 'Sync'}</button>
-                </div>
-            )}
+                {isEnabled && (
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                        <button style={{ fontSize: '12px' }} onClick={() => setModalOpen(true)}>Edit</button>
+                        <button style={{ fontSize: '12px' }} onClick={() => handleSyncAWS()}>{syncStatus ? syncStatus : 'Sync'}</button>
+                    </div>
+                )}
             </div>
             {modalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(28, 28, 28, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

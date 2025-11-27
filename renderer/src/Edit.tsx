@@ -60,7 +60,6 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
         displayNav={true}
         editable={false}
         entry={entry}
-        isNewEntry={false}
         onNavigate={handleNavigate}
       />
     </div>

@@ -11,7 +11,6 @@ interface TextEditProps {
     displayNav: boolean; // display settings and navigation buttons
     editable: boolean; // true if editable
     entry: Entry | null; // entry to view or edit
-    isNewEntry: boolean; // true if creating a new entry
     onNavigate?: (direction: NavDirection) => void; // navigate to previous or next entry (if in view mode)
 }
 
@@ -19,7 +18,6 @@ const TextEditor: React.FC<TextEditProps> = ({
     displayNav,
     editable,
     entry,
-    isNewEntry,
     onNavigate
 }) => {
     const [html, setHtml] = useState('');
@@ -42,13 +40,19 @@ const TextEditor: React.FC<TextEditProps> = ({
     const handleSave = async () => {
         const encodedHtml = encodeHtmlEntities(html);
 
-        console.log("encodedHtml", encodedHtml.trim().length);
         if (encodedHtml.trim() === '') {
             navigate('/list');
             return;
         }
 
-        if (isNewEntry) {
+        let exists = false;
+        if (entry) {
+            exists = await idb.idbGetEntryById(entry.id) !== null;
+        }
+
+        if (exists && entry) {
+            await idb.idbUpdateEntry(entry.id, { content: encodedHtml });
+        } else {
             const entryDate = formatCurrentDate();
             const entry: Entry = {
                 id: generateIdFromDate(entryDate),
@@ -57,8 +61,6 @@ const TextEditor: React.FC<TextEditProps> = ({
                 timestamp: Date.now()
             };
             await idb.idbCreateEntry(entry);
-        } else if (entry) {
-            await idb.idbUpdateEntry(entry.id, { content: encodedHtml });
         }
         navigate('/list?reload=true');
     };
@@ -71,8 +73,8 @@ const TextEditor: React.FC<TextEditProps> = ({
         if (e.key === 'Tab') {
             e.preventDefault();
             document.execCommand('insertText', false, '    ');
-          }
-      };
+        }
+    };
 
     const toggleEditMode = () => {
         setEditableState(true);

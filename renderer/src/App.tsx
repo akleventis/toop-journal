@@ -73,9 +73,13 @@ function AppContent() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <NavBar activeTab={location.pathname} />
+      <ListView 
+        entries={entries} 
+        loadEntries={loadEntries}
+        style={{ display: location.pathname === '/list' ? 'block' : 'none' }}
+      />
       <Routes>
         <Route path="/" element={null} />
-        <Route path="/list" element={<ListView entries={entries} loadEntries={loadEntries} />} />
         <Route path="/calendar" element={<Calendar entries={entries} loadEntries={loadEntries} />} />
         <Route path="/more" element={<More />} />
         <Route path="/new" element={<New />} />

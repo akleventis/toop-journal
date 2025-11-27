@@ -35,7 +35,6 @@ const New: React.FC = () => {
         entry={todaysEntry}
         displayNav={false}
         editable={true}
-        isNewEntry={true}
       />
     </div>
   );
