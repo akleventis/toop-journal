@@ -15,6 +15,7 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
   const reload = searchParams.get('reload') === 'true'
   const [mappedEntries, setMappedEntries] = useState<React.ReactNode[]>([])
   const [searchValue, setSearchValue] = useState('');
+  const [submittedSearchValue, setSubmittedSearchValue] = useState('');
 
   const handleEntryClick = (entryId: string) => {
     navigate(`/edit?id=${entryId}`)
@@ -22,16 +23,35 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(searchValue);
+    setSubmittedSearchValue(searchValue);
   }
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
   }
 
+  const handleClearSearch = () => {
+    setSearchValue("");
+    setSubmittedSearchValue("");
+  }
+
+
+  // Filter entries based on submitted search value
+  const filteredEntries = useMemo(() => {
+    if (!submittedSearchValue.trim()) {
+      return entries;
+    }
+    const searchLower = submittedSearchValue.toLowerCase();
+    return entries.filter(entry => {
+      console.log("filter memo")
+      const decodedContent = decodeHtmlEntities(entry.content).toLowerCase();
+      return decodedContent.includes(searchLower);
+    });
+  }, [entries, submittedSearchValue]);
+
   // initial mount, reloads 
   useEffect(() => {
-    if (entries.length > 0) return
+    if (entries.length > 0) return 
     loadEntries()
   }, [])
 
@@ -44,7 +64,7 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
 
   // component stays mounted, useMemo to save entries mapping in memory
   useMemo(() => {
-    const mappedEntries = entries.map(entry => {
+    const mappedEntries = filteredEntries.map(entry => {
       const { year, month, day, weekday } = getDateParts(entry.date)
       return (
         <div
@@ -79,7 +99,7 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
       )
     })
     setMappedEntries(mappedEntries)
-  }, [entries]);
+  }, [filteredEntries]);
 
   // avoid double rendering when reload is true
   if (reload) return null;
@@ -87,11 +107,14 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
   return (
     <div style={{ overflowY: 'auto', height: '100vh', ...style }} >
       {mappedEntries}
-      <div style={{ position: 'sticky', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', bottom: 0, width: '100%', height: '25px', backgroundColor: 'var(--app-bg)' }}>
-        <form onSubmit={handleSearchSubmit}>
-          <input type='text' placeholder='Search' style={{ padding: '2px', fontSize: '10px', outline: 'none' }} onChange={handleSearchChange} />
-        </form>
-      </div>
+      {mappedEntries.length > 0 && (
+        <div style={{ position: 'sticky', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', bottom: 0, width: '100%', height: '25px', backgroundColor: 'var(--app-bg)' }}>
+          <form onSubmit={handleSearchSubmit}>
+            <input type='text' placeholder='Search' value={searchValue} style={{ padding: '2px', fontSize: '10px', outline: 'none' }} onChange={handleSearchChange} />
+          </form>
+          {searchValue.length > 0 && <button type='button' style={{fontSize: '10px'}} onClick={handleClearSearch}>Clear</button>}
+        </div>
+      )}
     </div>
   )
 }

@@ -287,7 +287,7 @@ export function AWSConfig() {
         setSyncStatus('Syncing...')
         try {
             const success = await window.cloudSync.cloudSyncPipeline()
-            success ? setSyncStatus('Success') : setSyncStatus('Sync failed')
+            success ? alert('Success') : alert('Sync failed')
         } catch (error) {
             alert('Sync failed')
         } finally {

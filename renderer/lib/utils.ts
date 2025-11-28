@@ -217,7 +217,6 @@ let __decoder: HTMLTextAreaElement | null = null;
 export function decodeHtmlEntities(encoded: string): string {
   const cached = __decodeCache.get(encoded);
   if (cached !== undefined) return cached;
-  console.log('decodeHtmlEntities not cached');
   if (!__decoder) __decoder = document.createElement('textarea');
   __decoder.innerHTML = encoded;
   const v = __decoder.value || '';
