@@ -13,19 +13,22 @@
     "start": "concurrently -k \"npm run electron\" \"npm --prefix renderer run dev\"",
     "electron": "npm run build:main && electron dist/main/main.js",
     "build:main": "tsc -p tsconfig.main.json",
+    "rebuild": "electron-rebuild",
     "app:dir": "electron-builder --dir",
     "app:dist": "electron-builder"
   },
   "license": "ISC",
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "concurrently": "^9.2.0",
     "electron": "^37.1.0",
-    "typescript": "^5.8.3",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "electron-rebuild": "^3.2.9",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
-    "idb": "^8.0.3"
+    "better-sqlite3": "^12.6.0"
   },
   "build": {
     "appId": "com.toopjournal.app",

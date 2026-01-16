@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import * as idb from '../db/idb';
+import * as db from '../db/db';
 
 /**
  * usePasswordProtection hook to handle password protection and initialize app.
@@ -15,10 +15,8 @@ export const usePasswordProtection = () => {
   }, [])
 
   const initializeApp = async () => {
-    try {
-      await idb.initIDB()
-      
-      const hash = await idb.idbGetPasswordHash()
+    try {      
+      const hash = await db.getPasswordHash()
       if (hash && hash !== '') {
         setPasswordProtected(true)
       } else {
@@ -36,7 +34,7 @@ export const usePasswordProtection = () => {
 
   const updatePasswordProtection = async () => {
     try {
-      const hash = await idb.idbGetPasswordHash()
+      const hash = await db.getPasswordHash()
       if (hash && hash !== '') {
         setPasswordProtected(true)
         setPasswordVerified(false)

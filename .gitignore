@@ -24,3 +24,4 @@ notes.txt
 release/
 aws_config.json
 masterIndex.json
+journal.db

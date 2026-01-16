@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import * as idb from '../db/idb'
+import * as db from '../db/db'
 import { hashPassword, decodeHtmlEntities } from '../lib/utils'
 import { usePasswordProtection } from '../lib/hooks'
 import { S3Config } from '../lib/types'
@@ -36,7 +36,7 @@ export function ExportEntries() {
         try {
             const startTs = new Date(startDate).getTime()
             const endTs = new Date(endDate).getTime()
-            const entries = await idb.idbGetEntriesBetweenTimestamps(startTs, endTs)
+            const entries = await db.getEntriesBetweenTimestamps(startTs, endTs)
 
             if (entries.length === 0) {
                 alert('No entries found in selected date range')
@@ -152,7 +152,7 @@ export function Password() {
     const handleTogglePassword = async () => {
         // password is protected already, just clear out password, no need to input
         if (passwordProtected) {
-            await idb.idbSetPasswordHash('')
+            await db.setPasswordHash('')
             setShowPasswordInput(false)
             setPassword('')
             await updatePasswordProtection()
@@ -166,7 +166,7 @@ export function Password() {
         if (!passwordProtected) {
             try {
                 const hash = hashPassword(password)
-                await idb.idbSetPasswordHash(hash)
+                await db.setPasswordHash(hash)
                 setShowPasswordInput(false)
                 setPassword('')
                 // update password protection state without reloading

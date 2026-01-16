@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Editor, { Toolbar } from 'react-simple-wysiwyg';
 import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
-import * as idb from '../../db/idb';
+import * as db from '../../db/db';
 import type { Entry } from '../../lib/types';
 import { decodeHtmlEntities, encodeHtmlEntities, formatCurrentDate, generateIdFromDate } from '../../lib/utils';
 import { NavDirection } from '../../lib/constants';
@@ -30,7 +30,7 @@ const TextEditor: React.FC<TextEditProps> = ({
         if (entry) {
             const confirmed = window.confirm('Are you sure you want to delete this entry?');
             if (confirmed) {
-                await idb.idbDeleteEntry(entry.id);
+                await db.deleteEntry(entry.id);
                 navigate('/list?reload=true');
             }
         }
@@ -47,11 +47,11 @@ const TextEditor: React.FC<TextEditProps> = ({
 
         let exists = false;
         if (entry) {
-            exists = await idb.idbGetEntryById(entry.id) !== null;
+            exists = await db.getEntryById(entry.id) !== null;
         }
 
         if (exists && entry) {
-            await idb.idbUpdateEntry(entry.id, { content: encodedHtml });
+            await db.updateEntry(entry.id, { content: encodedHtml });
         } else {
             const entryDate = formatCurrentDate();
             const entry: Entry = {
@@ -60,7 +60,7 @@ const TextEditor: React.FC<TextEditProps> = ({
                 content: encodedHtml,
                 timestamp: Date.now()
             };
-            await idb.idbCreateEntry(entry);
+            await db.createEntry(entry);
         }
         navigate('/list?reload=true');
     };

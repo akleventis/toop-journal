@@ -4,6 +4,7 @@ import { updateConfig, getConfig, createConfig, deleteConfig } from './cloudsync
 import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
 import { putEntryCloudSync, deleteEntryCloudSync, cloudSyncPipeline } from './cloudsync/transact';
+import * as db from './db/sqlite';
 
 const isDev = !app.isPackaged;
 
@@ -95,23 +96,39 @@ ipcMain.handle('cloud-sync:deleteEntryCloudSync', async (_, id: string) => {
   await deleteEntryCloudSync(id);
 });
 
-// IndexedDB operations called from main process; errors bubble up to the main process
-ipcMain.handle('idb:createEntry', async (_, id: string, entry: Entry) => {
-  if (!mainWindow) throw new Error('No renderer window available');
-  return await mainWindow.webContents.executeJavaScript(`window.idbCreateEntry('${id}', ${JSON.stringify(entry)})`);
+// SQLite operations called from main process; errors bubble up to the main process
+ipcMain.handle('sqlite:getEntries', () => {
+  return db.getEntries();
 });
 
-ipcMain.handle('idb:getEntryById', async (event, id: string) => {
-  if (!mainWindow) throw new Error('No renderer window available');
-  return await mainWindow.webContents.executeJavaScript(`window.idbGetEntryById('${id}')`);
+ipcMain.handle('sqlite:getEntryById', (event, id: string) => {
+  return db.getEntryById(id);
 });
 
-ipcMain.handle('idb:updateEntry', async (event, id: string, updates: any) => {
-  if (!mainWindow) throw new Error('No renderer window available');
-  return await mainWindow.webContents.executeJavaScript(`window.idbUpdateEntry('${id}', ${JSON.stringify(updates)})`);
+ipcMain.handle('sqlite:getMostRecentEntry', () => {
+  return db.getMostRecentEntry();
 });
 
-ipcMain.handle('idb:deleteEntry', async (event, id: string) => {
-  if (!mainWindow) throw new Error('No renderer window available');
-  return await mainWindow.webContents.executeJavaScript(`window.idbDeleteEntry('${id}')`);
+ipcMain.handle('sqlite:getEntriesBetweenTimestamps', (event, startTs: number, endTs: number) => {
+  return db.getEntriesBetweenTimestamps(startTs, endTs);
+});
+
+ipcMain.handle('sqlite:createEntry', (event, entry: Entry) => {
+  return db.createEntry(entry);
+});
+
+ipcMain.handle('sqlite:updateEntry', (event, id: string, entry: Entry) => {
+  return db.updateEntry(id, entry);  
+});
+
+ipcMain.handle('sqlite:deleteEntry', (event, id: string) => {
+  return db.deleteEntry(id);
+});
+
+ipcMain.handle('sqlite:getPasswordHash', () => {
+  return db.getPasswordHash();
+});
+
+ipcMain.handle('sqlite:setPasswordHash', (event, passwordHash: string) => {
+  return db.setPasswordHash(passwordHash);
 });

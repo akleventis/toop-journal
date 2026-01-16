@@ -11,6 +11,18 @@ export interface CloudSyncAPI {
   deleteEntryCloudSync: (id: string) => Promise<void>,
 }
 
+export interface SQLiteAPI {
+  getEntries: () => Promise<Entry[]>,
+  getEntryById: (id: string) => Promise<Entry | null>,
+  getMostRecentEntry: () => Promise<Entry | null>,
+  getEntriesBetweenTimestamps: (startTs: number, endTs: number) => Promise<Entry[]>,
+  createEntry: (entry: Entry) => Promise<void>,
+  updateEntry: (id: string, entry: Entry) => Promise<void>,
+  deleteEntry: (id: string) => Promise<void>,
+  getPasswordHash: () => Promise<string | null>,
+  setPasswordHash: (passwordHash: string) => Promise<void>,
+}
+
 export interface NetworkAPI {
   onStatusChange: (callback: (online: boolean) => void) => void;
   isOnline: () => boolean;
@@ -19,6 +31,7 @@ export interface NetworkAPI {
 declare global {
   interface Window {
     cloudSync: CloudSyncAPI
+    sqlite: SQLiteAPI
     network: NetworkAPI
   }
 }

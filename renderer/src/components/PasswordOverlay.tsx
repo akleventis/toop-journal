@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import * as idb from '../../db/idb'
+import * as db from '../../db/db'
 import { hashPassword } from '../../lib/utils'
 
 interface PasswordOverlayProps {
@@ -17,7 +17,7 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
 
         try {
             const hash = hashPassword(password)
-            const storedHash = await idb.idbGetPasswordHash()
+            const storedHash = await db.getPasswordHash()
 
             if (hash === storedHash) { 
                 setPassword('')

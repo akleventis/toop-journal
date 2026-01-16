@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { formatCurrentDate, calendarDateToJournalFormat, journalDateToCalendarFormat, formatCurrentDateToYearMonthDay } from '../lib/utils';
 import TextEditor from './components/TextEditor';
 import type { Entry } from '../lib/types';
-import * as idb from '../db/idb';
+import * as db from '../db/db';
 
 const New: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -12,7 +12,7 @@ const New: React.FC = () => {
   // get most recent entry
   useEffect(() => {
     const loadMostRecentEntry = async () => {
-      const entry = await idb.idbGetMostRecentEntry();
+      const entry = await db.getMostRecentEntry();
       if (entry) {
         if (journalDateToCalendarFormat(entry.date) === formatCurrentDateToYearMonthDay()) {
           setTodaysEntry(entry);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import type { Entry } from '../lib/types'
-import * as idb from '../db/idb'
+import * as db from '../db/db'
 import { HashRouter, BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import ListView from './List'
 import Calendar from './Calendar'
@@ -11,7 +11,6 @@ import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
 import { journalDateToCalendarFormat, formatCurrentDateToYearMonthDay, decodeHtmlEntities } from '../lib/utils'
-import { idbGetEntries } from '../db/idb';
 
 // type declaration for the global variable defined in vite.config.ts
 declare global {
@@ -23,7 +22,7 @@ const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
 // preloads decoded HTML to warm cache
 const preloadHtmlDecodeCache = async () => {
-  const entries = await idbGetEntries()
+  const entries = await db.getEntries()
   for (const e of entries) decodeHtmlEntities(e.content)
 }
 
@@ -51,13 +50,13 @@ function AppContent() {
   }, [passwordVerified, location.pathname])
 
   const isTodayFilled = async (): Promise<boolean> => {
-    const latest = await idb.idbGetMostRecentEntry()
+    const latest = await db.getMostRecentEntry()
     if (!latest) return false
     return journalDateToCalendarFormat(latest.date) === formatCurrentDateToYearMonthDay()
   }
 
   const loadEntries = async () => {
-    const entries = await idb.idbGetEntries()
+    const entries = await db.getEntries()
     const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp)
     setEntries(sorted)
   }

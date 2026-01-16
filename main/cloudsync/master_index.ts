@@ -24,11 +24,10 @@
  * }
  * ```
  */
-
-import { state } from './transact';
 import { MasterIndex, Entry } from '../../renderer/lib/types';
 import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { idbCreateEntry, idbGetEntryById, idbUpdateEntry, idbDeleteEntry } from './transact';
+import { state } from './transact';
+import * as db from '../db/sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -154,7 +153,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
             throw new Error(`syncMasterIndex: error creating s3 entry ${id}`);
           }
           console.log('syncMasterIndex: creating local entry', id);
-          await idbCreateEntry(id, entry);
+          db.createEntry(entry);
           syncedIndex[id] = s3Index;
           continue;
         } catch (error) {
@@ -166,7 +165,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
       // s3 entry does not exist, create it
       if (!s3Index) {
         try {
-          const entry = await idbGetEntryById(id);
+          const entry = db.getEntryById(id);
           if (!entry) {
             throw new Error(`syncMasterIndex: error retrieving local entry ${id}`);
           }
@@ -198,7 +197,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
         // update s3 entry
         let entry: Entry | null;
         try {
-          entry = await idbGetEntryById(id);
+          entry = db.getEntryById(id);
           if (!entry) {
             throw new Error(`syncMasterIndex: error retrieving local entry ${id}`);
           }
@@ -221,7 +220,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
       if (localIndex.lastModified < s3Index.lastModified) {
         if (s3Index.deleted) {
           try {
-            await idbDeleteEntry(id);
+            db.deleteEntry(id);
             syncedIndex[id] = s3Index;
             continue;
           } catch (error) {
@@ -244,7 +243,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
         }
         try {
           console.log(`updating local entry ${id}`);
-          await idbUpdateEntry(id, entry);
+          db.updateEntry(id, entry);
           syncedIndex[id] = s3Index;
           continue;
         } catch (error) {

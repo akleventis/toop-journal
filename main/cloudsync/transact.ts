@@ -1,18 +1,9 @@
-/**
- * @file transact.ts — Transaction operations for cloud sync.
- *
- * Contains main pipeline & functions for syncing master indexes & entries between local and S3.
- *
- * Overview:
- * - Transactions are the operations that are performed on s3 & local db, master index, and entries.
- */
-
 import { Entry, MasterIndex, S3Config } from '../../renderer/lib/types';
 import { PutObjectCommand, DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { loadLocalMasterIndex, loadS3MasterIndex, syncMasterIndex } from './master_index';
 import path from 'node:path';
 import fs from 'node:fs';
-import { app, BrowserWindow } from 'electron';
+import { app } from 'electron';
 
 /**
  * State object to store the AWS variables to be shared between cloudsync files.
@@ -201,70 +192,3 @@ export const deleteEntryCloudSync = async (id: string): Promise<void> => {
         throw error;
     }
 };
-
-// ----- Local IDB Database operations (db located on the renderer process) ----- //
-
-/**
- * Gets the main window or null if no window is open.
- *
- * @returns {BrowserWindow | null} The main window, or null if no window is open.
- */
-export const getMainWindow = (): BrowserWindow | null => {
-    const windows = BrowserWindow.getAllWindows();
-    return windows.length > 0 ? windows[0] : null;
-};
-
-/**
- * Gets an entry from the IndexedDB.
- *
- * @param {string} id - The ID of the entry to get.
- * @returns {Promise<Entry | null>} The entry, or null if not found.
- * @throws Will throw an error if the main window is not found.
- */
-export const idbGetEntryById = async (id: string): Promise<Entry | null> => {
-    const mainWindow = getMainWindow();
-    if (!mainWindow) throw new Error('No renderer window available');
-    const entry = await mainWindow.webContents.executeJavaScript(`window.idbGetEntryById('${id}')`);
-    return entry as Entry | null;
-};
-
-/**
- * Creates an entry in the IndexedDB by executing js in the renderer process.
- *
- * @param {string} id - The ID of the entry to create.
- * @param {Entry} entry - The entry to create.
- * @returns {Promise<void>}
- * @throws Will throw an error if the main window is not found.
- */
-export const idbCreateEntry = async (id: string, entry: Entry): Promise<void> => {
-    const mainWindow = getMainWindow();
-    if (!mainWindow) throw new Error('No renderer window available');
-    return await mainWindow.webContents.executeJavaScript(`window.idbCreateEntry('${id}', ${JSON.stringify(entry)})`);
-}
-
-/**
- * Updates an entry in the IndexedDB by executing js in the renderer process.
- *
- * @param {string} id - The ID of the entry to update.
- * @param {Entry} entry - The entry to update.
- * @returns {Promise<void>}
- * @throws Will throw an error if the main window is not found.
- */
-export const idbUpdateEntry = async (id: string, entry: Entry): Promise<void> => {
-    const mainWindow = getMainWindow();
-    if (!mainWindow) throw new Error('No renderer window available');
-    return await mainWindow.webContents.executeJavaScript(`window.idbUpdateEntry('${id}', ${JSON.stringify(entry)})`);
-};
-
-/**
- * Deletes an entry from the IndexedDB by executing js in the renderer process.
- *
- * @param {string} id - The ID of the entry to delete.
- * @returns {Promise<void>}
- * @throws Will throw an error if the main window is not found.
- */
-export const idbDeleteEntry = async (id: string) => {
-    const mainWindow = getMainWindow();
-    if (!mainWindow) throw new Error('No renderer window available');
-    return await mainWindow.webContents.executeJavaScript(`window.idbDeleteEntry('${id}')`);
-}

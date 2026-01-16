@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import TextEditor from './components/TextEditor';
-import * as idb from '../db/idb';
+import * as db from '../db/db';
 import type { Entry } from '../lib/types';
 import { NavDirection } from '../lib/constants';
 
@@ -19,7 +19,7 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
     const loadEntry = async () => {
       if (entryId) {
         try {
-          const entry = await idb.idbGetEntryById(entryId);
+          const entry = await db.getEntryById(entryId);
           if (entry) {
             setEntry(entry);
           }
