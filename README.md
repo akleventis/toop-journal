@@ -4,7 +4,7 @@ I've been writing to a journal every day since 2018. Over the past year, the app
 
 ## Features
 
-- **Local-first storage**: All entries stored in browser IndexedDB
+- **Local-first storage**: All entries stored in SQLite database
 - **Calendar & List views**: Browse entries by calendar or chronological list
 - **Rich text editing**: WYSIWYG editor for journal entries
 - **Password protection**: Optional app-level password security
@@ -18,7 +18,7 @@ I've been writing to a journal every day since 2018. Over the past year, the app
 - **TypeScript** - Type safety
 - **Vite** - Build tool for renderer process
 - **React Router** - Client-side routing
-- **IndexedDB** - Local database storage
+- **better-sqlite3** - Local SQLite database storage
 - **AWS SDK v3** - S3 cloud sync
 - **electron-builder** - App packaging
 
@@ -28,6 +28,7 @@ I've been writing to a journal every day since 2018. Over the past year, the app
 toop-journal/
 ├── main/               # electron main process (node.js)
 │   ├── main.ts         # main window setup & ipc handlers
+│   ├── db/             # sqlite database operations
 │   └── cloudsync/      # aws s3 sync logic
 │       ├── aws_client.ts
 │       ├── aws_config.ts
@@ -35,7 +36,7 @@ toop-journal/
 │       └── transact.ts
 ├── renderer/           # react frontend (browser context)
 │   ├── src/            # react components & pages
-│   ├── db/             # indexeddb operations
+│   ├── db/             # database wrapper functions
 │   └── lib/            # utilities, types, hooks
 └── preload/            # preload scripts (bridge between main & renderer)
 ```
