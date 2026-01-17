@@ -257,19 +257,18 @@ export function AWSConfig() {
             if (confirmed) {
                 await window.cloudSync.deleteConfig()
                 setAwsConfig(null)
-                setFormData({ aws_access: '', aws_secret: '', aws_bucket: '', aws_region: '' })
                 setIsEnabled(false)
             }
         }
     }
 
     const handleSaveAWS = async () => {
+        setFormData(formData)
         try {
             awsConfig ? await window.cloudSync.updateConfig(formData) : await window.cloudSync.createConfig(formData)
             setAwsConfig(formData)
             setIsEnabled(true)
         } catch (error) {
-            setFormData(awsConfig ?? defaultConfig)
             alert('AWS config failed, please verify credentials')
             return
         }

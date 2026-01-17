@@ -32,5 +32,3 @@ contextBridge.exposeInMainWorld('sqlite', {
   getPasswordHash: () => ipcRenderer.invoke('sqlite:getPasswordHash'),
   setPasswordHash: (passwordHash: string) => ipcRenderer.invoke('sqlite:setPasswordHash', passwordHash),
 })
-
-// no-op: do not import renderer code in preload when sandboxed

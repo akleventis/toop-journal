@@ -5,7 +5,7 @@ import { Entry } from "../../renderer/lib/types";
 
 const dbPath = app.isPackaged
   ? path.join(app.getPath('userData'), 'journal.db')
-  : path.join(__dirname, '../../../journal.db');
+  : path.join(__dirname, '../../../../journal.db');
 
 const db = new Database(dbPath);
 
@@ -31,9 +31,7 @@ db.exec(`
 `);
 
 function getEntries(): Entry[] {
-    console.log("getEntries called");
     const rows = db.prepare('SELECT * FROM entries').all() as Entry[];
-    console.log("getEntries rows", rows);
     return rows;
 }
 

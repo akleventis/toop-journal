@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
-import type { Entry } from '../lib/types';
+import type { DecodedEntry } from '../lib/types';
 import { NavDirection } from '../lib/constants';
+import { decodeHtmlEntities } from '../lib/utils';
 
 interface EditProps {
-  entries: Entry[];
+  entries: DecodedEntry[];
 }
 
 const Edit: React.FC<EditProps> = ({ entries }) => {
-  const [entry, setEntry] = useState<Entry | null>(null);
+  const [entry, setEntry] = useState<DecodedEntry | null>(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const entryId = searchParams.get('id');
@@ -21,7 +22,8 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
         try {
           const entry = await db.getEntryById(entryId);
           if (entry) {
-            setEntry(entry);
+            const decoded = { ...entry, decodedContent: decodeHtmlEntities(entry.content) };
+            setEntry(decoded);
           }
         } catch (error) {
           console.error('Failed to load entry:', error);

@@ -1,0 +1,9 @@
+- [ ] create/update local masterindex.json w/out cloudsync
+    - main/db/sqlite.ts
+- [ ] init masterIndex to {} on init s3 connection
+- [ ] renderer/db/db.ts memoize decodedEntry instead?
+    - filename?
+- [ ] review/update password protection
+- [ ] handle error on nil aws config
+- [ ] persist selected year calendar
+- [ ] release workflow

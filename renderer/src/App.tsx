@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import type { Entry } from '../lib/types'
+import type { DecodedEntry } from '../lib/types'
 import * as db from '../db/db'
 import { HashRouter, BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import ListView from './List'
@@ -22,12 +22,11 @@ const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
 // preloads decoded HTML to warm cache
 const preloadHtmlDecodeCache = async () => {
-  const entries = await db.getEntries()
-  for (const e of entries) decodeHtmlEntities(e.content)
+  await db.getEntries() 
 }
 
 function AppContent() {
-  const [entries, setEntries] = useState<Entry[]>([])
+  const [entries, setEntries] = useState<DecodedEntry[]>([])
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -58,7 +57,8 @@ function AppContent() {
   const loadEntries = async () => {
     const entries = await db.getEntries()
     const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp)
-    setEntries(sorted)
+    const decoded = sorted.map(entry => ({ ...entry, decodedContent: decodeHtmlEntities(entry.content) }))
+    setEntries(decoded)
   }
 
   // monitor network status and reinitialize S3 client when connection is restored
@@ -79,6 +79,7 @@ function AppContent() {
       />
       <Routes>
         <Route path="/" element={null} />
+        <Route path="/list" element={null} />
         <Route path="/calendar" element={<Calendar entries={entries} loadEntries={loadEntries} />} />
         <Route path="/more" element={<More />} />
         <Route path="/new" element={<New />} />

@@ -62,16 +62,40 @@ cd ..
 Start the development environment:
 
 ```bash
-npm start
+npm run dev
 ```
 
 This runs:
-- Electron app with hot-reload
-- Vite dev server on `http://localhost:5173`
-- TypeScript compilation for main process
+- Vite dev server on `http://localhost:5173` with hot-reload for React components
+- Electron app with TypeScript compilation for main process
+- Changes to renderer (React) hot-reload automatically
+- Changes to main process require restart (Ctrl+C, then `npm run dev` again)
 
-## Build
-todo
+## Build & Distribution
+
+### Production Build
+Compile all code for production:
+```bash
+npm run build
+```
+
+This creates optimized bundles in `dist/`:
+- `dist/renderer/` - Minified React app
+- `dist/main/` - Compiled Electron main process and preload scripts
+
+### Package for Distribution
+Create a distributable macOS app:
+```bash
+# Create unpacked app for local testing
+npm run package:dir
+
+# Create .dmg installer for distribution
+npm run package
+```
+
+The packaged app will be in the `release/` directory.
+
+**Note**: In production, the database is stored at `~/Library/Application Support/toop journal/journal.db`
 
 ## Cloud Sync Setup
 
@@ -84,13 +108,16 @@ Quick setup:
 
 ## Scripts
 
-- `npm start` - Start dev environment (Electron + Vite)
-- todo
+### Development
+- `npm run dev` - Start dev environment (Vite dev server + Electron)
+- `npm run dev:renderer` - Start only Vite dev server
+- `npm run dev:electron` - Build main process and start Electron (requires Vite running)
 
-## License
+### Build
+- `npm run build` - Build both renderer and main process for production
+- `npm run build:renderer` - Build only React app
+- `npm run build:main` - Compile only TypeScript for main process
 
-ISC
-
-## TODO
-- [ ] Add proper way to build project & resolve filepaths
-
+### Distribution
+- `npm run package` - Create distributable .dmg installer
+- `npm run package:dir` - Create unpacked app for testing

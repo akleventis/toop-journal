@@ -18,13 +18,43 @@ To enable cloud sync:
    - **Region**: AWS region where the bucket is located
 4. Click "Save" to validate and save the configuration
 5. Credentials will be tested against your S3 bucket
-6. `masterIndex.json` & `/entries/*` files are auto-created upon successful configuration
+6. On first sync, your local master index and entries are uploaded to S3
 7. Sync will occur upon app start-up or manually by clicking the 'Sync' button
 
 On app startup, the following will happen:
-1. The app will attempt to read your AWS config from the user data directory
-2. If found, it will validate the AWS credentials by checking access to the specified bucket
-3. If the file is missing or misconfigured, cloud sync will be disabled
+1. The local `masterIndex.json` is initialized if it doesn't exist (empty `{}`)
+2. The app will attempt to read your AWS config from the user data directory
+3. If found, it will validate the AWS credentials by checking access to the specified bucket
+4. If cloud sync is enabled, automatic sync will occur (merging local and S3 master indexes)
+5. If the config is missing or misconfigured, cloud sync will be disabled but local operations continue normally
+
+### Sync Architecture
+
+**Local-First Master Index (Future)**
+
+The master index is maintained locally during database operations and synced to S3. This enables:
+
+1. **Offline-first**: Master index updates happen immediately with database operations, even without internet
+2. **First-time sync**: When enabling cloud sync for the first time, the local master index already contains all existing entries
+3. **Initial upload**: First sync pushes all local entries to the empty S3 bucket automatically
+4. **Consistent state**: Local and S3 master indexes are merged during sync, with the most recent changes winning
+
+**First-Time Cloud Sync Setup:**
+
+When you enable cloud sync for the first time:
+- Local `masterIndex.json` already contains metadata for all existing journal entries
+- S3 bucket is empty (or contains data from another device)
+- First sync merges local and S3 master indexes
+- Missing entries are uploaded/downloaded automatically
+- Result: Both local and S3 are fully synchronized
+
+**Ongoing Sync Behavior:**
+
+After initial setup:
+- Creating/updating/deleting entries updates the local master index immediately
+- Master index changes are synced to S3 during the next sync operation
+- Conflicts are resolved using `lastModified` timestamp (newest wins)
+- Both create/update/delete operations are tracked and synced bidirectionally
 
 ### Required AWS Policy
 The following permissions must be attached to the IAM user associated with your credentials:

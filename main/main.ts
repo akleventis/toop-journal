@@ -5,6 +5,7 @@ import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
 import { putEntryCloudSync, deleteEntryCloudSync, cloudSyncPipeline } from './cloudsync/transact';
 import * as db from './db/sqlite';
+import { initMasterIndex } from './cloudsync/master_index';
 
 const isDev = !app.isPackaged;
 
@@ -14,17 +15,19 @@ const iconPath = isDev
   ? path.join(__dirname, '../assets/icon_v1.png')
   : path.join(process.resourcesPath, 'assets/icon_v1.png');
 
-// For the preload script  
+// preload script path
 const preloadPath = isDev
-  ? path.join(__dirname, '../preload/preload.js')
-  : path.join(process.resourcesPath, 'app.asar/dist/preload/preload.js');
+  ? path.join(__dirname, '../preload/preload.js')  // dist/main -> preload
+  : path.join(process.resourcesPath, 'app.asar/dist/main/preload/preload.js');
 
+// index.html path
 const indexHtmlPath = isDev
   ? 'http://localhost:5173'
   : path.join(process.resourcesPath, 'app.asar/dist/renderer/index.html');
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+  await initMasterIndex();  // initialize masterIndex.json on startup
   createWindow();
 });
 
@@ -36,6 +39,7 @@ function createWindow() {
     height: 750,
     webPreferences: {
       preload: preloadPath,
+
       webSecurity: false,
       contextIsolation: true,
     },
@@ -46,10 +50,10 @@ function createWindow() {
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(indexHtmlPath);
   }
-  mainWindow.webContents.openDevTools()
 }
 
 app.on('window-all-closed', () => {

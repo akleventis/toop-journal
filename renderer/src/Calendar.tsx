@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Entry } from '../lib/types'
+import type { DecodedEntry } from '../lib/types'
 import { journalDateToCalendarFormat, createCalendarDate } from '../lib/utils'
 import YearSelector from './components/YearSelector'
 
 interface CalendarProps {
-    entries: Entry[];
+    entries: DecodedEntry[];
     loadEntries: () => void;
 }
 
@@ -24,7 +24,7 @@ export default function Calendar({ entries, loadEntries }: CalendarProps) {
         const calendarDate = journalDateToCalendarFormat(entry.date)
         acc[calendarDate] = entry
         return acc
-    }, {} as Record<string, Entry>)
+    }, {} as Record<string, DecodedEntry>)
 
     // get days in month
     const getDaysInMonth = (year: number, month: number) => {

@@ -35,18 +35,23 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
 
     try {
         localMasterIndex = await loadLocalMasterIndex();
-        await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName, Body: JSON.stringify(localMasterIndex) }));
-        s3MasterIndex = await loadS3MasterIndex();
     } catch (error) {
         console.error('failed to load master index:', error);
         throw error;
     }
 
-    // sync local and s3 master indexes
+    try {
+        s3MasterIndex = await loadS3MasterIndex();
+    }catch (error) {
+        console.error('failed to load s3 master index:', error);
+        throw error;
+    }
+
+    // sync & save local and s3 master indexes
     let merged: MasterIndex;
     try {
         merged = await syncMasterIndex(localMasterIndex, s3MasterIndex);
-        fs.writeFileSync(path.join(process.cwd(), 'main', 'cloudsync', state.MasterIndexFileName), JSON.stringify(merged, null, 2));
+        fs.writeFileSync(path.join(state.UserDataPath, state.MasterIndexFileName), JSON.stringify(merged, null, 2));
         await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName, Body: JSON.stringify(merged) }));
     } catch (error) {
         console.error('failed to sync master index:', error);
@@ -56,7 +61,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
     // put local & s3 master index
     try {
         console.log('putting local master index');
-        fs.writeFileSync(path.join(process.cwd(), 'main', 'cloudsync', state.MasterIndexFileName), JSON.stringify(merged, null, 2));
+        fs.writeFileSync(path.join(state.UserDataPath, state.MasterIndexFileName), JSON.stringify(merged, null, 2));
     } catch (error) {
         console.error('failed to put local & s3 master index:', error);
         throw error;
@@ -129,7 +134,7 @@ export const putEntryCloudSync = async (entry: Entry): Promise<void> => {
     // write master index to local filesystem
     try {
         console.log('writing local master index');
-        fs.writeFileSync(path.join(process.cwd(), 'main', 'cloudsync', state.MasterIndexFileName), JSON.stringify(mergedMasterIndex, null, 2));
+        fs.writeFileSync(path.join(state.UserDataPath, state.MasterIndexFileName), JSON.stringify(mergedMasterIndex, null, 2));
     } catch (error) {
         console.error('failed to write local master index:', error);
         throw error;
@@ -186,7 +191,7 @@ export const deleteEntryCloudSync = async (id: string): Promise<void> => {
     // write master index to local filesystem
     try {
         console.log('writing local master index');
-        fs.writeFileSync(path.join(process.cwd(), 'main', 'cloudsync', state.MasterIndexFileName), JSON.stringify(mergedMasterIndex, null, 2));
+        fs.writeFileSync(path.join(state.UserDataPath, state.MasterIndexFileName), JSON.stringify(mergedMasterIndex, null, 2));
     } catch (error) {
         console.error('failed to write local master index:', error);
         throw error;

@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import type { Entry } from '../lib/types'
+import type { DecodedEntry } from '../lib/types'
 import { decodeHtmlEntities, getDateParts } from '../lib/utils'
 
 interface ListViewProps {
-  entries: Entry[];
+  entries: DecodedEntry[];
   loadEntries: () => void;
   style?: React.CSSProperties;
 }
@@ -43,11 +43,10 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
     }
     const searchLower = submittedSearchValue.toLowerCase();
     return entries.filter(entry => {
-      console.log("filter memo")
-      const decodedContent = decodeHtmlEntities(entry.content).toLowerCase();
-      return decodedContent.includes(searchLower);
+      return entry.decodedContent.toLowerCase().includes(searchLower);
     });
   }, [entries, submittedSearchValue]);
+
 
   // initial mount, reloads 
   useEffect(() => {
@@ -91,7 +90,7 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
                   cursor: 'default'
 
                 }}
-                dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(entry.content) }}
+                dangerouslySetInnerHTML={{ __html: entry.decodedContent }}
               />
             </div>
           </div>

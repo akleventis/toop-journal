@@ -1,16 +1,14 @@
 /**
- * @file aws_config.ts — AWS configuration operations for cloud sync.
- *
- * Handles loading, saving, and deleting AWS configuration data stored in `config.json`.
+ * @file aws_config.ts — Handles loading, saving, and deleting AWS configuration data stored in `config.json`.
  *
  * Storage locations:
- * - User data directory: `/Users/{username}/Library/Application Support/Electron/config.json`
- * - Local storage: `/cloudsync/config.json` (gitignored, created after successful cloud sync setup)
+ * - Development: `~/Library/Application Support/Electron/config.json`
+ * - Production: `~/Library/Application Support/toop journal/config.json`
  * - S3 storage: `{bucket_name}/config.json` (auto-created upon successful cloud sync configuration)
  *
  * Overview:
  * - Stores AWS access key, secret key, bucket name, and region.
- * - Stored both locally and in S3.
+ * - Stored in the user data directory (writable in both dev and production).
  * - Used to authenticate the AWS client.
  *
  * Example format:
@@ -23,6 +21,7 @@
  * }
  * ```
  */
+
 import { S3Config } from '../../renderer/lib/types';
 import path from 'node:path';
 import fs from 'node:fs';

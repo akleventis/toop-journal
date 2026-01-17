@@ -8,7 +8,6 @@ export async function getEntries(): Promise<Entry[]> {
   if (__entriesMemo) return __entriesMemo;
   
   const rows = await window.sqlite.getEntries();
-  console.log("getEntries", rows);
   __entriesMemo = rows;
   return rows;
 }

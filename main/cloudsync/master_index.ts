@@ -4,12 +4,13 @@
  * Handles loading, saving, and syncing the master index between local storage and S3.
  *
  * Storage locations:
- * - Local: `main/cloudsync/masterIndex.json` (gitignored, created after successful cloud sync setup)
+ * - Development: `~/Library/Application Support/Electron/masterIndex.json`
+ * - Production: `~/Library/Application Support/toop journal/masterIndex.json`
  * - S3: `{bucket_name}/masterIndex.json` (auto-created after successful cloud sync configuration)
  *
  * Overview:
  * - JSON object containing the last modified time and deleted status of each entry.
- * - Stored in both S3 and the local database.
+ * - Stored in both the user data directory and S3.
  * - Used to synchronize entries between the local database and S3.
  * - Updated whenever an entry is created, modified, or deleted.
  *
@@ -30,6 +31,47 @@ import { state } from './transact';
 import * as db from '../db/sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
+
+/**
+ * Ensures the master index file exists in the user data directory.
+ * Creates an empty master index file if it doesn't exist.
+ * Called upon app startup.
+ *
+ * @returns {Promise<void>}
+ */
+export const initMasterIndex = async (): Promise<void> => {
+  const masterIndexPath = path.join(state.UserDataPath, state.MasterIndexFileName);
+
+  if (!fs.existsSync(masterIndexPath)) {
+    console.log('initMasterIndex: creating new master index file at', masterIndexPath);
+    fs.writeFileSync(masterIndexPath, '{}');
+  }
+};
+
+  /**
+   * Loads the master index from the local filesystem and returns it as a `MasterIndex` object.
+   *
+   * @returns {Promise<MasterIndex>} The master index.
+   * @throws Will throw an error if the local filesystem is not found, or if the master index is not found.
+   */
+  // Throws an error on nil local filesystem, does not exist, or invalid format.
+  export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
+    const masterIndexPath = path.join(state.UserDataPath, state.MasterIndexFileName);
+    if (!fs.existsSync(masterIndexPath)) {
+      throw new Error('loadLocalMasterIndex: local master index file does not exist');
+    }
+    var raw: string;
+    var parsed: MasterIndex;
+    try {
+      raw = fs.readFileSync(masterIndexPath, 'utf-8');
+      parsed = JSON.parse(raw) as MasterIndex;
+    } catch (error) {
+      console.error('loadLocalMasterIndex: failed to load local master index');
+      throw error;
+    }
+    // error bubbles up to caller
+    return verifyMasterIndex(parsed);
+  };
 
 /**
  * Loads the master index from S3 and returns it as a `MasterIndex` object.
@@ -59,32 +101,6 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
     return verifyMasterIndex(parsed);
   };
   
-  
-  /**
-   * Loads the master index from the local filesystem and returns it as a `MasterIndex` object.
-   *
-   * @returns {Promise<MasterIndex>} The master index.
-   * @throws Will throw an error if the local filesystem is not found, or if the master index is not found.
-   */
-  // Throws an error on nil local filesystem, does not exist, or invalid format.
-  export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
-    console.log('loading local master index');
-    const masterIndexPath = path.join(process.cwd(), 'main', 'cloudsync', state.MasterIndexFileName);
-    if (!fs.existsSync(masterIndexPath)) {
-      throw new Error('loadLocalMasterIndex: local master index file does not exist');
-    }
-    var raw: string;
-    var parsed: MasterIndex;
-    try {
-      raw = fs.readFileSync(masterIndexPath, 'utf-8');
-      parsed = JSON.parse(raw) as MasterIndex;
-    } catch (error) {
-      console.error('loadLocalMasterIndex: failed to load local master index');
-      throw error;
-    }
-    // error bubbles up to caller
-    return verifyMasterIndex(parsed);
-  };
   
   /**
    * Verifies the master index and returns a valid `MasterIndex` object or an empty object if the input is invalid.
@@ -133,7 +149,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
     }
   
     const syncedIndex: MasterIndex = {};
-  
+
     const ids = new Set([...Object.keys(localMasterIndex), ...Object.keys(s3MasterIndex)])
   
     for (const id of ids) {
