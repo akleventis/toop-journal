@@ -2,6 +2,7 @@ import { app } from 'electron';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import { Entry } from "../../renderer/lib/types";
+import { updateMasterIndex } from '../cloudsync/master_index';
 
 const dbPath = app.isPackaged
   ? path.join(app.getPath('userData'), 'journal.db')
@@ -49,14 +50,17 @@ function getEntriesBetweenTimestamps(startTs: number, endTs: number): Entry[] {
 
 function createEntry(entry: Entry): void {
     db.prepare('INSERT INTO entries (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
+    updateMasterIndex(entry.id, { lastModified: entry.lastModified, deleted: false });
 }
 
 function updateEntry(id: string, entry: Entry): void {
     db.prepare('UPDATE entries SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified, id);
+    updateMasterIndex(id, { lastModified: entry.lastModified, deleted: false });
 }
 
 function deleteEntry(id: string): void {
     db.prepare('DELETE FROM entries WHERE id = ?').run(id);
+    updateMasterIndex(id, { lastModified: Date.now(), deleted: true });
 }
 
 function getPasswordHash(): string | null {

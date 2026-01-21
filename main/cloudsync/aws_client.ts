@@ -63,7 +63,7 @@ export const initS3Client = async (): Promise<void> => {
 
   try {
     console.log("initS3Client: calling cloudSyncPipeline")
-    await cloudSyncPipeline()
+    await cloudSyncPipeline() // todo: remove this call, place in renderer process after initS3 success
   } catch (error) {
     console.error('initS3Client: failed to sync cloud on init:', error);
     throw error;

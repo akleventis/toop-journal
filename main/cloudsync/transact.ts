@@ -11,7 +11,9 @@ import { app } from 'electron';
 export const state = {
     AWSClient: null as S3Client | null,
     AWSConfig: null as S3Config | null,
-    UserDataPath: app.getPath('userData'),
+    // UserDataPath dev: /Users/alexleventis/Library/Application\ Support/Electron/
+    // UserDataPath build: /Users/alexleventis/Library/Application\ Support/toop\ journal/
+    UserDataPath: app.getPath('userData'), // todo: create toop-journal directory in userData folder 
     MasterIndexFileName: 'masterIndex.json',
 }
 

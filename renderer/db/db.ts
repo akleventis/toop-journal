@@ -6,7 +6,7 @@ let __entriesMemo: Entry[] | null = null;
 
 export async function getEntries(): Promise<Entry[]> {
   if (__entriesMemo) return __entriesMemo;
-  
+
   const rows = await window.sqlite.getEntries();
   __entriesMemo = rows;
   return rows;
@@ -46,12 +46,8 @@ export async function updateEntry(id: string, updates: Partial<Entry>): Promise<
   if (__entriesMemo) {
     __entriesMemo = __entriesMemo.map(e => e.id === id ? entry : e).sort((a, b) => b.timestamp - a.timestamp);
   }
-
-  // lastModified only provided on sync (check logic)
-  if (!updates.lastModified) {
-    window.cloudSync.putEntryCloudSync(entry);
-  }
-
+  
+  window.cloudSync.putEntryCloudSync(entry);
   return entry;
 }
 
@@ -72,7 +68,7 @@ export async function getEntriesBetweenTimestamps(startTs: number, endTs: number
 
 // Password functions
 export async function getPasswordHash(): Promise<string | null> {
-    return await window.sqlite.getPasswordHash();
+  return await window.sqlite.getPasswordHash();
 }
 
 export async function setPasswordHash(hash: string): Promise<void> {
