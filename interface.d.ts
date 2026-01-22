@@ -7,8 +7,6 @@ export interface CloudSyncAPI {
   updateConfig: (config: S3Config) => Promise<void>,
   deleteConfig: () => Promise<void>,
   getConfig: () => Promise<S3Config>,
-  putEntryCloudSync: (entry: Entry) => Promise<void>,
-  deleteEntryCloudSync: (id: string) => Promise<void>,
 }
 
 export interface SQLiteAPI {

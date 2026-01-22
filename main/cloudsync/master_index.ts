@@ -164,7 +164,7 @@ const verifyMasterIndex = (masterIndex: MasterIndex): MasterIndex => {
 };
 
 /**
- * Syncs the master index between local and S3.
+ * Syncs the master index between local <-> S3 and updates entries in corresponding datastore
  *
  * @param {MasterIndex} localMasterIndex - The local master index.
  * @param {MasterIndex} s3MasterIndex - The S3 master index.
@@ -261,7 +261,7 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
     }
 
     // local entry is newer, update s3 bucket entry
-    if (localIndex.lastModified > s3Index.lastModified) {
+    if (s3Index !== undefined && localIndex !== undefined && localIndex.lastModified > s3Index.lastModified) {
       if (localIndex.deleted) {
         console.log(`syncMasterIndex: local entry is deleted, deleting s3 entry ${id}`);
         // local entry is deleted, delete s3 entry
@@ -298,7 +298,7 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
     }
 
     // s3 entry is newer, update local entry
-    if (localIndex.lastModified < s3Index.lastModified) {
+    if (s3Index !== undefined && localIndex !== undefined && localIndex.lastModified < s3Index.lastModified) {
       if (s3Index.deleted) {
         console.log(`syncMasterIndex: s3 entry is deleted, deleting local entry ${id}`);
         try {
@@ -339,6 +339,7 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
 
 export const updateMasterIndex = async (id: string, entry: MasterIndexEntry): Promise<void> => {
   let masterIndex: MasterIndex;
+  let s3MasterIndex: MasterIndex;
 
   // load local index
   try {
@@ -352,7 +353,13 @@ export const updateMasterIndex = async (id: string, entry: MasterIndexEntry): Pr
   // if aws is configured, merge local & s3 indexes (updates entries via syncMasterIndex function)
   if (state.AWSClient && state.AWSConfig) { // better aws initialized state variable?
     try {
-      masterIndex = await syncMasterIndex(masterIndex, await loadS3MasterIndex());
+      s3MasterIndex = await loadS3MasterIndex();
+    } catch (error) {
+      console.error(`failed to load s3 master index ${id}:`, error);
+      throw error;
+    }
+    try {
+      masterIndex = await syncMasterIndex(masterIndex, s3MasterIndex);
     } catch (error) {
       console.error(`failed to sync and save s3 master index ${id}:`, error);
       throw error;

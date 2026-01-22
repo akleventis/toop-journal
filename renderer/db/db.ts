@@ -30,7 +30,6 @@ export async function createEntry(entry: Entry): Promise<Entry> {
     __entriesMemo = [entry, ...__entriesMemo].sort((a, b) => b.timestamp - a.timestamp);
   }
 
-  window.cloudSync.putEntryCloudSync(entry);
   return entry;
 }
 
@@ -47,7 +46,6 @@ export async function updateEntry(id: string, updates: Partial<Entry>): Promise<
     __entriesMemo = __entriesMemo.map(e => e.id === id ? entry : e).sort((a, b) => b.timestamp - a.timestamp);
   }
   
-  window.cloudSync.putEntryCloudSync(entry);
   return entry;
 }
 
@@ -57,8 +55,6 @@ export async function deleteEntry(id: string): Promise<void> {
   if (__entriesMemo) {
     __entriesMemo = __entriesMemo.filter(e => e.id !== id).sort((a, b) => b.timestamp - a.timestamp);
   }
-
-  window.cloudSync.deleteEntryCloudSync(id);
 }
 
 export async function getEntriesBetweenTimestamps(startTs: number, endTs: number): Promise<Entry[]> {

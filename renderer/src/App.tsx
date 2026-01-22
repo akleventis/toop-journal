@@ -27,6 +27,7 @@ const preloadHtmlDecodeCache = async () => {
 
 function AppContent() {
   const [entries, setEntries] = useState<DecodedEntry[]>([])
+  const [loading, setLoading] = useState(true)
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -46,6 +47,7 @@ function AppContent() {
       navigate(hasToday ? '/list' : '/new', { replace: true })
     }
     decide()
+    setLoading(false)
   }, [passwordVerified, location.pathname])
 
   const isTodayFilled = async (): Promise<boolean> => {
@@ -76,7 +78,7 @@ function AppContent() {
         entries={entries} 
         loadEntries={loadEntries}
         style={{ display: location.pathname === '/list' ? 'block' : 'none' }}
-      />
+        />
       <Routes>
         <Route path="/" element={null} />
         <Route path="/list" element={null} />
@@ -85,6 +87,7 @@ function AppContent() {
         <Route path="/new" element={<New />} />
         <Route path="/edit" element={<Edit entries={entries} />} />
       </Routes>
+      {loading && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Loading ...</div>}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { updateConfig, getConfig, createConfig, deleteConfig } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
-import { putEntryCloudSync, deleteEntryCloudSync, cloudSyncPipeline } from './cloudsync/transact';
+import { cloudSyncPipeline } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
 
@@ -89,15 +89,6 @@ ipcMain.handle('cloud-sync:initS3Client', async () => {
 // cloud sync pipeline functions
 ipcMain.handle('cloud-sync:cloudSyncPipeline', async () => {
   return await cloudSyncPipeline();
-});
-
-// master index functions
-ipcMain.handle('cloud-sync:putEntryCloudSync', async (_, entry: Entry) => {
-  await putEntryCloudSync(entry);
-});
-
-ipcMain.handle('cloud-sync:deleteEntryCloudSync', async (_, id: string) => {
-  await deleteEntryCloudSync(id);
 });
 
 // SQLite operations called from main process; errors bubble up to the main process
