@@ -13,21 +13,17 @@ let mainWindow: BrowserWindow | null = null;
 
 const iconPath = isDev
   ? path.join(__dirname, '../assets/icon_v1.png')
-  : path.join(process.resourcesPath, 'assets/icon_v1.png');
+  : path.join(__dirname, '../../assets/icon_v1.png');
 
-// preload script path
-const preloadPath = isDev
-  ? path.join(__dirname, '../preload/preload.js')  // dist/main -> preload
-  : path.join(process.resourcesPath, 'app.asar/dist/main/preload/preload.js');
-
-// index.html path
 const indexHtmlPath = isDev
   ? 'http://localhost:5173'
-  : path.join(process.resourcesPath, 'app.asar/dist/renderer/index.html');
+  : path.join(__dirname, '../../renderer/index.html');
+
+const preloadPath = path.join(__dirname, '../preload/preload.js');
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
-  await initLocalMasterIndex();  // initialize masterIndex.json on startup
+  await initLocalMasterIndex();
   createWindow();
 });
 
@@ -46,8 +42,6 @@ function createWindow() {
     icon: iconPath,
   });
 
-  console.log("isDev", isDev)
-
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
@@ -64,7 +58,7 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-// AWS config functions
+// aws config functions
 ipcMain.handle('cloud-sync:createConfig', (_, config: S3Config) => {
   return createConfig(config);
 });
@@ -86,12 +80,12 @@ ipcMain.handle('cloud-sync:initS3Client', async () => {
   await initS3Client();
 });
 
-// cloud sync pipeline functions
+// aws cloud sync pipeline: syncs master indexes & entries between local and S3
 ipcMain.handle('cloud-sync:cloudSyncPipeline', async () => {
   return await cloudSyncPipeline();
 });
 
-// SQLite operations called from main process; errors bubble up to the main process
+// sqlite operations called from main process; errors bubble up to the renderer process
 ipcMain.handle('sqlite:getEntries', () => {
   return db.getEntries();
 });
@@ -113,7 +107,7 @@ ipcMain.handle('sqlite:createEntry', (event, entry: Entry) => {
 });
 
 ipcMain.handle('sqlite:updateEntry', (event, id: string, entry: Entry) => {
-  return db.updateEntry(id, entry);  
+  return db.updateEntry(id, entry);
 });
 
 ipcMain.handle('sqlite:deleteEntry', (event, id: string) => {
