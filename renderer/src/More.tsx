@@ -200,7 +200,7 @@ export function Password() {
             </div>
 
             {showPasswordInput && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'fixed', zIndex: 1, top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.86)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ textAlign: 'center' }}>
                         <input
                             type="text"

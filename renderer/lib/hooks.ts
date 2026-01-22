@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import * as db from '../db/db';
 
 /**
@@ -9,13 +9,14 @@ import * as db from '../db/db';
 export const usePasswordProtection = () => {
   const [passwordProtected, setPasswordProtected] = useState(false)
   const [passwordVerified, setPasswordVerified] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
 
   useEffect(() => {
     initializeApp()
   }, [])
 
   const initializeApp = async () => {
-    try {      
+    try {
       const hash = await db.getPasswordHash()
       if (hash && hash !== '') {
         setPasswordProtected(true)
@@ -25,6 +26,8 @@ export const usePasswordProtection = () => {
     } catch (error) {
       console.error('Failed to initialize app:', error)
       setPasswordVerified(true)
+    } finally {
+      setIsInitializing(false)
     }
   }
 
@@ -50,6 +53,7 @@ export const usePasswordProtection = () => {
   return {
     passwordProtected,
     passwordVerified,
+    isInitializing,
     handlePasswordVerified,
     updatePasswordProtection
   }

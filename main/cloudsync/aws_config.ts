@@ -1,27 +1,3 @@
-/**
- * @file aws_config.ts — Handles loading, saving, and deleting AWS configuration data stored in `config.json`.
- *
- * Storage locations:
- * - Development: `~/Library/Application Support/Electron/config.json`
- * - Production: `~/Library/Application Support/toop journal/config.json`
- * - S3 storage: `{bucket_name}/config.json` (auto-created upon successful cloud sync configuration)
- *
- * Overview:
- * - Stores AWS access key, secret key, bucket name, and region.
- * - Stored in the user data directory (writable in both dev and production).
- * - Used to authenticate the AWS client.
- *
- * Example format:
- * ```json
- * {
- *   "aws_access": "your_aws_access_key",
- *   "aws_secret": "your_aws_secret_key",
- *   "aws_bucket": "your_aws_bucket_name",
- *   "aws_region": "your_aws_region"
- * }
- * ```
- */
-
 import { S3Config } from '../../renderer/lib/types';
 import path from 'node:path';
 import fs from 'node:fs';

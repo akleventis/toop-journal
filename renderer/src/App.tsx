@@ -10,7 +10,7 @@ import Edit from './Edit'
 import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
-import { journalDateToCalendarFormat, formatCurrentDateToYearMonthDay, decodeHtmlEntities } from '../lib/utils'
+import { journalDateToCalendarFormat, formatCurrentDateToYearMonthDay } from '../lib/utils'
 
 // type declaration for the global variable defined in vite.config.ts
 declare global {
@@ -22,17 +22,18 @@ const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
 // preloads decoded HTML to warm cache
 const preloadHtmlDecodeCache = async () => {
-  await db.getEntries() 
+  await db.getDecodedEntries() 
 }
 
 function AppContent() {
   const [entries, setEntries] = useState<DecodedEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const location = useLocation();
   const navigate = useNavigate();
 
   // initialize app and checks if password is protected
-  const { passwordProtected, passwordVerified, handlePasswordVerified } = usePasswordProtection()
+  const { passwordProtected, passwordVerified, isInitializing, handlePasswordVerified } = usePasswordProtection()
 
   // decide initial route from root after entries are loaded
   useEffect(() => {
@@ -42,7 +43,7 @@ function AppContent() {
       const hasToday = await isTodayFilled()
 
       // warm cache in background
-      !hasToday && preloadHtmlDecodeCache() 
+      !hasToday && preloadHtmlDecodeCache()
 
       navigate(hasToday ? '/list' : '/new', { replace: true })
     }
@@ -57,17 +58,15 @@ function AppContent() {
   }
 
   const loadEntries = async () => {
-    const entries = await db.getEntries()
-    const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp)
-    const decoded = sorted.map(entry => ({ ...entry, decodedContent: decodeHtmlEntities(entry.content) }))
-    setEntries(decoded)
+    const entries = await db.getDecodedEntries()
+    setEntries(entries)
   }
 
   // monitor network status and reinitialize S3 client when connection is restored
   useNetworkSync();
 
-  // show password overlay if protected and not verified
-  if (passwordProtected && !passwordVerified) {
+  // show password overlay during initialization or if protected and not verified
+  if (isInitializing || (passwordProtected && !passwordVerified)) {
     return <PasswordOverlay onPasswordVerified={handlePasswordVerified} />
   }
 
@@ -82,7 +81,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={null} />
         <Route path="/list" element={null} />
-        <Route path="/calendar" element={<Calendar entries={entries} loadEntries={loadEntries} />} />
+        <Route path="/calendar" element={<Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} />} />
         <Route path="/more" element={<More />} />
         <Route path="/new" element={<New />} />
         <Route path="/edit" element={<Edit entries={entries} />} />

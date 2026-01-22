@@ -1,14 +1,3 @@
-/**
- * @file aws_client.ts — AWS client operations for cloud sync.
- *
- * Provides functions for initializing the S3 client and verifying AWS configuration.
- *
- * Overview:
- * - The S3 client is used to interact with the AWS S3 API.
- * - The AWS config authenticates the S3 client.
- * - The S3 client is initialized on app startup and used throughout the cloud sync process.
- */
-
 import { state } from './transact';
 import { getConfig } from './aws_config';
 import { S3Config } from '../../renderer/lib/types';

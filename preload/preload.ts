@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 import { Entry, S3Config } from '../renderer/lib/types';
 
-// cloud sync functions
+// Used to bridge the gap between the main and renderer processes.
+
 contextBridge.exposeInMainWorld('network', {
   onStatusChange: (callback: (online: boolean) => void) => {
     window.addEventListener('online', () => callback(true));

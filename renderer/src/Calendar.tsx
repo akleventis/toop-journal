@@ -7,10 +7,11 @@ import YearSelector from './components/YearSelector'
 interface CalendarProps {
     entries: DecodedEntry[];
     loadEntries: () => void;
+    selectedYear: number;
+    setSelectedYear: (year: number) => void;
 }
 
-export default function Calendar({ entries, loadEntries }: CalendarProps) {
-    const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+export default function Calendar({ entries, loadEntries, selectedYear, setSelectedYear }: CalendarProps) {
     const navigate = useNavigate()
 
     // initial mount, reloads 
@@ -101,12 +102,12 @@ export default function Calendar({ entries, loadEntries }: CalendarProps) {
     return (
         <div style={{ padding: '10px' }}>
             <YearSelector
-                currentYear={currentYear}
-                onYearChange={setCurrentYear}
+                currentYear={selectedYear}
+                onYearChange={setSelectedYear}
             />
 
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly', gap: '10px' }}>
-                {Array.from({ length: 12 }, (_, month) => generateMonthCalendar(currentYear, month))}
+                {Array.from({ length: 12 }, (_, month) => generateMonthCalendar(selectedYear, month))}
             </div>
         </div>
     )

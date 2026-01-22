@@ -1,5 +1,5 @@
-import { Entry, MasterIndex, S3Config } from '../../renderer/lib/types';
-import { PutObjectCommand, DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { MasterIndex, S3Config } from '../../renderer/lib/types';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { loadLocalMasterIndex, loadS3MasterIndex, syncMasterIndex } from './master_index';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -11,9 +11,7 @@ import { app } from 'electron';
 export const state = {
     AWSClient: null as S3Client | null,
     AWSConfig: null as S3Config | null,
-    // UserDataPath dev: /Users/alexleventis/Library/Application\ Support/Electron/
-    // UserDataPath build: /Users/alexleventis/Library/Application\ Support/toop\ journal/
-    UserDataPath: app.getPath('userData'), // todo: create toop-journal directory in userData folder 
+    UserDataPath: app.getPath('userData'), 
     MasterIndexFileName: 'masterIndex.json',
 }
 

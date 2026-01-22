@@ -1,5 +1,3 @@
-- [ ] renderer/db/db.ts memoize decodedEntry instead? Rethink memoize as a whole?
-- [ ] password overlay lag
+- [ ] password overlay white flash
 - [ ] handle error on nil aws config?
-- [ ] persist selected year calendar
 - [ ] release workflow

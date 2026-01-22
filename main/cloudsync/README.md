@@ -28,9 +28,47 @@ On app startup, the following will happen:
 4. If cloud sync is enabled, automatic sync will occur (merging local and S3 master indexes)
 5. If the config is missing or misconfigured, cloud sync will be disabled but local operations continue normally
 
+### Files
+
+**aws_client.ts**
+- AWS S3 client initialization and validation
+- Initializes the S3 client on app startup
+- Validates AWS credentials by testing bucket access
+- Triggers the cloud sync pipeline after successful initialization
+
+**aws_config.ts**
+- Manages AWS configuration (access key, secret key, bucket, region)
+- Provides functions to create, update, delete, and load AWS config
+
+**master_index.ts**
+- Core master index operations for local and S3 storage
+- Handles loading, saving, and syncing master indexes between local filesystem and S3
+- Resolves conflicts using `lastModified` timestamps (newest wins)
+- Updates journal entries bidirectionally during sync
+- Storage locations:
+  - Local (Development): `~/Library/Application Support/Electron/masterIndex.json`
+  - Local (Production): `~/Library/Application Support/toop journal/masterIndex.json`
+  - S3: `{bucket_name}/masterIndex.json`
+
+**transact.ts**
+- Exports the shared state object containing AWS client, config, and paths
+- Provides `cloudSyncPipeline()` function that orchestrates the full sync process
+- Merges local and S3 master indexes and saves to both locations
+
+**masterIndex.json** (.gitignored)
+- Local master index file containing metadata for all journal entries
+- Tracks `lastModified` timestamp and `deleted` status for each entry
+- Auto-created on first app startup if it doesn't exist
+- Updated whenever entries are created, modified, or deleted
+
+### Storage Location
+app.getPath('userData')
+  - dev: `/Users/alexleventis/Library/Application\ Support/Electron/`
+  - build: `/Users/alexleventis/Library/Application\ Support/toop\ journal/`
+
 ### Sync Architecture
 
-**Local-First Master Index (Future)**
+**Local-First Master Index**
 
 The master index is maintained locally during database operations and synced to S3. This enables:
 
