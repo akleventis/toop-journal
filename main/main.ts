@@ -5,7 +5,7 @@ import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
 import { putEntryCloudSync, deleteEntryCloudSync, cloudSyncPipeline } from './cloudsync/transact';
 import * as db from './db/sqlite';
-import { initMasterIndex } from './cloudsync/master_index';
+import { initLocalMasterIndex } from './cloudsync/master_index';
 
 const isDev = !app.isPackaged;
 
@@ -27,7 +27,7 @@ const indexHtmlPath = isDev
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
-  await initMasterIndex();  // initialize masterIndex.json on startup
+  await initLocalMasterIndex();  // initialize masterIndex.json on startup
   createWindow();
 });
 

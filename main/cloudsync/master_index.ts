@@ -4,7 +4,7 @@
  * Handles loading, saving, and syncing the master index between local storage and S3.
  *
  * Storage locations:
- * - Development: `~/Library/Application Support/Electron/masterIndex.json`
+ * - Development: `~/Users/alexleventis/Library/Application\ Support/Electron/masterIndex.json`
  * - Production: `~/Library/Application Support/toop journal/masterIndex.json`
  * - S3: `{bucket_name}/masterIndex.json` (auto-created after successful cloud sync configuration)
  *
@@ -39,12 +39,46 @@ import fs from 'node:fs';
  *
  * @returns {Promise<void>}
  */
-export const initMasterIndex = async (): Promise<void> => {
+export const initLocalMasterIndex = async (): Promise<void> => {
   const masterIndexPath = path.join(state.UserDataPath, state.MasterIndexFileName);
 
   if (!fs.existsSync(masterIndexPath)) {
-    console.log('initMasterIndex: creating new master index file at', masterIndexPath);
+    console.log('initLocalMasterIndex: creating new master index file at', masterIndexPath);
     fs.writeFileSync(masterIndexPath, '{}');
+  }
+};
+
+/**
+ * Initializes the master index file in S3.
+ *
+ * @returns {Promise<void>}
+ */
+export const initS3MasterIndex = async (): Promise<void> => {
+  if (!state.AWSClient || !state.AWSConfig) {
+    throw new Error('initS3MasterIndex: no s3 client or config found');
+  }
+  // first check if master index file exists in s3
+  let exists = false;
+  try {
+    await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName }));
+    exists = true;
+  } catch (error: any) {
+    if (error.name === 'NoSuchKey') {
+      console.log('initS3MasterIndex: s3 master index file does not exist, creating it');
+    } else {
+      console.error('initS3MasterIndex: failed to check if s3 master index file exists');
+      throw error;
+    }
+  }
+
+  // if it doesn't exist, create it
+  if (!exists) {
+    try {
+      await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName, Body: '{}' }));
+    } catch (error) {
+      console.error('initS3MasterIndex: failed to create s3 master index');
+      throw error;
+    }
   }
 };
 
@@ -159,42 +193,70 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
 
     // local entry does not exist, create it
     if (!localIndex) {
+      // if already entry exists in local database, continue
+      let localEntryExists = false;
       try {
-        const response = await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
-        const body = await response.Body?.transformToByteArray();
-        const bodyString = body ? new TextDecoder().decode(body) : '{}';
-        const entry = JSON.parse(bodyString) as Entry;
-        if (!entry) {
-          throw new Error(`syncMasterIndex: error creating s3 entry ${id}`);
-        }
         if (db.getEntryById(id) !== null) {
-          console.log('syncMasterIndex: entry already exists in local database', id);
-          continue;
+          console.log(`syncMasterIndex: local entry ${id} already exists`);
+          localEntryExists = true;
         }
-        console.log('syncMasterIndex: creating local entry', id);
-        db.createEntry(entry);
-        syncedIndex[id] = s3Index;
-        continue;
       } catch (error) {
-        console.error(`syncMasterIndex: error creating local entry ${id}:`);
+        console.error(`syncMasterIndex: error checking if local entry ${id} exists:`, error);
         throw error;
+      }
+
+      if (!localEntryExists) {
+        try {
+          const response = await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
+          const body = await response.Body?.transformToByteArray();
+          const bodyString = body ? new TextDecoder().decode(body) : '{}';
+          const entry = JSON.parse(bodyString) as Entry;
+          if (!entry) {
+            throw new Error(`syncMasterIndex: error creating s3 entry ${id}`);
+          }
+          console.log('syncMasterIndex: creating local entry', id);
+          db.createEntry(entry);
+          syncedIndex[id] = s3Index;
+          continue;
+        } catch (error) {
+          console.error(`syncMasterIndex: error creating local entry ${id}:`);
+          throw error;
+        }
       }
     }
 
-    // s3 entry does not exist, create it
+    // s3 index does not exist, create it
     if (!s3Index) {
+      // if already entry exists in s3, continue
+      let s3EntryExists = false;
       try {
-        const entry = db.getEntryById(id);
-        if (!entry) {
-          throw new Error(`syncMasterIndex: error retrieving local entry ${id}`);
+        await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
+        console.log(`syncMasterIndex: s3 entry ${id} already exists`);
+        s3EntryExists = true;
+      } catch (error: any) {
+        if (error.name === 'NoSuchKey') {
+          console.log(`syncMasterIndex: s3 entry ${id} not found, creating local entry`);
+        } else {
+          console.error(`syncMasterIndex: error retrieving s3 entry ${id}:`, error);
+          throw error;
         }
-        console.log('syncMasterIndex: creating s3 entry', id); // todo: what happens if entry already exists in s3?
-        await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
-        syncedIndex[id] = localIndex;
-        continue;
-      } catch (error) {
-        console.error(`syncMasterIndex: error creating s3 entry ${id}:`);
-        throw error;
+      }
+
+      if (!s3EntryExists) {
+        try {
+          // fetch entry from local database and create s3 entry
+          const entry = db.getEntryById(id);
+          if (!entry) {
+            throw new Error(`syncMasterIndex: error retrieving local entry ${id}`);
+          }
+          console.log('syncMasterIndex: creating s3 entry', id); // todo: what happens if entry already exists in s3?
+          await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
+          syncedIndex[id] = localIndex;
+          continue;
+        } catch (error) {
+          console.error(`syncMasterIndex: error creating s3 entry ${id}:`);
+          throw error;
+        }
       }
     }
 
@@ -238,6 +300,7 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
     // s3 entry is newer, update local entry
     if (localIndex.lastModified < s3Index.lastModified) {
       if (s3Index.deleted) {
+        console.log(`syncMasterIndex: s3 entry is deleted, deleting local entry ${id}`);
         try {
           db.deleteEntry(id);
           syncedIndex[id] = s3Index;
@@ -251,7 +314,6 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
       // update local entry
       let entry: Entry;
       try {
-        console.log(`retrieving s3 entry ${id}`);
         const response = await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
         const body = await response.Body?.transformToByteArray();
         const bodyString = body ? new TextDecoder().decode(body) : '{}';

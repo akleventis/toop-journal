@@ -44,7 +44,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
 
     try {
         s3MasterIndex = await loadS3MasterIndex();
-    }catch (error) {
+    } catch (error) {
         console.error('failed to load s3 master index:', error);
         throw error;
     }

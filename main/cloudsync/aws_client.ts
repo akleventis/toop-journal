@@ -14,6 +14,7 @@ import { getConfig } from './aws_config';
 import { S3Config } from '../../renderer/lib/types';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { cloudSyncPipeline } from './transact';
+import { initS3MasterIndex } from './master_index';
 
 let S3ClientInitializing = false; // prevent multiple initialization attempts
 
@@ -92,6 +93,7 @@ export const setAWSClient = async (config: S3Config): Promise<void> => {
       throw new Error('getAWSClient: testAWSClient failed');
     }
     state.AWSClient = client;
+    await initS3MasterIndex(); // initialize master index file in s3
   };
 
 /**
