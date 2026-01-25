@@ -66,12 +66,12 @@ function getEntriesBetweenTimestamps(startTs: number, endTs: number): Entry[] {
 
 function createEntry(entry: Entry): void {
     db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
-    updateMasterIndex(entry.id, { lastModified: entry.lastModified, deleted: false });
+    updateMasterIndex(entry.id, { lastModified: Date.now(), deleted: false });
 }
 
 function updateEntry(id: string, entry: Entry): void {
     db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified, id);
-    updateMasterIndex(id, { lastModified: entry.lastModified, deleted: false });
+    updateMasterIndex(id, { lastModified: Date.now(), deleted: false });
 }
 
 function deleteEntry(id: string): void {

@@ -1,3 +1,4 @@
 - [ ] password overlay white flash
 - [ ] handle error on nil aws config?
 - [ ] release workflow
+- [ ] no scroll in text-editor -> single page scroll

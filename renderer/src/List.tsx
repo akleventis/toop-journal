@@ -1,18 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { DecodedEntry } from '../lib/types'
-import { decodeHtmlEntities, getDateParts } from '../lib/utils'
+import { getDateParts } from '../lib/utils'
 
 interface ListViewProps {
   entries: DecodedEntry[];
-  loadEntries: () => void;
   style?: React.CSSProperties;
 }
 
-export default function ListView({ entries, loadEntries, style }: ListViewProps) {
+export default function ListView({ entries, style }: ListViewProps) {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams();
-  const reload = searchParams.get('reload') === 'true'
   const [mappedEntries, setMappedEntries] = useState<React.ReactNode[]>([])
   const [searchValue, setSearchValue] = useState('');
   const [submittedSearchValue, setSubmittedSearchValue] = useState('');
@@ -46,20 +43,6 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
       return entry.decodedContent.toLowerCase().includes(searchLower);
     });
   }, [entries, submittedSearchValue]);
-
-
-  // initial mount, reloads 
-  useEffect(() => {
-    if (entries.length > 0) return 
-    loadEntries()
-  }, [])
-
-  // re-fetch entries when reload is true (primarly used upon saving a new entry)
-  useEffect(() => {
-    if (!reload) return;
-    loadEntries();
-    setSearchParams({})
-  }, [reload, setSearchParams]);
 
   // component stays mounted, useMemo to save entries mapping in memory
   useMemo(() => {
@@ -99,9 +82,6 @@ export default function ListView({ entries, loadEntries, style }: ListViewProps)
     })
     setMappedEntries(mappedEntries)
   }, [filteredEntries]);
-
-  // avoid double rendering when reload is true
-  if (reload) return null;
 
   return (
     <div style={{ overflowY: 'auto', height: '100vh', ...style }} >
