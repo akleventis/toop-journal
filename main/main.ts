@@ -33,6 +33,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 600,
     height: 750,
+    backgroundColor: '#333',
     webPreferences: {
       preload: preloadPath,
 

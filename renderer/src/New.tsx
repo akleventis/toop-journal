@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { formatCurrentDate, calendarDateToJournalFormat, journalDateToCalendarFormat, formatCurrentDateToYearMonthDay } from '../lib/utils';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { formatCurrentDate, calendarDateToJournalFormat, journalDateToCalendarFormat, formatCurrentDateToYearMonthDay, saveEntry } from '../lib/utils';
 import TextEditor from './components/TextEditor';
-import type { Entry } from '../lib/types';
 import * as db from '../db/db';
 
 const New: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [todaysEntry, setTodaysEntry] = useState<Entry | null>(null);
+  const [currentHtml, setCurrentHtml] = useState('');
+  const navigate = useNavigate();
 
   // get most recent entry
   useEffect(() => {
@@ -15,7 +15,7 @@ const New: React.FC = () => {
       const entry = await db.getMostRecentEntry();
       if (entry) {
         if (journalDateToCalendarFormat(entry.date) === formatCurrentDateToYearMonthDay()) {
-          setTodaysEntry(entry);
+          navigate(`/edit?id=${entry.id}`);
         }
       }
     };
@@ -26,16 +26,28 @@ const New: React.FC = () => {
   const dateParam = searchParams.get('date');
   const dateRef = useRef(dateParam ? calendarDateToJournalFormat(dateParam) : formatCurrentDate());
 
+  const handleSave = async () => {
+    await saveEntry(currentHtml, null, db, navigate);
+  };
+
+  const handleContentChange = (html: string) => {
+    setCurrentHtml(html);
+  };
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
       <div style={{ textAlign: 'center', fontSize: '12px', color: 'grey' }}>
         {dateRef.current}
       </div>
       <TextEditor
-        entry={todaysEntry}
+        entry={null}
         displayNav={false}
         editable={true}
+        onContentChange={handleContentChange}
       />
+      <div style={{ borderTop: '1px solid var(--border-color)', textAlign: 'right', padding: '0 10px 10px' }}>
+        <button onClick={handleSave} style={{ padding: '4px 8px', fontSize: '12px' }}>Done</button>
+      </div>
     </div>
   );
 };

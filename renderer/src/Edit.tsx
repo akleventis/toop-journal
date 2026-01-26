@@ -4,7 +4,7 @@ import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
 import type { DecodedEntry } from '../lib/types';
 import { NavDirection } from '../lib/constants';
-import { decodeHtmlEntities } from '../lib/utils';
+import { decodeHtmlEntities, saveEntry } from '../lib/utils';
 
 interface EditProps {
   entries: DecodedEntry[];
@@ -12,6 +12,8 @@ interface EditProps {
 
 const Edit: React.FC<EditProps> = ({ entries }) => {
   const [entry, setEntry] = useState<DecodedEntry | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentHtml, setCurrentHtml] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const entryId = searchParams.get('id');
@@ -32,7 +34,7 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
     };
 
     loadEntry();
-  }, [entryId]);  
+  }, [entryId]);
 
   const handleNavigate = (direction: NavDirection) => {
     if (!entry || entries.length === 0) return;
@@ -49,21 +51,42 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
     }
   };
 
+  const handleSave = async () => {
+    await saveEntry(currentHtml, entry, db, navigate);
+  };
+
+  const handleEditModeChange = (editing: boolean) => {
+    setIsEditing(editing);
+  };
+
+  const handleContentChange = (html: string) => {
+    setCurrentHtml(html);
+  };
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{
         textAlign: 'center',
         fontSize: '12px',
-        color: 'grey'
+        color: 'grey',
       }}>
         {entry?.date}
       </div>
-      <TextEditor
-        displayNav={true}
-        editable={false}
-        entry={entry}
-        onNavigate={handleNavigate}
-      />
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <TextEditor
+          displayNav={true}
+          editable={false}
+          entry={entry}
+          onNavigate={handleNavigate}
+          onEditModeChange={handleEditModeChange}
+          onContentChange={handleContentChange}
+        />
+      </div>
+      {isEditing && (
+        <div style={{ borderTop: '1px solid var(--border-color)', textAlign: 'right', padding: '0 10px 10px' }}>
+          <button onClick={handleSave} style={{ padding: '4px 8px', fontSize: '12px' }}>Done</button>
+        </div>
+      )}
     </div>
   );
 };

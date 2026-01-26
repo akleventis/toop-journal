@@ -20,9 +20,14 @@ declare global {
 // using the global variable defined in vite.config.ts
 const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
+// preloads decoded HTML to warm cache
+const preloadHtmlDecodeCache = async () => {
+  db.getDecodedEntries() 
+}
+
 function AppContent() {
   const [entries, setEntries] = useState<DecodedEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,6 +64,10 @@ function AppContent() {
   // handle reload and initial load when on /list
   useEffect(() => {
     if (!passwordVerified) return
+    if (location.pathname == '/new') {
+      preloadHtmlDecodeCache()
+      return
+    }
     if (location.pathname !== '/list') return
 
     const reload = searchParams.get('reload') === 'true'
@@ -97,7 +106,7 @@ function AppContent() {
         <Route path="/new" element={<New />} />
         <Route path="/edit" element={<Edit entries={entries} />} />
       </Routes>
-      {loading && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--app-bg)', zIndex: 1000 }}>Loading ...</div>}
+      {loading && <div style={{ position: 'absolute', top: '40px', left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--app-bg)', zIndex: 1000 }}>Loading ...</div>}
     </div>
   );
 }

@@ -223,3 +223,45 @@ export function decodeHtmlEntities(encoded: string): string {
   __decodeCache.set(encoded, v);
   return v;
 }
+
+/**
+ * Saves an entry to the database (creates or updates).
+ *
+ * @param {string} currentHtml - The current HTML content to save.
+ * @param {any} entry - The entry being edited (or null for new entry).
+ * @param {any} db - The database module.
+ * @param {Function} navigate - The navigate function from react-router.
+ * @returns {Promise<void>}
+ */
+export async function saveEntry(
+  currentHtml: string,
+  entry: any | null,
+  db: any,
+  navigate: (path: string) => void
+): Promise<void> {
+  const encodedHtml = encodeHtmlEntities(currentHtml);
+
+  if (currentHtml === '' || currentHtml === '<br>') {
+    alert('empty! please enter thoughts')
+    return;
+  }
+
+  let exists = false;
+  if (entry) {
+    exists = await db.getEntryById(entry.id) !== null;
+  }
+
+  if (exists && entry) {
+    await db.updateEntry(entry.id, { content: encodedHtml });
+  } else {
+    const entryDate = formatCurrentDate();
+    const newEntry = {
+      id: generateIdFromDate(entryDate),
+      date: entryDate,
+      content: encodedHtml,
+      timestamp: Date.now()
+    };
+    await db.createEntry(newEntry);
+  }
+  navigate('/list?reload=true');
+}

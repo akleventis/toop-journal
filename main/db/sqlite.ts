@@ -47,8 +47,13 @@ db.exec(`
   );
 `);
 
-function getEntries(): Entry[] {
-    const rows = db.prepare('SELECT * FROM entries_t order by timestamp desc').all() as Entry[];
+// function getEntries(): Entry[] {
+//     const rows = db.prepare('SELECT * FROM entries_t order by timestamp desc').all() as Entry[];
+//     return rows;
+// }
+
+function getEntries(limit: number = 10): Entry[] {
+    const rows = db.prepare('SELECT * FROM entries_t order by timestamp desc limit ?').all(limit) as Entry[];
     return rows;
 }
 

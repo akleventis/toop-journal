@@ -58,7 +58,7 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
                         }}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        onKeyPress={handlePasswordKeyPress}
+                        onKeyDown={handlePasswordKeyPress}
                         autoFocus
                     />
                 </div>

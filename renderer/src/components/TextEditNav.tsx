@@ -34,7 +34,7 @@ const TextEditNav: React.FC<TextEditNavProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--p-out-vertical) var(--p-out-horizontal)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px var(--p-out-horizontal)' }}>
       <div style={{ position: 'relative', display: 'inline-block' }}>
         <button
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -52,13 +52,13 @@ const TextEditNav: React.FC<TextEditNavProps> = ({
         {showDropdown && (
           <div ref={dropdownRef} style={{ position: 'absolute', left: '100%', top: 0, zIndex: 1000, background: 'var(--secondary-bg)', padding: '4px', borderRadius: 'var(--border-radius)', marginLeft: '4px' }}>
             <button
-              style={{ display: 'block', width: '100%', textAlign: 'left' }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: '12px' }}
               onClick={() => { onToggleEditMode(); setShowDropdown(false); }}
             >
               Edit
             </button>
             <button
-              style={{ display: 'block', width: '100%', textAlign: 'left' }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: '12px' }}
               onClick={() => { onDelete(); setShowDropdown(false); }}
             >
               Delete

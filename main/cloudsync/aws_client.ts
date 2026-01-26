@@ -11,11 +11,11 @@ let S3ClientInitializing = false; // prevent multiple initialization attempts
  * Initializes the S3 client for AWS operations.
  *
  * - Called upon initial app startup.
- * - Triggers the cloud sync pipeline.
+ * - Triggers the cloud sync pipeline in the background without blocking.
  * - Returns early if already initializing or if the client exists.
  * - Throws an error if the AWS config is invalid.
  *
- * @returns {Promise<void>} Resolves when initialization completes.
+ * @returns {Promise<void>} Resolves when client initialization completes (sync runs in background).
  */
 export const initS3Client = async (): Promise<void> => {
   if (S3ClientInitializing) {
@@ -82,6 +82,7 @@ export const setAWSClient = async (config: S3Config): Promise<void> => {
       throw new Error('getAWSClient: testAWSClient failed');
     }
     state.AWSClient = client;
+    state.AWSConfig = config;
     await initS3MasterIndex(); // initialize master index file in s3
   };
 

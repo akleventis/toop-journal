@@ -30,10 +30,7 @@ a {
   color: inherit;
 }
 
-input {
-  padding: 4px;
-}
-
+input,
 select {
   padding: 4px;
 }
@@ -98,25 +95,29 @@ button:hover {
   cursor: progress;
 }
 
-/* react-simple-wysiwyg styles */
-.rsw-editor {
-  height: 100%;
-  border: none !important;
-  margin: var(--p-out-vertical) var(--p-out-horizontal);
-  line-height: 1.5;
-}
+/* react-simple-wysiwyg overrides */
 .rsw-toolbar {
   border: none !important;
 }
 
-/* Media Queries */
+.rsw-editor {
+  border: none !important;
+  margin: 0 var(--p-out-horizontal);
+  line-height: 1.5;
+  height: 100% !important;
+}
+
+/* media queries */
 @media (prefers-color-scheme: dark) {
   :root {
     --app-bg: #333;
     --secondary-bg: #222222;
     --third-bg: #111;
   }
-  body { background: var(--app-bg); color: white; }
+  body {
+    background: var(--app-bg);
+    color: white;
+  }
 }
 
 @media (prefers-color-scheme: light) {
@@ -125,9 +126,13 @@ button:hover {
     --secondary-bg: #f0f0f0;
     --third-bg: #e0e0e0;
   }
-  body { background: var(--app-bg); color: black; }
+  body {
+    background: var(--app-bg);
+    color: black;
+  }
 }
 
+/* calendar */
 @media (min-width: 768px) {
   .calendar-day {
     width: 25px !important;
@@ -135,12 +140,12 @@ button:hover {
     font-size: 12px !important;
     padding: 3px !important;
   }
-  
+
   .calendar-header {
     font-size: 12px !important;
     padding: 3px !important;
   }
-  
+
   .calendar-grid {
     grid-template-columns: repeat(7, 25px) !important;
   }
@@ -153,12 +158,12 @@ button:hover {
     font-size: 14px !important;
     padding: 4px !important;
   }
-  
+
   .calendar-header {
     font-size: 14px !important;
     padding: 4px !important;
   }
-  
+
   .calendar-grid {
     grid-template-columns: repeat(7, 30px) !important;
   }

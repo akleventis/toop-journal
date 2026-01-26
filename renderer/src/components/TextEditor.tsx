@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
 import * as db from '../../db/db';
 import type { Entry } from '../../lib/types';
-import { decodeHtmlEntities, encodeHtmlEntities, formatCurrentDate, generateIdFromDate } from '../../lib/utils';
+import { decodeHtmlEntities } from '../../lib/utils';
 import { NavDirection } from '../../lib/constants';
 
 interface TextEditProps {
@@ -12,13 +12,17 @@ interface TextEditProps {
     editable: boolean; // true if editable
     entry: Entry | null; // entry to view or edit
     onNavigate?: (direction: NavDirection) => void; // navigate to previous or next entry (if in view mode)
+    onEditModeChange?: (editing: boolean) => void; // callback when edit mode changes
+    onContentChange?: (html: string) => void; // callback when content changes
 }
 
 const TextEditor: React.FC<TextEditProps> = ({
     displayNav,
     editable,
     entry,
-    onNavigate
+    onNavigate,
+    onEditModeChange,
+    onContentChange
 }) => {
     const [html, setHtml] = useState('');
     const [displayNavState, setDisplayNavState] = useState(displayNav);
@@ -36,37 +40,10 @@ const TextEditor: React.FC<TextEditProps> = ({
         }
     };
 
-    // Save entry to database and navigate to list
-    const handleSave = async () => {
-        const encodedHtml = encodeHtmlEntities(html);
-
-        if (encodedHtml.trim() === '') {
-            navigate('/list');
-            return;
-        }
-
-        let exists = false;
-        if (entry) {
-            exists = await db.getEntryById(entry.id) !== null;
-        }
-
-        if (exists && entry) {
-            await db.updateEntry(entry.id, { content: encodedHtml });
-        } else {
-            const entryDate = formatCurrentDate();
-            const entry: Entry = {
-                id: generateIdFromDate(entryDate),
-                date: entryDate,
-                content: encodedHtml,
-                timestamp: Date.now()
-            };
-            await db.createEntry(entry);
-        }
-        navigate('/list?reload=true');
-    };
 
     const onChange = (e: any) => {
         setHtml(e.target.value);
+        onContentChange?.(e.target.value);
     };
 
     const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -79,6 +56,7 @@ const TextEditor: React.FC<TextEditProps> = ({
     const toggleEditMode = () => {
         setEditableState(true);
         setDisplayNavState(false);
+        onEditModeChange?.(true);
     };
 
     useEffect(() => {
@@ -86,13 +64,17 @@ const TextEditor: React.FC<TextEditProps> = ({
             const decodedHtml = decodeHtmlEntities(entry.content);
             setHtml(decodedHtml);
             setDisplayNavState(displayNav);
+            onContentChange?.(decodedHtml);
         } else {
             setHtml('');
+            onContentChange?.('');
         }
-    }, [entry?.id, displayNav]);
+        setEditableState(editable);
+        onEditModeChange?.(editable);
+    }, [entry?.id, displayNav, editable]);
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <TextEditNav
                 displayNav={displayNavState}
                 onToggleEditMode={toggleEditMode}
@@ -100,16 +82,12 @@ const TextEditor: React.FC<TextEditProps> = ({
                 onNavigate={onNavigate}
             />
 
-            <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown}>
-                <Toolbar>
-                </Toolbar>
-            </Editor>
-
-            {editableState && (
-                <div style={{ padding: '8px', borderTop: '1px solid var(--border-color)', textAlign: 'right' }}>
-                    <button onClick={handleSave} style={{ padding: '8px 16px', margin: '10px', fontSize: '12px' }} > Done </button>
-                </div>
-            )}
+            <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown}>
+                    <Toolbar>
+                    </Toolbar>
+                </Editor>
+            </div>
         </div>
     );
 };

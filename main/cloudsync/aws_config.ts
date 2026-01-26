@@ -45,7 +45,6 @@ export const createConfig = async (config: S3Config): Promise<S3Config> => {
 
     const configPath = path.join(state.UserDataPath, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify(config));
-    state.AWSConfig = config;
     return config;
 };
 
