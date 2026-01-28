@@ -47,13 +47,12 @@ db.exec(`
   );
 `);
 
-// function getEntries(): Entry[] {
-//     const rows = db.prepare('SELECT * FROM entries_t order by timestamp desc').all() as Entry[];
-//     return rows;
-// }
-
-function getEntries(limit: number = 10): Entry[] {
-    const rows = db.prepare('SELECT * FROM entries_t order by timestamp desc limit ?').all(limit) as Entry[];
+function getEntries(limit?: number): Entry[] {
+    let query = 'SELECT * FROM entries_t order by timestamp DESC';
+    if (limit && limit > 0) {
+        query += ` LIMIT ${limit}`;
+    }
+    const rows = db.prepare(query).all() as Entry[];
     return rows;
 }
 

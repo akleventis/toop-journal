@@ -52,7 +52,7 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
   };
 
   const handleSave = async () => {
-    await saveEntry(currentHtml, entry, db, navigate);
+    await saveEntry(currentHtml, entry, navigate);
   };
 
   const handleEditModeChange = (editing: boolean) => {

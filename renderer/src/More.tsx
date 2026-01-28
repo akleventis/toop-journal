@@ -9,11 +9,57 @@ export default function More() {
         <div style={{ padding: '10px', display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
             <Password />
             <div style={{ margin: '15px' }} />
+            <EntryLimit />
+            <div style={{ margin: '15px' }} />
             <ExportEntries />
             <div style={{ margin: '15px' }} />
             <AWSConfig />
         </div>
 
+    )
+}
+
+export function EntryLimit() {
+    const [limit, setLimit] = useState<string>('')
+
+    useEffect(() => {
+        const stored = localStorage.getItem('entryLimit') || ''
+        setLimit(stored)
+    }, [])
+
+    const handleSave = () => {
+        const trimmed = limit.trim()
+
+        if (!trimmed) {
+            localStorage.removeItem('entryLimit')
+            window.location.reload()
+            return
+        }
+
+        const parsed = parseInt(trimmed, 10)
+        if (isNaN(parsed) || parsed <= 0) {
+            alert('Please enter a valid number')
+            return
+        }
+
+        localStorage.setItem('entryLimit', trimmed)
+        window.location.reload()
+    }
+
+    return (
+        <div>
+            <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>Initial Entry Load Limit</h3>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
+                <input
+                    type="number"
+                    value={limit}
+                    onChange={(e) => setLimit(e.target.value)}
+                    placeholder="All entries"
+                    style={{ width: '120px', fontSize: '12px' }}
+                />
+                <button onClick={handleSave} style={{ fontSize: '12px' }}>Save</button>
+            </div>
+        </div>
     )
 }
 

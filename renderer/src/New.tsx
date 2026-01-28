@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { formatCurrentDate, calendarDateToJournalFormat, journalDateToCalendarFormat, formatCurrentDateToYearMonthDay, saveEntry } from '../lib/utils';
+import { formatCurrentDate, calendarToJournal, journalToCalendar, getCurrentCalendarDate, saveEntry } from '../lib/utils';
 import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
 
@@ -14,7 +14,7 @@ const New: React.FC = () => {
     const loadMostRecentEntry = async () => {
       const entry = await db.getMostRecentEntry();
       if (entry) {
-        if (journalDateToCalendarFormat(entry.date) === formatCurrentDateToYearMonthDay()) {
+        if (journalToCalendar(entry.date) === getCurrentCalendarDate()) {
           navigate(`/edit?id=${entry.id}`);
         }
       }
@@ -24,10 +24,10 @@ const New: React.FC = () => {
 
   // get date from url param (in instances when we want create a new entry for a specific date) or use current date
   const dateParam = searchParams.get('date');
-  const dateRef = useRef(dateParam ? calendarDateToJournalFormat(dateParam) : formatCurrentDate());
+  const dateRef = useRef(dateParam ? calendarToJournal(dateParam) : formatCurrentDate());
 
   const handleSave = async () => {
-    await saveEntry(currentHtml, null, db, navigate);
+    await saveEntry(currentHtml, null, navigate);
   };
 
   const handleContentChange = (html: string) => {

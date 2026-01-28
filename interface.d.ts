@@ -10,7 +10,7 @@ export interface CloudSyncAPI {
 }
 
 export interface SQLiteAPI {
-  getEntries: () => Promise<Entry[]>,
+  getEntries: (limit?: number) => Promise<Entry[]>,
   getEntryById: (id: string) => Promise<Entry | null>,
   getMostRecentEntry: () => Promise<Entry | null>,
   getEntriesBetweenTimestamps: (startTs: number, endTs: number) => Promise<Entry[]>,

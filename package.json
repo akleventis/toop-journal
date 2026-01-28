@@ -48,7 +48,7 @@
     "mac": {
       "category": "public.app-category.productivity",
       "target": "dmg",
-      "icon": "assets/icon_v1.png"
+      "icon": "assets/icon.png"
     }
   }
 }

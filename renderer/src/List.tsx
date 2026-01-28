@@ -12,7 +12,7 @@ export default function ListView({ entries, style }: ListViewProps) {
   const navigate = useNavigate()
   const [mappedEntries, setMappedEntries] = useState<React.ReactNode[]>([])
   const [searchValue, setSearchValue] = useState('');
-  const [submittedSearchValue, setSubmittedSearchValue] = useState('');
+  const [submittedSearchValue, setSubmittedSearchValue] = useState(''); 
 
   const handleEntryClick = (entryId: string) => {
     navigate(`/edit?id=${entryId}`)
@@ -31,8 +31,6 @@ export default function ListView({ entries, style }: ListViewProps) {
     setSearchValue("");
     setSubmittedSearchValue("");
   }
-
-
   // Filter entries based on submitted search value
   const filteredEntries = useMemo(() => {
     if (!submittedSearchValue.trim()) {

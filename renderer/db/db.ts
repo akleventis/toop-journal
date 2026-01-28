@@ -7,11 +7,20 @@ let __decodedEntriesMemo: DecodedEntry[] | null = null;
 function clearDecodedCache() {
   __decodedEntriesMemo = null;
 }
-                                                                                                                                 
+
+function getEntryLimitFromStorage(): number | undefined {
+  const stored = localStorage.getItem('entryLimit');
+  if (!stored) return undefined;
+  const parsed = parseInt(stored, 10);
+  return isNaN(parsed) ? undefined : parsed;
+}
+
 export async function getDecodedEntries(): Promise<DecodedEntry[]> {
   if (__decodedEntriesMemo) return __decodedEntriesMemo;
 
-  const rows = await window.sqlite.getEntries();
+  const limit = getEntryLimitFromStorage();
+  const rows = await window.sqlite.getEntries(limit);
+
   __decodedEntriesMemo = rows.map(entry => ({
     ...entry,
     decodedContent: decodeHtmlEntities(entry.content)
@@ -28,9 +37,8 @@ export async function getMostRecentEntry(): Promise<Entry | null> {
 }
 
 export async function createEntry(entry: Entry): Promise<Entry> {
-  const timestamp = parseJournalDate(entry.date);
   const now = Date.now();
-  entry = { ...entry, timestamp, lastModified: now };
+  entry = { ...entry, timestamp: now, lastModified: now };
   await window.sqlite.createEntry(entry);
   clearDecodedCache();
   return entry;

@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('cloudSync', {
 })
 
 contextBridge.exposeInMainWorld('sqlite', {
-  getEntries: () => ipcRenderer.invoke('sqlite:getEntries'),
+  getEntries: (limit?: number) => ipcRenderer.invoke('sqlite:getEntries', limit),
   getEntryById: (id: string) => ipcRenderer.invoke('sqlite:getEntryById', id),
   getMostRecentEntry: () => ipcRenderer.invoke('sqlite:getMostRecentEntry'),
   getEntriesBetweenTimestamps: (startTs: number, endTs: number) => ipcRenderer.invoke('sqlite:getEntriesBetweenTimestamps', startTs, endTs),

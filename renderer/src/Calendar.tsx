@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DecodedEntry } from '../lib/types'
-import { journalDateToCalendarFormat, createCalendarDate } from '../lib/utils'
+import { journalToCalendar, createCalendarDate } from '../lib/utils'
 import YearSelector from './components/YearSelector'
 
 interface CalendarProps {
@@ -22,7 +22,7 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
 
     // create a map of dates that have entries
     const entriesByDate = entries.reduce((acc, entry) => {
-        const calendarDate = journalDateToCalendarFormat(entry.date)
+        const calendarDate = journalToCalendar(entry.date)
         acc[calendarDate] = entry
         return acc
     }, {} as Record<string, DecodedEntry>)

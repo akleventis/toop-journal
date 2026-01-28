@@ -1,49 +1,12 @@
-/**
- * Validates ID format: "feb.25.2018"
- *
- * @param {string} id - The ID to validate.
- * @returns {void}
- * @throws {Error} If the ID is not in the correct format.
- */
-export function validateID(id: string): void {
-  const regex = /^[a-z]{3}\.\d{1,2}\.\d{4}$/;
-  if (!regex.test(id)) {
-    throw new Error('INVALID_ID: must be in format "feb.25.2018"');
-  }
-}
+import { Entry } from "./types";
+import * as db from '../db/db';
+
+// ============================================================================
+// Date Formatting
+// ============================================================================
 
 /**
- * Returns the date parts of a journal date string.
- *
- * @param {string} dateStr - The date string to parse.
- * @returns {Object} An object containing the year, month, day, and weekday.
- */
-export function getDateParts(dateStr: string) {
-  const date = new Date(dateStr.replace(/ at .*/, ''));
-  return {
-    year: date.getFullYear(),
-    month: date.toLocaleString('en-US', { month: 'short' }),
-    day: date.getDate(),
-    weekday: date.toLocaleString('en-US', { weekday: 'short' }),
-  };
-}
-
-/**
- * Validates date format: "Feb 27, 2018 at 15:14:10"
- *
- * @param {string} date - The date to validate.
- * @returns {void}
- * @throws {Error} If the date is not in the correct format.
- */
-export function validateDate(date: string): void {
-  const regex = /^[A-Z][a-z]{2} \d{1,2}, \d{4} at \d{2}:\d{2}:\d{2}$/;
-  if (!regex.test(date)) {
-    throw new Error('INVALID_DATE: must be in format "Feb 27, 2018 at 15:14:10"');
-  }
-}
-
-/**
- * Formats current date to "Feb 27, 2018 at 15:14:10"
+ * Formats current date to `Jun 14, 2025 at 12:35:55`
  *
  * @returns {string} The formatted date.
  */
@@ -61,22 +24,42 @@ export function formatCurrentDate(): string {
 }
 
 /**
- * Formats current date to "2018-02-27"
+ * Formats current date to `2025-06-14`
  *
  * @returns {string} The formatted date.
  */
-export function formatCurrentDateToYearMonthDay(): string {
+export function getCurrentCalendarDate(): string {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-// ..
+
+// ============================================================================
+// Date Parsing & Conversion
+// ============================================================================
+
 /**
- * Parses a journal date string in the format 'May 26, 2018 at 16:00:00' to a timestamp
+ * Converts a journal date string `Jun 14, 2025 at 12:35:55` to a object containing the year, month, day, and weekday.
  *
- * @param {string} dateStr - The date string to parse.
+ * @param {string} dateStr - The date string to convert.
+ * @returns {Object} An object containing the year, month, day, and weekday.
+ */
+export function getDateParts(dateStr: string): { year: number, month: string, day: number, weekday: string } {
+  const date = new Date(dateStr.replace(/ at .*/, ''));
+  return {
+    year: date.getFullYear(),
+    month: date.toLocaleString('en-US', { month: 'short' }),
+    day: date.getDate(),
+    weekday: date.toLocaleString('en-US', { weekday: 'short' }),
+  };
+}
+
+/**
+ * Converts a journal date string `Jun 14, 2025 at 12:35:55` to a timestamp.
+ *
+ * @param {string} dateStr - The date string to convert.
  * @returns {number} The timestamp.
  * @throws {Error} If the date string is not in the correct format.
  */
@@ -108,50 +91,28 @@ export function parseJournalDate(dateStr: string): number {
 }
 
 /**
- * Generates ID in format: "feb.25.2018"
+ * Generates ID in format: "jun.14.2025" from a journal date string `Jun 14, 2025 at 12:35:55`.
  *
  * @param {string} date - The date to generate the ID from.
  * @returns {string} The generated ID.
  */
-export function generateIdFromDate(date: string): string {
+export function journalDateToId(date: string): string {
   const [datePart] = date.split(' at ');
   const [month, day, year] = datePart.replace(',', '').split(' ');
   return `${month.toLowerCase()}.${day}.${year}`;
 }
 
-/**
- * Encodes HTML entities in a string.
- *
- * @param {string} rawHtml - The HTML string to encode.
- * @returns {string} The encoded HTML string.
- */
-export function encodeHtmlEntities(rawHtml: string): string {
-  const textarea = document.createElement('textarea');
-  textarea.textContent = rawHtml;
-  return textarea.innerHTML;
-}
+// ============================================================================
+// Calendar Format Conversion
+// ============================================================================
 
 /**
- * Formats a date from ID (e.g., "jun.13.2025") with current time.
- *
- * @param {string} id - The ID to format.
- * @returns {string} The formatted date.
- */
-export function formatDateFromId(id: string): string {
-  const currentDateStr = formatCurrentDate();
-  const timePart = currentDateStr.split(' at ')[1];
-
-  const [month, day, year] = id.split('.');
-  return `${month.charAt(0).toUpperCase() + month.slice(1)} ${day}, ${year} at ${timePart}`;
-}
-
-/**
- * Converts journal date format to YYYY-MM-DD format for calendar matching.
+ * Converts a journal date string `Jun 14, 2025 at 12:35:55` to a YYYY-MM-DD format for calendar matching.
  *
  * @param {string} journalDate - The journal date to convert.
  * @returns {string} The converted date.
  */
-export function journalDateToCalendarFormat(journalDate: string): string {
+export function journalToCalendar(journalDate: string): string {
   const [datePart] = journalDate.split(' at ');
   const [month, day, year] = datePart.replace(',', '').split(' ');
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -160,7 +121,7 @@ export function journalDateToCalendarFormat(journalDate: string): string {
 }
 
 /**
- * Creates YYYY-MM-DD format from year, month, and day numbers.
+ * Creates a YYYY-MM-DD format from year, month, and day numbers.
  *
  * @param {number} year - The year.
  * @param {number} month - The month.
@@ -172,12 +133,12 @@ export function createCalendarDate(year: number, month: number, day: number): st
 }
 
 /**
- * Converts YYYY-MM-DD format to journal date format with current time.
+ * Converts a YYYY-MM-DD format to a journal date string `Jun 14, 2025 at 12:35:55` with current time.
  *
  * @param {string} calendarDate - The calendar date to convert.
  * @returns {string} The converted date.
  */
-export function calendarDateToJournalFormat(calendarDate: string): string {
+export function calendarToJournal(calendarDate: string): string {
   const [year, month, day] = calendarDate.split('-');
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthName = monthNames[parseInt(month) - 1];
@@ -189,20 +150,20 @@ export function calendarDateToJournalFormat(calendarDate: string): string {
   return `${monthName} ${parseInt(day)}, ${year} at ${currentTime}`;
 }
 
+// ============================================================================
+// HTML Entity Handling
+// ============================================================================
+
 /**
- * Simple hash function for passwords.
+ * Encodes HTML entities in a string.
  *
- * @param {string} password - The password to hash.
- * @returns {string} The hashed password.
+ * @param {string} rawHtml - The HTML string to encode.
+ * @returns {string} The encoded HTML string.
  */
-export function hashPassword(password: string): string {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return hash.toString();
+export function encodeHtmlEntities(rawHtml: string): string {
+  const textarea = document.createElement('textarea');
+  textarea.textContent = rawHtml;
+  return textarea.innerHTML;
 }
 
 const __decodeCache = new Map<string, string>();
@@ -224,19 +185,41 @@ export function decodeHtmlEntities(encoded: string): string {
   return v;
 }
 
+// ============================================================================
+// Security
+// ============================================================================
+
+/**
+ * Hashes a password using a simple hash function.
+ *
+ * @param {string} password - The password to hash.
+ * @returns {string} The hashed password.
+ */
+export function hashPassword(password: string): string {
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return hash.toString();
+}
+
+// ============================================================================
+// Database Operations
+// ============================f================================================
+
 /**
  * Saves an entry to the database (creates or updates).
  *
  * @param {string} currentHtml - The current HTML content to save.
- * @param {any} entry - The entry being edited (or null for new entry).
- * @param {any} db - The database module.
+ * @param {Entry | null} entry - The entry being edited (or null for new entry).
  * @param {Function} navigate - The navigate function from react-router.
  * @returns {Promise<void>}
  */
 export async function saveEntry(
   currentHtml: string,
-  entry: any | null,
-  db: any,
+  entry: Entry | null,
   navigate: (path: string) => void
 ): Promise<void> {
   const encodedHtml = encodeHtmlEntities(currentHtml);
@@ -256,12 +239,23 @@ export async function saveEntry(
   } else {
     const entryDate = formatCurrentDate();
     const newEntry = {
-      id: generateIdFromDate(entryDate),
+      id: journalDateToId(entryDate),
       date: entryDate,
-      content: encodedHtml,
-      timestamp: Date.now()
+      content: encodedHtml
     };
     await db.createEntry(newEntry);
   }
+  navigate('/list?reload=true');
+}
+
+/**
+ * Deletes an entry from the database.
+ *
+ * @param {string} id - The ID of the entry to delete.
+ * @param {Function} navigate - The navigate function from react-router.
+ * @returns {Promise<void>}
+ */
+export async function deleteEntry(id: string, navigate: (path: string) => void): Promise<void> {
+  await db.deleteEntry(id);
   navigate('/list?reload=true');
 }

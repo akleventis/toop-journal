@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Editor, { Toolbar } from 'react-simple-wysiwyg';
 import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
-import * as db from '../../db/db';
 import type { Entry } from '../../lib/types';
-import { decodeHtmlEntities } from '../../lib/utils';
+import { decodeHtmlEntities, deleteEntry } from '../../lib/utils';
 import { NavDirection } from '../../lib/constants';
 
 interface TextEditProps {
@@ -29,15 +28,10 @@ const TextEditor: React.FC<TextEditProps> = ({
     const [editableState, setEditableState] = useState(editable);
     const navigate = useNavigate();
 
-    // Delete entry after confirmation
     const handleDelete = async () => {
-        if (entry) {
-            const confirmed = window.confirm('Are you sure you want to delete this entry?');
-            if (confirmed) {
-                await db.deleteEntry(entry.id);
-                navigate('/list?reload=true');
-            }
-        }
+        if (!entry) return;
+        const confirmed = window.confirm('Are you sure you want to delete this entry?');
+        confirmed && await deleteEntry(entry.id, navigate);
     };
 
 

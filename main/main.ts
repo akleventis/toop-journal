@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeImage } from 'electron';
 import path from 'node:path';
 import { updateConfig, getConfig, createConfig, deleteConfig } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
@@ -12,8 +12,8 @@ const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 
 const iconPath = isDev
-  ? path.join(__dirname, '../assets/icon_v1.png')
-  : path.join(__dirname, '../../assets/icon_v1.png');
+  ? path.join(__dirname, '../../../assets/icon.png')
+  : path.join(__dirname, '../../assets/icon.png');
 
 const indexHtmlPath = isDev
   ? 'http://localhost:5173'
@@ -28,15 +28,12 @@ app.whenReady().then(async () => {
 });
 
 function createWindow() {
-  console.log("dirname", __dirname)
-
   mainWindow = new BrowserWindow({
     width: 600,
     height: 750,
     backgroundColor: '#333',
     webPreferences: {
       preload: preloadPath,
-
       webSecurity: false,
       contextIsolation: true,
     },
@@ -87,8 +84,8 @@ ipcMain.handle('cloud-sync:cloudSyncPipeline', async () => {
 });
 
 // sqlite operations called from main process; errors bubble up to the renderer process
-ipcMain.handle('sqlite:getEntries', () => {
-  return db.getEntries();
+ipcMain.handle('sqlite:getEntries', (event, limit?: number) => {
+  return db.getEntries(limit);
 });
 
 ipcMain.handle('sqlite:getEntryById', (event, id: string) => {

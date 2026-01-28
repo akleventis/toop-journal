@@ -10,7 +10,7 @@ import Edit from './Edit'
 import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
-import { journalDateToCalendarFormat, formatCurrentDateToYearMonthDay } from '../lib/utils'
+import { journalToCalendar, getCurrentCalendarDate } from '../lib/utils'
 
 // type declaration for the global variable defined in vite.config.ts
 declare global {
@@ -51,7 +51,7 @@ function AppContent() {
   const isTodayFilled = async (): Promise<boolean> => {
     const latest = await db.getMostRecentEntry()
     if (!latest) return false
-    return journalDateToCalendarFormat(latest.date) === formatCurrentDateToYearMonthDay()
+    return journalToCalendar(latest.date) === getCurrentCalendarDate()
   }
 
   const loadEntries = async () => {
