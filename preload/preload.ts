@@ -32,4 +32,19 @@ contextBridge.exposeInMainWorld('sqlite', {
   deleteEntry: (id: string) => ipcRenderer.invoke('sqlite:deleteEntry', id),
   getPasswordHash: () => ipcRenderer.invoke('sqlite:getPasswordHash'),
   setPasswordHash: (passwordHash: string) => ipcRenderer.invoke('sqlite:setPasswordHash', passwordHash),
+  getPasswordSalt: () => ipcRenderer.invoke('sqlite:getPasswordSalt'),
+  setPasswordSalt: (passwordSalt: string) => ipcRenderer.invoke('sqlite:setPasswordSalt', passwordSalt),
+  clearPasswordCredentials: () => ipcRenderer.invoke('sqlite:clearPasswordCredentials'),
+})
+
+contextBridge.exposeInMainWorld('security', {
+  hashPassword: (password: string): Promise<{ hash: string; salt: string }> => ipcRenderer.invoke('security:hashPassword', password),
+  verifyPassword: (password: string, hash: string, salt: string): Promise<boolean> => ipcRenderer.invoke('security:verifyPassword', password, hash, salt),
+})
+
+contextBridge.exposeInMainWorld('conflicts', {
+  getConflicts: () => ipcRenderer.invoke('conflicts:getConflicts'),
+  getConflictCount: () => ipcRenderer.invoke('conflicts:getConflictCount'),
+  getConflictByEntryId: (entryId: string) => ipcRenderer.invoke('conflicts:getConflictByEntryId', entryId),
+  resolveConflict: (entryId: string, version: 'local' | 'remote') => ipcRenderer.invoke('conflicts:resolveConflict', entryId, version),
 })

@@ -186,26 +186,6 @@ export function decodeHtmlEntities(encoded: string): string {
 }
 
 // ============================================================================
-// Security
-// ============================================================================
-
-/**
- * Hashes a password using a simple hash function.
- *
- * @param {string} password - The password to hash.
- * @returns {string} The hashed password.
- */
-export function hashPassword(password: string): string {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return hash.toString();
-}
-
-// ============================================================================
 // Database Operations
 // ============================f================================================
 
@@ -224,7 +204,7 @@ export async function saveEntry(
 ): Promise<void> {
   const encodedHtml = encodeHtmlEntities(currentHtml);
 
-  if (currentHtml === '' || currentHtml === '<br>') {
+  if (currentHtml === '' || currentHtml === '<br>' || currentHtml === '<p><br></p>') {
     alert('empty! please enter thoughts')
     return;
   }

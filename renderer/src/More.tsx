@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import * as db from '../db/db'
-import { hashPassword, decodeHtmlEntities } from '../lib/utils'
+import { decodeHtmlEntities } from '../lib/utils'
 import { usePasswordProtection } from '../lib/hooks'
 import { S3Config } from '../lib/types'
+import * as db from '../db/db'
+import { useNavigate } from 'react-router-dom'
 
 export default function More() {
     return (
@@ -14,9 +15,56 @@ export default function More() {
             <ExportEntries />
             <div style={{ margin: '15px' }} />
             <AWSConfig />
+            <div style={{ margin: '15px' }} />
+            <ConflictsNav />
         </div>
 
     )
+}
+
+export function ConflictsNav() {
+    const [conflictCount, setConflictCount] = useState(0);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        async function checkConflicts() {
+            const count = await window.conflicts.getConflictCount();
+            setConflictCount(count);
+        }
+        checkConflicts();
+    }, []);
+
+    if (conflictCount === 0) return null;
+
+    return (
+        <div style={{ width: '100%', maxWidth: '300px' }}>
+            <h3
+                onClick={() => navigate('/conflicts')}
+                style={{
+                    textAlign: 'center',
+                    marginBottom: '10px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px'
+                }}
+            >
+                Conflicts
+                <span style={{
+                    backgroundColor: '#e74c3c',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '10px',
+                    fontWeight: 'bold'
+                }}>
+                    {conflictCount}
+                </span>
+            </h3>
+        </div>
+    );
 }
 
 export function EntryLimit() {
@@ -43,7 +91,7 @@ export function EntryLimit() {
         }
 
         localStorage.setItem('entryLimit', trimmed)
-        window.location.reload()
+        window.location.reload() // todo: does not work well w/ password protection
     }
 
     return (
@@ -198,7 +246,7 @@ export function Password() {
     const handleTogglePassword = async () => {
         // password is protected already, just clear out password, no need to input
         if (passwordProtected) {
-            await db.setPasswordHash('')
+            await window.sqlite.clearPasswordCredentials()
             setShowPasswordInput(false)
             setPassword('')
             await updatePasswordProtection()
@@ -211,8 +259,9 @@ export function Password() {
         if (!password.trim()) return
         if (!passwordProtected) {
             try {
-                const hash = hashPassword(password)
-                await db.setPasswordHash(hash)
+                const { hash, salt } = await window.security.hashPassword(password)
+                await window.sqlite.setPasswordHash(hash)
+                await window.sqlite.setPasswordSalt(salt)
                 setShowPasswordInput(false)
                 setPassword('')
                 // update password protection state without reloading

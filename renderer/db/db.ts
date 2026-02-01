@@ -4,7 +4,7 @@ import type { Entry, DecodedEntry } from '../lib/types';
 // memoized entries per renderer session
 let __decodedEntriesMemo: DecodedEntry[] | null = null;
 
-function clearDecodedCache() {
+export function clearDecodedCache() {
   __decodedEntriesMemo = null;
 }
 
@@ -71,4 +71,16 @@ export async function getPasswordHash(): Promise<string | null> {
 
 export async function setPasswordHash(hash: string): Promise<void> {
   await window.sqlite.setPasswordHash(hash);
+}
+
+export async function getPasswordSalt(): Promise<string | null> {
+  return await window.sqlite.getPasswordSalt();
+}
+
+export async function setPasswordSalt(salt: string): Promise<void> {
+  await window.sqlite.setPasswordSalt(salt);
+}
+
+export async function clearPasswordCredentials(): Promise<void> {
+  await window.sqlite.clearPasswordCredentials();
 }

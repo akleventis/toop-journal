@@ -7,6 +7,7 @@ import Calendar from './Calendar'
 import More from './More'
 import New from './New'
 import Edit from './Edit'
+import Conflicts from './Conflicts'
 import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
@@ -103,6 +104,7 @@ function AppContent() {
         <Route path="/list" element={null} />
         <Route path="/calendar" element={<Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} />} />
         <Route path="/more" element={<More />} />
+        <Route path="/conflicts" element={<Conflicts />} />
         <Route path="/new" element={<New />} />
         <Route path="/edit" element={<Edit entries={entries} />} />
       </Routes>

@@ -3,9 +3,10 @@ import path from 'node:path';
 import { updateConfig, getConfig, createConfig, deleteConfig } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
-import { cloudSyncPipeline } from './cloudsync/transact';
+import { cloudSyncPipeline, state } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
+import { hashPassword, verifyPassword } from './security/password';
 
 const isDev = !app.isPackaged;
 
@@ -56,6 +57,23 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
+// Sync before app quits (including reloads)
+app.on('before-quit', async (event) => {
+  // Only sync if AWS is configured
+  if (state.AWSClient && state.AWSConfig) {
+    event.preventDefault();
+    try {
+      console.log('Syncing before quit...');
+      await cloudSyncPipeline();
+      console.log('Sync complete, quitting...');
+    } catch (error) {
+      console.error('Error syncing before quit:', error);
+    } finally {
+      app.exit();
+    }
+  }
+});
+
 // aws config functions
 ipcMain.handle('cloud-sync:createConfig', (_, config: S3Config) => {
   return createConfig(config);
@@ -76,6 +94,15 @@ ipcMain.handle('cloud-sync:getConfig', async () => {
 // aws client functions
 ipcMain.handle('cloud-sync:initS3Client', async () => {
   await initS3Client();
+  // Trigger initial sync after S3 client is initialized
+  if (state.AWSClient && state.AWSConfig) {
+    try {
+      await cloudSyncPipeline();
+    } catch (error) {
+      console.error('Error during initial sync:', error);
+      throw error;
+    }
+  }
 });
 
 // aws cloud sync pipeline: syncs master indexes & entries between local and S3
@@ -118,4 +145,65 @@ ipcMain.handle('sqlite:getPasswordHash', () => {
 
 ipcMain.handle('sqlite:setPasswordHash', (event, passwordHash: string) => {
   return db.setPasswordHash(passwordHash);
+});
+
+ipcMain.handle('sqlite:getPasswordSalt', () => {
+  return db.getPasswordSalt();
+});
+
+ipcMain.handle('sqlite:setPasswordSalt', (event, passwordSalt: string) => {
+  return db.setPasswordSalt(passwordSalt);
+});
+
+ipcMain.handle('sqlite:clearPasswordCredentials', () => {
+  return db.clearPasswordCredentials();
+});
+
+ipcMain.handle('security:hashPassword', (event, password: string) => {
+  return hashPassword(password);
+});
+
+ipcMain.handle('security:verifyPassword', (event, password: string, hash: string, salt: string) => {
+  return verifyPassword(password, hash, salt);
+});
+
+// conflict operations
+ipcMain.handle('conflicts:getConflicts', () => {
+  return db.getConflicts();
+});
+
+ipcMain.handle('conflicts:getConflictCount', () => {
+  return db.getConflictCount();
+});
+
+ipcMain.handle('conflicts:getConflictByEntryId', (event, entryId: string) => {
+  return db.getConflictByEntryId(entryId);
+});
+
+ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {
+  const conflict = db.getConflictByEntryId(entryId);
+  if (!conflict) {
+    throw new Error(`Conflict not found for entry ${entryId}`);
+  }
+
+  if (version === 'remote') {
+    // update local entry with remote version
+    const entry = db.getEntryById(entryId);
+    if (entry) {
+      entry.content = conflict.remoteVersion;
+      entry.lastModified = conflict.remoteModified;
+      db.updateEntry(entryId, entry, true); // skipSync for now
+    }
+  }
+  // if version === 'local', keep local as-is
+  // delete the conflict
+  db.deleteConflict(entryId);
+  // trigger sync to resolve the entry
+  if (state.AWSClient && state.AWSConfig) {
+    try {
+      await cloudSyncPipeline();
+    } catch (error) {
+      console.error('Error syncing after conflict resolution:', error);
+    }
+  }
 });

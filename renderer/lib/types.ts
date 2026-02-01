@@ -24,3 +24,12 @@ export type MasterIndexEntry = {
   lastModified: number;
   deleted: boolean;
 };
+
+export type Conflict = {
+  entryId: string;
+  entryDate: string;
+  localVersion: string;
+  remoteVersion: string;
+  localModified: number;
+  remoteModified: number;
+};

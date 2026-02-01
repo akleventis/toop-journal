@@ -1,6 +1,4 @@
 import React, { useState } from 'react'
-import * as db from '../../db/db'
-import { hashPassword } from '../../lib/utils'
 
 interface PasswordOverlayProps {
     onPasswordVerified: () => void
@@ -16,10 +14,17 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
         }
 
         try {
-            const hash = hashPassword(password)
-            const storedHash = await db.getPasswordHash()
+            const storedHash = await window.sqlite.getPasswordHash()
+            const storedSalt = await window.sqlite.getPasswordSalt()
 
-            if (hash === storedHash) { 
+            if (!storedHash || !storedSalt) {
+                alert('Password not configured')
+                return
+            }
+
+            const isValid = await window.security.verifyPassword(password, storedHash, storedSalt)
+
+            if (isValid) {
                 setPassword('')
                 onPasswordVerified()
             } else {

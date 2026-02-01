@@ -25,3 +25,5 @@ release/
 aws_config.json
 masterIndex.json
 journal.db
+fts5.md
+todo.md

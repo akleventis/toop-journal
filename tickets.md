@@ -1,3 +1,0 @@
-- [ ] init load x entries unless -> 'load all'
-- [ ] test w/ images
-- [ ] edit / new shared functions
