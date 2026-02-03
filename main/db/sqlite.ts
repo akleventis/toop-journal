@@ -78,31 +78,95 @@ function getEntriesBetweenTimestamps(startTs: number, endTs: number): Entry[] {
 }
 
 function createEntry(entry: Entry, skipSync = false): void {
-    db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
-    if (!skipSync) {
-        updateLocalMasterIndex(entry.id, { lastModified: Date.now(), deleted: false });
+    // validate entry before database insertion
+    try {
+        validateEntry(entry);
+    } catch (error) {
+        console.error(`createEntry: validation failed for entry ${entry.id}:`, error);
+        throw error;
+    }
+
+    // auto-generate timestamp and lastModified if missing
+    if (!entry.timestamp) {
+        entry.timestamp = Date.now();
+    }
+    if (!entry.lastModified) {
+        entry.lastModified = Date.now();
+    }
+
+    const transaction = db.transaction(() => {
+        db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
+    });
+
+    try {
+        transaction();
+        // only update master index if db transaction succeeded
+        if (!skipSync) {
+            updateLocalMasterIndex(entry.id, { lastModified: Date.now(), deleted: false });
+        }
+    } catch (error) {
+        console.error(`createEntry: error creating entry ${entry.id}:`, error);
+        throw error;
     }
 }
 
 function updateEntry(id: string, entry: Entry, skipSync = false): void {
-    db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified, id);
-
-    // Update conflict if one exists for this entry
-    const conflict = getConflictByEntryId(id);
-    if (conflict) {
-        db.prepare('UPDATE conflicts_t SET localVersion = ?, localModified = ? WHERE entryId = ?')
-            .run(entry.content, entry.lastModified, id);
+    // validate entry before database update
+    try {
+        // ensure entry.id matches the id parameter
+        if (!entry.id) {
+            entry.id = id;
+        } else if (entry.id !== id) {
+            throw new Error(`Entry id mismatch: parameter id="${id}" but entry.id="${entry.id}"`);
+        }
+        validateEntry(entry);
+    } catch (error) {
+        console.error(`updateEntry: validation failed for entry ${id}:`, error);
+        throw error;
     }
 
-    if (!skipSync) {
-        updateLocalMasterIndex(id, { lastModified: Date.now(), deleted: false });
+    // auto-generate lastModified if missing (timestamp should already exist for updates)
+    if (!entry.lastModified) {
+        entry.lastModified = Date.now();
+    }
+
+    const transaction = db.transaction(() => {
+        db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified, id);
+
+        // Update conflict if one exists for this entry
+        const conflict = getConflictByEntryId(id);
+        if (conflict) {
+            db.prepare('UPDATE conflicts_t SET localVersion = ?, localModified = ? WHERE entryId = ?')
+                .run(entry.content, entry.lastModified, id);
+        }
+    });
+
+    try {
+        transaction();
+        // only update master index if db transaction succeeded
+        if (!skipSync) {
+            updateLocalMasterIndex(id, { lastModified: Date.now(), deleted: false });
+        }
+    } catch (error) {
+        console.error(`updateEntry: error updating entry ${id}:`, error);
+        throw error;
     }
 }
 
 function deleteEntry(id: string, skipSync = false): void {
-    db.prepare('DELETE FROM entries_t WHERE id = ?').run(id);
-    if (!skipSync) {
-        updateLocalMasterIndex(id, { lastModified: Date.now(), deleted: true });
+    const transaction = db.transaction(() => {
+        db.prepare('DELETE FROM entries_t WHERE id = ?').run(id);
+    });
+
+    try {
+        transaction();
+        // only update master index if db transaction succeeded
+        if (!skipSync) {
+            updateLocalMasterIndex(id, { lastModified: Date.now(), deleted: true });
+        }
+    } catch (error) {
+        console.error(`deleteEntry: error deleting entry ${id}:`, error);
+        throw error;
     }
 }
 
@@ -159,6 +223,53 @@ function getConflictByEntryId(entryId: string): Conflict | null {
 
 function deleteConflict(entryId: string): void {
     db.prepare('DELETE FROM conflicts_t WHERE entryId = ?').run(entryId);
+}
+
+/**
+ * Validates an entry object before database insertion.
+ *
+ * @param {Entry} entry - The entry to validate.
+ * @throws {Error} If validation fails.
+ */
+function validateEntry(entry: Entry): void {
+    // validate id
+    if (!entry.id || typeof entry.id !== 'string' || entry.id.trim() === '') {
+        throw new Error('Invalid entry: id is required and must be a non-empty string');
+    }
+
+    // validate date
+    if (!entry.date || typeof entry.date !== 'string' || entry.date.trim() === '') {
+        throw new Error('Invalid entry: date is required and must be a non-empty string');
+    }
+
+    // validate date format matches expected pattern (e.g., "Jun 14, 2025 at 12:35")
+    if (!entry.date.match(/^\w{3} \d{1,2}, \d{4} at \d{2}:\d{2}(:\d{2})?$/)) {
+        throw new Error(`Invalid entry: date format incorrect. Expected format: "Jun 14, 2025 at 12:35". Got: "${entry.date}"`);
+    }
+
+    // validate content
+    if (!entry.content || typeof entry.content !== 'string' || entry.content.trim() === '') {
+        throw new Error('Invalid entry: content is required and must be a non-empty string');
+    }
+
+    // validate location if provided (todo: delete?)
+    if (entry.location !== undefined && typeof entry.location !== 'string') {
+        throw new Error('Invalid entry: location must be a string if provided');
+    }
+
+    // validate timestamp if provided
+    if (entry.timestamp !== undefined) {
+        if (typeof entry.timestamp !== 'number' || isNaN(entry.timestamp) || entry.timestamp < 0) {
+            throw new Error('Invalid entry: timestamp must be a positive number');
+        }
+    }
+
+    // validate lastModified if provided
+    if (entry.lastModified !== undefined) {
+        if (typeof entry.lastModified !== 'number' || isNaN(entry.lastModified) || entry.lastModified < 0) {
+            throw new Error('Invalid entry: lastModified must be a positive number');
+        }
+    }
 }
 
 export {

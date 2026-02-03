@@ -1,4 +1,4 @@
-# Toop Journal - Build Output Structure
+# Project Build Structure
 
 ## Packaged App Structure
 

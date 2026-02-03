@@ -47,31 +47,39 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         throw error;
     }
 
-    // sync & save local and s3 master indexes
+    // sync & save local and s3 master indexes atomically
     let merged: MasterIndex;
     try {
         merged = await syncMasterIndex(localMasterIndex, s3MasterIndex);
-        fs.writeFileSync(path.join(state.UserDataPath, state.MasterIndexFileName), JSON.stringify(merged, null, 2));
-        await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName, Body: JSON.stringify(merged) }));
+
+        // write to temporary file first
+        const tempPath = path.join(state.UserDataPath, `${state.MasterIndexFileName}.tmp`);
+        const finalPath = path.join(state.UserDataPath, state.MasterIndexFileName);
+        const mergedJSON = JSON.stringify(merged, null, 2);
+
+        console.log('writing to temporary master index file');
+        fs.writeFileSync(tempPath, mergedJSON);
+
+        // upload to S3
+        console.log('uploading master index to S3');
+        await state.AWSClient.send(new PutObjectCommand({
+            Bucket: state.AWSConfig.aws_bucket,
+            Key: state.MasterIndexFileName,
+            Body: JSON.stringify(merged)
+        }));
+
+        // only rename if S3 upload succeeded
+        console.log('committing local master index');
+        fs.renameSync(tempPath, finalPath);
     } catch (error) {
         console.error('failed to sync master index:', error);
-        throw error;
-    }
 
-    // put local & s3 master index
-    try {
-        console.log('putting local master index');
-        fs.writeFileSync(path.join(state.UserDataPath, state.MasterIndexFileName), JSON.stringify(merged, null, 2));
-    } catch (error) {
-        console.error('failed to put local & s3 master index:', error);
-        throw error;
-    }
+        // clean up temporary file if it exists
+        const tempPath = path.join(state.UserDataPath, `${state.MasterIndexFileName}.tmp`);
+        if (fs.existsSync(tempPath)) {
+            fs.unlinkSync(tempPath);
+        }
 
-    try {
-        console.log('putting s3 master index');
-        await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName, Body: JSON.stringify(merged) }));
-    } catch (error) {
-        console.error('failed to put s3 master index:', error);
         throw error;
     }
 
