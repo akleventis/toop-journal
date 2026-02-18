@@ -1,3 +1,13 @@
+export enum SyncState {
+  UNINITIALIZED = 'uninitialized',
+  INITIALIZING = 'initializing',
+  READY = 'ready',
+  SYNCING = 'syncing',
+  ERROR = 'error',
+  OFFLINE = 'offline',
+  DISABLED = 'disabled',
+}
+
 export type S3Config = {
   aws_access: string;
   aws_secret: string;

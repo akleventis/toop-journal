@@ -1,4 +1,4 @@
-import type { Entry, S3Config, Conflict } from './renderer/lib/types';
+import type { Entry, S3Config, Conflict, SyncState } from './renderer/lib/types';
 
 export interface CloudSyncAPI {
   initS3Client: () => Promise<void>,
@@ -6,6 +6,7 @@ export interface CloudSyncAPI {
   createConfig: (config: S3Config) => Promise<void>,
   updateConfig: (config: S3Config) => Promise<void>,
   deleteConfig: () => Promise<void>,
+  disableSync: () => Promise<void>,
   getConfig: () => Promise<S3Config>,
 }
 
@@ -41,6 +42,11 @@ export interface ConflictsAPI {
   resolveConflict: (entryId: string, version: 'local' | 'remote') => Promise<void>;
 }
 
+export interface SyncStateAPI {
+  getState: () => Promise<SyncState>;
+  onStateChange: (callback: (state: SyncState) => void) => void;
+}
+
 declare global {
   interface Window {
     cloudSync: CloudSyncAPI
@@ -48,5 +54,6 @@ declare global {
     network: NetworkAPI
     security: SecurityAPI
     conflicts: ConflictsAPI
+    syncState: SyncStateAPI
   }
 }

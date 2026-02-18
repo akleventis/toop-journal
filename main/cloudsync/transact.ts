@@ -4,6 +4,7 @@ import { loadLocalMasterIndex, loadS3MasterIndex, syncMasterIndex } from './mast
 import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
+import { syncStateMachine, SyncState } from './sync_state';
 
 /**
  * State object to store the AWS variables to be shared between cloudsync files.
@@ -30,12 +31,15 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         throw new Error('no s3 client found');
     }
 
+    syncStateMachine.setState(SyncState.SYNCING);
+
     let s3MasterIndex: MasterIndex;
     let localMasterIndex: MasterIndex;
 
     try {
         localMasterIndex = await loadLocalMasterIndex();
     } catch (error) {
+        syncStateMachine.setState(SyncState.ERROR);
         console.error('failed to load master index:', error);
         throw error;
     }
@@ -43,6 +47,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
     try {
         s3MasterIndex = await loadS3MasterIndex();
     } catch (error) {
+        syncStateMachine.setState(SyncState.ERROR);
         console.error('failed to load s3 master index:', error);
         throw error;
     }
@@ -72,6 +77,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         console.log('committing local master index');
         fs.renameSync(tempPath, finalPath);
     } catch (error) {
+        syncStateMachine.setState(SyncState.ERROR);
         console.error('failed to sync master index:', error);
 
         // clean up temporary file if it exists
@@ -83,6 +89,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         throw error;
     }
 
+    syncStateMachine.setState(SyncState.READY);
     return true;
 }
 

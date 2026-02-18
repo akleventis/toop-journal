@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeImage } from 'electron';
 import path from 'node:path';
-import { updateConfig, getConfig, createConfig, deleteConfig } from './cloudsync/aws_config';
+import { updateConfig, getConfig, createConfig, deleteConfig, disableSync } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
 import { Entry, S3Config } from '../renderer/lib/types';
 import { cloudSyncPipeline, state } from './cloudsync/transact';
@@ -8,6 +8,7 @@ import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
 import { hashPassword, verifyPassword } from './security/password';
 import './cloudsync/sync_coordinator';
+import { syncStateMachine } from './cloudsync/sync_state';
 
 const isDev = !app.isPackaged;
 
@@ -27,6 +28,10 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
   await initLocalMasterIndex();
   createWindow();
+
+  syncStateMachine.onStateChange((newState) => {
+    mainWindow?.webContents.send('sync-state:changed', newState);
+  });
 });
 
 function createWindow() {
@@ -86,6 +91,10 @@ ipcMain.handle('cloud-sync:updateConfig', async (_, config: S3Config) => {
 
 ipcMain.handle('cloud-sync:deleteConfig', async () => {
   return deleteConfig();
+});
+
+ipcMain.handle('cloud-sync:disableSync', () => {
+  return disableSync();
 });
 
 ipcMain.handle('cloud-sync:getConfig', async () => {
@@ -179,6 +188,10 @@ ipcMain.handle('conflicts:getConflictCount', () => {
 
 ipcMain.handle('conflicts:getConflictByEntryId', (event, entryId: string) => {
   return db.getConflictByEntryId(entryId);
+});
+
+ipcMain.handle('sync-state:getState', () => {
+  return syncStateMachine.getState();
 });
 
 ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {

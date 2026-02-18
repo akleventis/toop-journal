@@ -1,5 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron')
-import { Entry, S3Config } from '../renderer/lib/types';
+import { Entry, S3Config, SyncState } from '../renderer/lib/types';
 
 // Used to bridge the gap between the main and renderer processes.
 
@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('cloudSync', {
   createConfig: (config: S3Config) => ipcRenderer.invoke('cloud-sync:createConfig', config),
   updateConfig: (config: S3Config) => ipcRenderer.invoke('cloud-sync:updateConfig', config),
   deleteConfig: () => ipcRenderer.invoke('cloud-sync:deleteConfig'),
+  disableSync: () => ipcRenderer.invoke('cloud-sync:disableSync'),
   getConfig: () => ipcRenderer.invoke('cloud-sync:getConfig'),
   putEntryCloudSync: (entry: Entry) => ipcRenderer.invoke('cloud-sync:putEntryCloudSync', entry),
   deleteEntryCloudSync: (id: string) => ipcRenderer.invoke('cloud-sync:deleteEntryCloudSync', id),
@@ -47,4 +48,11 @@ contextBridge.exposeInMainWorld('conflicts', {
   getConflictCount: () => ipcRenderer.invoke('conflicts:getConflictCount'),
   getConflictByEntryId: (entryId: string) => ipcRenderer.invoke('conflicts:getConflictByEntryId', entryId),
   resolveConflict: (entryId: string, version: 'local' | 'remote') => ipcRenderer.invoke('conflicts:resolveConflict', entryId, version),
+})
+
+contextBridge.exposeInMainWorld('syncState', {
+  getState: (): Promise<SyncState> => ipcRenderer.invoke('sync-state:getState'),
+  onStateChange: (callback: (state: SyncState) => void) => {
+    ipcRenderer.on('sync-state:changed', (_event: unknown, state: SyncState) => callback(state));
+  },
 })

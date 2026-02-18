@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { decodeHtmlEntities } from '../lib/utils'
-import { usePasswordProtection } from '../lib/hooks'
-import { S3Config } from '../lib/types'
+import { usePasswordProtection, useSyncState } from '../lib/hooks'
+import { S3Config, SyncState } from '../lib/types'
 import * as db from '../db/db'
 import { useNavigate } from 'react-router-dom'
 
@@ -318,13 +318,51 @@ export function Password() {
     )
 }
 
+const DEFAULT_CONFIG: S3Config = { aws_access: '', aws_secret: '', aws_bucket: '', aws_region: '' }
+
+function AWSConfigModal({ formData, setFormData, syncState, onSave, onCancel }: {
+    formData: S3Config
+    setFormData: (config: S3Config) => void
+    syncState: SyncState
+    onSave: () => void
+    onCancel: () => void
+}) {
+    const inputStyle = { fontSize: '10px' }
+    return (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(28, 28, 28, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '250px' }}>
+                <p style={{ textAlign: 'center' }}>AWS Config</p>
+                {syncState === SyncState.ERROR && (
+                    <p style={{ color: '#e74c3c', fontSize: '11px', textAlign: 'center', margin: 0 }}>
+                        Failed — verify credentials and try again
+                    </p>
+                )}
+                <input style={inputStyle} type="text" placeholder="Access Key" value={formData.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
+                <input style={inputStyle} type="text" placeholder="Secret Key" value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
+                <input style={inputStyle} type="text" placeholder="Bucket" value={formData.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
+                <input style={inputStyle} type="text" placeholder="Region" value={formData.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
+                <button onClick={onSave} disabled={syncState === SyncState.INITIALIZING}>Save</button>
+                <button onClick={onCancel}>Cancel</button>
+            </div>
+        </div>
+    )
+}
+
 export function AWSConfig() {
-    const defaultConfig: S3Config = { aws_access: '', aws_secret: '', aws_bucket: '', aws_region: '' }
     const [awsConfig, setAwsConfig] = useState<S3Config | null>(null)
-    const [formData, setFormData] = useState<S3Config>(defaultConfig)
-    const [isEnabled, setIsEnabled] = useState(false)
+    const [formData, setFormData] = useState<S3Config>(DEFAULT_CONFIG)
     const [modalOpen, setModalOpen] = useState(false)
-    const [syncStatus, setSyncStatus] = useState<string>('Sync')
+    const [confirmDisable, setConfirmDisable] = useState(false)
+    const syncState = useSyncState()
+
+    const hasCredentials = awsConfig !== null
+    const isActive = syncState === SyncState.READY || syncState === SyncState.SYNCING
+    const isBusy = syncState === SyncState.SYNCING || syncState === SyncState.INITIALIZING
+    const dotColor =
+        syncState === SyncState.READY ? '#2ecc71' :
+        syncState === SyncState.SYNCING || syncState === SyncState.INITIALIZING ? '#f1c40f' :
+        syncState === SyncState.ERROR ? '#e74c3c' :
+        'grey'
 
     useEffect(() => {
         const getConfig = async () => {
@@ -332,7 +370,6 @@ export function AWSConfig() {
             if (config) {
                 setAwsConfig(config)
                 setFormData(config)
-                setIsEnabled(true)
             }
         }
         getConfig()
@@ -340,89 +377,100 @@ export function AWSConfig() {
 
     // todo: test w/out network connection
     const handleToggleAWS = async () => {
-        if (!isEnabled) {
+        if (!hasCredentials) {
             if (!window.network.isOnline()) {
                 alert('Please connect to the internet to create an AWS config')
                 return
             }
             setModalOpen(true)
+        } else if (isActive) {
+            setConfirmDisable(true)
+        } else {
+            await window.cloudSync.initS3Client()
         }
-        if (isEnabled) {
-            const confirmed = window.confirm('are you sure you want to disable AWS config?')
-            if (confirmed) {
-                await window.cloudSync.deleteConfig()
-                setAwsConfig(null)
-                setIsEnabled(false)
-            }
-        }
+    }
+
+    const handleDisableKeep = async () => {
+        await window.cloudSync.disableSync()
+        setConfirmDisable(false)
+    }
+
+    const handleDisableDelete = async () => {
+        await window.cloudSync.deleteConfig()
+        setAwsConfig(null)
+        setConfirmDisable(false)
     }
 
     const handleSaveAWS = async () => {
-        setFormData(formData)
         try {
             awsConfig ? await window.cloudSync.updateConfig(formData) : await window.cloudSync.createConfig(formData)
             setAwsConfig(formData)
-            setIsEnabled(true)
-        } catch (error) {
-            alert('AWS config failed, please verify credentials')
-            return
+            setModalOpen(false)
+        } catch (_) {
+            // syncState transitions to 'error', shown inline
         }
-        alert('AWS config verified')
-        setModalOpen(false)
     }
 
     const handleCancelAWS = () => {
-        setFormData(awsConfig ?? defaultConfig)
+        setFormData(awsConfig ?? DEFAULT_CONFIG)
         setModalOpen(false)
     }
 
-    // todo: count local / s3 puts / gets / deletes
     const handleSyncAWS = async () => {
-        setSyncStatus('Syncing...')
+        const wasDisabled = !isActive
+        let succeeded = false
         try {
-            const success = await window.cloudSync.cloudSyncPipeline()
-            success ? alert('Success') : alert('Sync failed')
-        } catch (error) {
-            alert('Sync failed')
+            if (wasDisabled) {
+                await window.cloudSync.initS3Client() // already runs cloudSyncPipeline internally
+            } else {
+                await window.cloudSync.cloudSyncPipeline()
+            }
+            succeeded = true
+        } catch (_) {
+            // syncState transitions to 'error', shown inline
         } finally {
-            setSyncStatus('Sync')
+            if (wasDisabled && succeeded) await window.cloudSync.disableSync()
         }
     }
 
     return (
         <div>
-            <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>AWS Cloud Sync</h3>
+            <h3 style={{ textAlign: 'center', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                AWS Cloud Sync
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', display: 'inline-block', backgroundColor: dotColor }} />
+            </h3>
+            {syncState === SyncState.ERROR && (
+                <p style={{ color: '#e74c3c', textAlign: 'center', fontSize: '11px', margin: '0 0 8px' }}>
+                    Sync error — check your connection or credentials
+                </p>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                 <span>Enabled: </span>
-                <div
-                    onClick={handleToggleAWS}
-                    className="toggle"
-                    style={{ background: isEnabled ? 'var(--third-bg)' : 'grey' }}
-                >
-                    <div
-                        className="toggle-slider"
-                        style={{ left: isEnabled ? '17px' : '2px' }}
-                    />
+                <div onClick={handleToggleAWS} className="toggle" style={{ background: isActive ? 'var(--third-bg)' : 'grey' }}>
+                    <div className="toggle-slider" style={{ left: isActive ? '17px' : '2px' }} />
                 </div>
-                {isEnabled && (
+                {hasCredentials && (
                     <div style={{ display: 'flex', gap: '5px' }}>
                         <button style={{ fontSize: '12px' }} onClick={() => setModalOpen(true)}>Edit</button>
-                        <button style={{ fontSize: '12px' }} onClick={() => handleSyncAWS()}>{syncStatus ? syncStatus : 'Sync'}</button>
+                        <button style={{ fontSize: '12px' }} onClick={handleSyncAWS} disabled={isBusy}>Sync</button>
                     </div>
                 )}
             </div>
-            {modalOpen && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(28, 28, 28, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '250px' }}>
-                        <p style={{ textAlign: 'center' }}>AWS Config</p>
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Access Key" value={formData?.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Secret Key" value={formData?.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Bucket" value={formData?.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
-                        <input type="text" style={{ fontSize: '10px' }} placeholder="Region" value={formData?.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
-                        <button onClick={handleSaveAWS}>Save</button>
-                        <button onClick={handleCancelAWS}>Cancel</button>
-                    </div>
+            {confirmDisable && (
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
+                    <button style={{ fontSize: '11px' }} onClick={handleDisableKeep}>Disable</button>
+                    <button style={{ fontSize: '11px' }} onClick={handleDisableDelete}>Delete credentials</button>
+                    <button style={{ fontSize: '11px' }} onClick={() => setConfirmDisable(false)}>Cancel</button>
                 </div>
+            )}
+            {modalOpen && (
+                <AWSConfigModal
+                    formData={formData}
+                    setFormData={setFormData}
+                    syncState={syncState}
+                    onSave={handleSaveAWS}
+                    onCancel={handleCancelAWS}
+                />
             )}
         </div>
     )

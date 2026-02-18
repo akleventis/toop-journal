@@ -1,5 +1,22 @@
 import { useState, useEffect } from 'react';
 import * as db from '../db/db';
+import { SyncState } from './types';
+
+/**
+ * useSyncState hook to subscribe to sync state changes from the main process.
+ *
+ * @returns {string} The current sync state.
+ */
+export const useSyncState = () => {
+  const [syncState, setSyncState] = useState<SyncState>(SyncState.UNINITIALIZED)
+
+  useEffect(() => {
+    window.syncState.getState().then(setSyncState)
+    window.syncState.onStateChange(setSyncState)
+  }, [])
+
+  return syncState
+}
 
 /**
  * usePasswordProtection hook to handle password protection and initialize app.

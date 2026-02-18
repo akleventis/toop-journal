@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { setAWSClient } from './aws_client';
 import { state } from './transact';
+import { syncStateMachine, SyncState } from './sync_state';
 
 /**
  * Loads the AWS configuration from the `config.json` file.
@@ -36,15 +37,18 @@ export const createConfig = async (config: S3Config): Promise<S3Config> => {
         throw new Error('createConfig: invalid aws config');
     }
 
+    syncStateMachine.setState(SyncState.INITIALIZING);
     try {
         await setAWSClient(config);
     } catch (error) {
+        syncStateMachine.setState(SyncState.ERROR);
         console.error('createConfig: failed to create aws config:', error);
         throw error;
     }
 
     const configPath = path.join(state.UserDataPath, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify(config));
+    syncStateMachine.setState(SyncState.READY);
     return config;
 };
 
@@ -61,9 +65,11 @@ export const updateConfig = async (config: S3Config): Promise<S3Config> => {
         throw new Error('updateConfig: invalid aws config');
     }
 
+    syncStateMachine.setState(SyncState.INITIALIZING);
     try {
         await setAWSClient(config);
     } catch (error) {
+        syncStateMachine.setState(SyncState.ERROR);
         console.error('updateConfig: failed to update aws config:', error);
         throw error;
     }
@@ -71,7 +77,18 @@ export const updateConfig = async (config: S3Config): Promise<S3Config> => {
     const configPath = path.join(state.UserDataPath, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify(config));
     state.AWSConfig = config;
+    syncStateMachine.setState(SyncState.READY);
     return config;
+};
+
+/**
+ * Disables cloud sync without removing credentials from disk.
+ * The S3 client is cleared from memory, allowing re-initialization later.
+ */
+export const disableSync = (): void => {
+    state.AWSClient = null;
+    state.AWSConfig = null;
+    syncStateMachine.setState(SyncState.DISABLED);
 };
 
 /**
@@ -87,6 +104,7 @@ export const deleteConfig = async (): Promise<void> => {
     }
     state.AWSClient = null;
     state.AWSConfig = null;
+    syncStateMachine.setState(SyncState.DISABLED);
     console.log('aws config deleted')
 };
 
