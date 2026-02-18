@@ -2,7 +2,6 @@ import { state } from './transact';
 import { getConfig } from './aws_config';
 import { S3Config } from '../../renderer/lib/types';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { cloudSyncPipeline } from './transact';
 import { initS3MasterIndex } from './master_index';
 
 let S3ClientInitializing = false; // prevent multiple initialization attempts
@@ -50,14 +49,6 @@ export const initS3Client = async (): Promise<void> => {
     throw error;
   }
   S3ClientInitializing = false;
-
-  try {
-    console.log("initS3Client: calling cloudSyncPipeline")
-    await cloudSyncPipeline() // todo: remove this call, place in renderer process after initS3 success
-  } catch (error) {
-    console.error('initS3Client: failed to sync cloud on init:', error);
-    throw error;
-  }
 };
 
 /**

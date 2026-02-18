@@ -7,6 +7,7 @@ import { cloudSyncPipeline, state } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
 import { hashPassword, verifyPassword } from './security/password';
+import './cloudsync/sync_coordinator';
 
 const isDev = !app.isPackaged;
 

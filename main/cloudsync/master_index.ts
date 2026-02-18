@@ -373,4 +373,5 @@ export const updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry
     console.error(`updateLocalMasterIndex: error saving local master index ${id}:`, error);
     throw error;
   }
+  console.log(`updateLocalMasterIndex: local master index ${id} updated`);
 }

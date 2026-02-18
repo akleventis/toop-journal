@@ -1,8 +1,10 @@
 import { app } from 'electron';
 import path from 'node:path';
 import Database from 'better-sqlite3';
+import { EventEmitter } from 'node:events';
 import { Entry, Conflict } from "../../renderer/lib/types";
-import { updateLocalMasterIndex } from '../cloudsync/master_index';
+
+export const dbEvents = new EventEmitter();
 
 const dbPath = app.isPackaged
   ? path.join(app.getPath('userData'), 'journal.db')
@@ -102,7 +104,7 @@ function createEntry(entry: Entry, skipSync = false): void {
         transaction();
         // only update master index if db transaction succeeded
         if (!skipSync) {
-            updateLocalMasterIndex(entry.id, { lastModified: Date.now(), deleted: false });
+            dbEvents.emit('entry:created', { id: entry.id, lastModified: Date.now() });
         }
     } catch (error) {
         console.error(`createEntry: error creating entry ${entry.id}:`, error);
@@ -145,7 +147,7 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
         transaction();
         // only update master index if db transaction succeeded
         if (!skipSync) {
-            updateLocalMasterIndex(id, { lastModified: Date.now(), deleted: false });
+            dbEvents.emit('entry:updated', { id, lastModified: Date.now() });
         }
     } catch (error) {
         console.error(`updateEntry: error updating entry ${id}:`, error);
@@ -162,7 +164,7 @@ function deleteEntry(id: string, skipSync = false): void {
         transaction();
         // only update master index if db transaction succeeded
         if (!skipSync) {
-            updateLocalMasterIndex(id, { lastModified: Date.now(), deleted: true });
+            dbEvents.emit('entry:deleted', { id, lastModified: Date.now() });
         }
     } catch (error) {
         console.error(`deleteEntry: error deleting entry ${id}:`, error);
