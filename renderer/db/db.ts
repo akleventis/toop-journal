@@ -1,4 +1,4 @@
-import { parseJournalDate, decodeHtmlEntities } from '../lib/utils';
+import { parseJournalDate, markdownToHtml } from '../lib/utils';
 import type { Entry, DecodedEntry } from '../lib/types';
 
 // memoized entries per renderer session
@@ -23,7 +23,7 @@ export async function getDecodedEntries(): Promise<DecodedEntry[]> {
 
   __decodedEntriesMemo = rows.map(entry => ({
     ...entry,
-    decodedContent: decodeHtmlEntities(entry.content)
+    decodedContent: markdownToHtml(entry.content)
   }));
   return __decodedEntriesMemo;
 }

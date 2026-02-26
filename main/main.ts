@@ -194,6 +194,14 @@ ipcMain.handle('sync-state:getState', () => {
   return syncStateMachine.getState();
 });
 
+ipcMain.handle('sqlite:getSetting', (event, key: string) => {
+  return db.getSetting(key);
+});
+
+ipcMain.handle('sqlite:setSetting', (event, key: string, value: string) => {
+  return db.setSetting(key, value);
+});
+
 ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {
   const conflict = db.getConflictByEntryId(entryId);
   if (!conflict) {

@@ -27,3 +27,6 @@ masterIndex.json
 journal.db
 fts5.md
 todo.md
+claude.md
+journal.db.backup
+scripts/

@@ -23,6 +23,8 @@ export interface SQLiteAPI {
   getPasswordSalt: () => Promise<string | null>,
   setPasswordSalt: (passwordSalt: string) => Promise<void>,
   clearPasswordCredentials: () => Promise<void>,
+  getSetting: (key: string) => Promise<string | null>,
+  setSetting: (key: string, value: string) => Promise<void>,
 }
 
 export interface SecurityAPI {

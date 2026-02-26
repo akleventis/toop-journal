@@ -36,7 +36,6 @@ function AppContent() {
 
   // initialize app and checks if password is protected
   const { passwordProtected, passwordVerified, isInitializing, handlePasswordVerified } = usePasswordProtection()
-
   // decide initial route from root after entries are loaded
   useEffect(() => {
     if (!passwordVerified) return

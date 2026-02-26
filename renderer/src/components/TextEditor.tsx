@@ -3,7 +3,7 @@ import Editor, { Toolbar } from 'react-simple-wysiwyg';
 import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
 import type { Entry } from '../../lib/types';
-import { decodeHtmlEntities, deleteEntry } from '../../lib/utils';
+import { markdownToHtml, deleteEntry } from '../../lib/utils';
 import { NavDirection } from '../../lib/constants';
 
 interface TextEditProps {
@@ -55,7 +55,7 @@ const TextEditor: React.FC<TextEditProps> = ({
 
     useEffect(() => {
         if (entry?.content) {
-            const decodedHtml = decodeHtmlEntities(entry.content);
+            const decodedHtml = markdownToHtml(entry.content);
             setHtml(decodedHtml);
             setDisplayNavState(displayNav);
             onContentChange?.(decodedHtml);

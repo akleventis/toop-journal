@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Conflict } from '../lib/types';
 import { useNavigate } from 'react-router-dom';
-import { decodeHtmlEntities } from '../lib/utils';
+import { markdownToHtml } from '../lib/utils';
 import { clearDecodedCache } from '../db/db';
 
 export default function Conflicts() {
@@ -104,7 +104,7 @@ export default function Conflicts() {
                                 borderRadius: 'var(--border-radius)',
                                 background: 'var(--app-bg)'
                             }}
-                            dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(v === 'local' ? selected.localVersion : selected.remoteVersion) }}
+                            dangerouslySetInnerHTML={{ __html: markdownToHtml(v === 'local' ? selected.localVersion : selected.remoteVersion) }}
                         />
                     </div>
                 ))}

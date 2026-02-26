@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { decodeHtmlEntities } from '../lib/utils'
+import { markdownToHtml } from '../lib/utils'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState } from '../lib/types'
 import * as db from '../db/db'
@@ -143,7 +143,7 @@ export function ExportEntries() {
             switch (format) {
                 case 'html':
                     content = entries.map(entry =>
-                        `<div><h3>${entry.date}</h3><p>${decodeHtmlEntities(entry.content)}</p></div><hr>`
+                        `<div><h3>${entry.date}</h3>${markdownToHtml(entry.content)}</div><hr>`
                     ).join('')
                     content = `<html><body>${content}</body></html>`
                     filename += '.html'
@@ -161,7 +161,7 @@ export function ExportEntries() {
                     break
                 case 'txt':
                     content = entries.map(entry =>
-                        `${entry.date}\n${decodeHtmlEntities(entry.content)}\n${entry.location || ''}\n---\n`
+                        `${entry.date}\n${entry.content}\n${entry.location || ''}\n---\n`
                     ).join('\n')
                     filename += '.txt'
                     break

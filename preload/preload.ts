@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('sqlite', {
   getPasswordSalt: () => ipcRenderer.invoke('sqlite:getPasswordSalt'),
   setPasswordSalt: (passwordSalt: string) => ipcRenderer.invoke('sqlite:setPasswordSalt', passwordSalt),
   clearPasswordCredentials: () => ipcRenderer.invoke('sqlite:clearPasswordCredentials'),
+  getSetting: (key: string) => ipcRenderer.invoke('sqlite:getSetting', key),
+  setSetting: (key: string, value: string) => ipcRenderer.invoke('sqlite:setSetting', key, value),
 })
 
 contextBridge.exposeInMainWorld('security', {

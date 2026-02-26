@@ -255,7 +255,7 @@ function validateEntry(entry: Entry): void {
     }
 
     // validate location if provided (todo: delete?)
-    if (entry.location !== undefined && typeof entry.location !== 'string') {
+    if (entry.location !== undefined && entry.location !== null && typeof entry.location !== 'string') {
         throw new Error('Invalid entry: location must be a string if provided');
     }
 
@@ -272,6 +272,15 @@ function validateEntry(entry: Entry): void {
             throw new Error('Invalid entry: lastModified must be a positive number');
         }
     }
+}
+
+function getSetting(key: string): string | null {
+    const row = db.prepare('SELECT value FROM settings_t WHERE key = ?').get(key) as { value: string } | undefined;
+    return row?.value ?? null;
+}
+
+function setSetting(key: string, value: string): void {
+    db.prepare('INSERT OR REPLACE INTO settings_t (key, value) VALUES (?, ?)').run(key, value);
 }
 
 export {
@@ -291,5 +300,7 @@ export {
     getConflicts,
     getConflictCount,
     getConflictByEntryId,
-    deleteConflict
+    deleteConflict,
+    getSetting,
+    setSetting
 };

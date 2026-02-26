@@ -1,5 +1,7 @@
 import { Entry } from "./types";
 import * as db from '../db/db';
+import TurndownService from 'turndown';
+import { marked } from 'marked';
 
 // ============================================================================
 // Date Formatting
@@ -151,38 +153,23 @@ export function calendarToJournal(calendarDate: string): string {
 }
 
 // ============================================================================
-// HTML Entity Handling
+// Markdown / HTML Conversion
 // ============================================================================
 
+const __turndown = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-' });
+
 /**
- * Encodes HTML entities in a string.
- *
- * @param {string} rawHtml - The HTML string to encode.
- * @returns {string} The encoded HTML string.
+ * Converts HTML (from the WYSIWYG editor) to Markdown for DB storage.
  */
-export function encodeHtmlEntities(rawHtml: string): string {
-  const textarea = document.createElement('textarea');
-  textarea.textContent = rawHtml;
-  return textarea.innerHTML;
+export function htmlToMarkdown(html: string): string {
+  return __turndown.turndown(html);
 }
 
-const __decodeCache = new Map<string, string>();
-let __decoder: HTMLTextAreaElement | null = null;
-
 /**
- * Decodes HTML entities in a string.
- *
- * @param {string} encoded - The encoded string to decode.
- * @returns {string} The decoded string.
+ * Converts stored Markdown to HTML for display in the WYSIWYG editor.
  */
-export function decodeHtmlEntities(encoded: string): string {
-  const cached = __decodeCache.get(encoded);
-  if (cached !== undefined) return cached;
-  if (!__decoder) __decoder = document.createElement('textarea');
-  __decoder.innerHTML = encoded;
-  const v = __decoder.value || '';
-  __decodeCache.set(encoded, v);
-  return v;
+export function markdownToHtml(md: string): string {
+  return marked.parse(md) as string;
 }
 
 // ============================================================================
@@ -202,12 +189,12 @@ export async function saveEntry(
   entry: Entry | null,
   navigate: (path: string) => void
 ): Promise<void> {
-  const encodedHtml = encodeHtmlEntities(currentHtml);
-
   if (currentHtml === '' || currentHtml === '<br>' || currentHtml === '<p><br></p>') {
     alert('empty! please enter thoughts')
     return;
   }
+
+  const markdown = htmlToMarkdown(currentHtml);
 
   let exists = false;
   if (entry) {
@@ -215,13 +202,13 @@ export async function saveEntry(
   }
 
   if (exists && entry) {
-    await db.updateEntry(entry.id, { content: encodedHtml });
+    await db.updateEntry(entry.id, { content: markdown });
   } else {
     const entryDate = formatCurrentDate();
     const newEntry = {
       id: journalDateToId(entryDate),
       date: entryDate,
-      content: encodedHtml
+      content: markdown
     };
     await db.createEntry(newEntry);
   }
