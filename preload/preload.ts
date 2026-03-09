@@ -52,6 +52,10 @@ contextBridge.exposeInMainWorld('conflicts', {
   resolveConflict: (entryId: string, version: 'local' | 'remote') => ipcRenderer.invoke('conflicts:resolveConflict', entryId, version),
 })
 
+contextBridge.exposeInMainWorld('dialog', {
+  showError: (message: string) => ipcRenderer.invoke('dialog:showError', message),
+})
+
 contextBridge.exposeInMainWorld('syncState', {
   getState: (): Promise<SyncState> => ipcRenderer.invoke('sync-state:getState'),
   onStateChange: (callback: (state: SyncState) => void) => {

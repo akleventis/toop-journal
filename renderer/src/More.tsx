@@ -80,7 +80,6 @@ export function EntryLimit() {
 
         if (!trimmed) {
             localStorage.removeItem('entryLimit')
-            window.location.reload()
             return
         }
 
@@ -91,7 +90,6 @@ export function EntryLimit() {
         }
 
         localStorage.setItem('entryLimit', trimmed)
-        window.location.reload() // todo: does not work well w/ password protection
     }
 
     return (

@@ -49,6 +49,10 @@ export interface SyncStateAPI {
   onStateChange: (callback: (state: SyncState) => void) => void;
 }
 
+export interface DialogAPI {
+  showError: (message: string) => Promise<void>;
+}
+
 declare global {
   interface Window {
     cloudSync: CloudSyncAPI
@@ -57,5 +61,6 @@ declare global {
     security: SecurityAPI
     conflicts: ConflictsAPI
     syncState: SyncStateAPI
+    dialog: DialogAPI
   }
 }

@@ -10,6 +10,7 @@ import Edit from './Edit'
 import Conflicts from './Conflicts'
 import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
+import ErrorBoundary from './components/ErrorBoundary'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
 import { journalToCalendar, getCurrentCalendarDate } from '../lib/utils'
 
@@ -101,11 +102,11 @@ function AppContent() {
       <Routes>
         <Route path="/" element={null} />
         <Route path="/list" element={null} />
-        <Route path="/calendar" element={<Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} />} />
-        <Route path="/more" element={<More />} />
-        <Route path="/conflicts" element={<Conflicts />} />
-        <Route path="/new" element={<New />} />
-        <Route path="/edit" element={<Edit entries={entries} />} />
+        <Route path="/calendar" element={<ErrorBoundary><Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} /></ErrorBoundary>} />
+        <Route path="/more" element={<ErrorBoundary><More /></ErrorBoundary>} />
+        <Route path="/conflicts" element={<ErrorBoundary><Conflicts /></ErrorBoundary>} />
+        <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
+        <Route path="/edit" element={<ErrorBoundary><Edit entries={entries} /></ErrorBoundary>} />
       </Routes>
       {loading && <div style={{ position: 'absolute', top: '40px', left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--app-bg)', zIndex: 1000 }}>Loading ...</div>}
     </div>

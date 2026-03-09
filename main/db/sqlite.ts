@@ -6,9 +6,10 @@ import { Entry, Conflict } from "../../renderer/lib/types";
 
 export const dbEvents = new EventEmitter();
 
+// Use userData for both prod and dev to avoid committing journal.db to git
 const dbPath = app.isPackaged
   ? path.join(app.getPath('userData'), 'journal.db')
-  : path.join(__dirname, '../../../../journal.db');
+  : path.join(app.getPath('userData'), 'journal-dev.db');
 
 const db = new Database(dbPath);
 

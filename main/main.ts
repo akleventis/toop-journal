@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } from 'electron';
 import path from 'node:path';
 import { updateConfig, getConfig, createConfig, deleteConfig, disableSync } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
@@ -200,6 +200,17 @@ ipcMain.handle('sqlite:getSetting', (event, key: string) => {
 
 ipcMain.handle('sqlite:setSetting', (event, key: string, value: string) => {
   return db.setSetting(key, value);
+});
+
+ipcMain.handle('dialog:showError', async (_, message: string) => {
+  await dialog.showMessageBox({
+    type: 'error',
+    title: 'Something went wrong',
+    message,
+    buttons: ['Reload'],
+    defaultId: 0,
+  });
+  mainWindow?.webContents.reload();
 });
 
 ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {
