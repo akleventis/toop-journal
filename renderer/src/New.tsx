@@ -35,8 +35,8 @@ const New: React.FC = () => {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-      <div style={{ textAlign: 'center', fontSize: '12px', color: 'grey' }}>
+    <div className="h-full flex flex-col overflow-auto">
+      <div className="text-center text-[12px] text-gray-400">
         {dateRef.current}
       </div>
       <TextEditor
@@ -45,8 +45,8 @@ const New: React.FC = () => {
         editable={true}
         onContentChange={handleContentChange}
       />
-      <div style={{ borderTop: '1px solid var(--border-color)', textAlign: 'right', padding: '0 10px 10px' }}>
-        <button onClick={handleSave} style={{ padding: '4px 8px', fontSize: '12px' }}>Done</button>
+      <div className="border-t border-[color:var(--color-third-bg)] text-right px-[10px] pb-[10px]">
+        <button onClick={handleSave} className="px-2 py-1 text-[12px]">Done</button>
       </div>
     </div>
   );

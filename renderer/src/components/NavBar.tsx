@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { clsx } from 'clsx'
 
 interface NavBarProps {
   activeTab: string
@@ -7,53 +8,31 @@ interface NavBarProps {
 
 export default function NavBar({ activeTab }: NavBarProps) {
   return (
-    <nav style={{
-      display: 'flex',
-      columnGap: '2px',
-      justifyContent: 'center',
-      textAlign: 'center',
-      padding: 'var(--p-out-vertical) var(--p-out-horizontal)',
-    }}>
+    <nav className="flex gap-[2px] justify-center text-center py-[10px] px-5">
       <Link
         to="/new"
-        className='nav-link'
-        style={{
-          background: activeTab === '/new' ? 'var(--third-bg)' : 'var(--secondary-bg)',
-          borderTopLeftRadius: 'var(--border-radius)',
-          borderBottomLeftRadius: 'var(--border-radius)',
-        }}
+        className={clsx('w-20 py-[5px] rounded-tl rounded-bl', activeTab === '/new' ? 'bg-[color:var(--color-third-bg)]' : 'bg-[color:var(--color-secondary-bg)]')}
       >
         New
       </Link>
       <Link
         to="/list"
-        className='nav-link'
-        style={{
-          background: activeTab === '/list' ? 'var(--third-bg)' : 'var(--secondary-bg)',
-        }}
+        className={clsx('w-20 py-[5px]', activeTab === '/list' ? 'bg-[color:var(--color-third-bg)]' : 'bg-[color:var(--color-secondary-bg)]')}
       >
         List
       </Link>
       <Link
         to="/calendar"
-        className='nav-link'
-        style={{
-          background: activeTab === '/calendar' ? 'var(--third-bg)' : 'var(--secondary-bg)',
-        }}
+        className={clsx('w-20 py-[5px]', activeTab === '/calendar' ? 'bg-[color:var(--color-third-bg)]' : 'bg-[color:var(--color-secondary-bg)]')}
       >
         Calendar
       </Link>
       <Link
         to="/more"
-        className='nav-link'
-        style={{
-          background: activeTab === '/more' ? 'var(--third-bg)' : 'var(--secondary-bg)',
-          borderTopRightRadius: 'var(--border-radius)',
-          borderBottomRightRadius: 'var(--border-radius)',
-        }}
+        className={clsx('w-20 py-[5px] rounded-tr rounded-br', activeTab === '/more' ? 'bg-[color:var(--color-third-bg)]' : 'bg-[color:var(--color-secondary-bg)]')}
       >
         More
       </Link>
     </nav>
   )
-} 
+}

@@ -43,24 +43,13 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
     }
 
     return (
-        <div style={{
-            height: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-        }}>
-            <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '15px'}}>Login</p>
-                <div style={{ marginTop: '15px' }}>
+        <div className="h-screen flex items-center justify-center">
+            <div className="text-center">
+                <p className="text-[15px]">Login</p>
+                <div className="mt-[15px]">
                     <input
                         type="password"
-                        style={{
-                            width: '200px',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '4px',
-                            background: 'var(--secondary-bg)',
-                            color: 'var(--text-color)'
-                        }}
+                        className="w-[200px] border border-[color:var(--color-third-bg)] rounded bg-[color:var(--color-secondary-bg)]"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={handlePasswordKeyPress}

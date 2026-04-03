@@ -93,7 +93,7 @@ function AppContent() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="h-full flex flex-col">
       <NavBar activeTab={location.pathname} />
       <ListView
         entries={entries}
@@ -108,7 +108,7 @@ function AppContent() {
         <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
         <Route path="/edit" element={<ErrorBoundary><Edit entries={entries} /></ErrorBoundary>} />
       </Routes>
-      {loading && <div style={{ position: 'absolute', top: '40px', left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--app-bg)', zIndex: 1000 }}>Loading ...</div>}
+      {loading && <div className="absolute top-[40px] left-0 w-full h-full flex justify-center items-center bg-[color:var(--color-app-bg)] z-[1000]">Loading ...</div>}
     </div>
   );
 }

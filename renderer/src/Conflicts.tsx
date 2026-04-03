@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { clsx } from 'clsx';
 import { Conflict } from '../lib/types';
 import { useNavigate } from 'react-router-dom';
 import { markdownToHtml } from '../lib/utils';
@@ -38,24 +39,18 @@ export default function Conflicts() {
     // List view
     if (!selected) {
         return (
-            <div style={{ padding: '20px' }}>
-                <h2 style={{ fontSize: '14px', marginTop: 0, marginBottom: '10px' }}>
+            <div className="p-5">
+                <h2 className="text-[14px] mt-0 mb-[10px]">
                     Conflicts ({conflicts.length})
                 </h2>
                 {conflicts.map(c => (
                     <div
                         key={c.entryId}
                         onClick={() => setSelected(c)}
-                        style={{
-                            padding: '10px',
-                            marginBottom: '8px',
-                            background: 'var(--secondary-bg)',
-                            borderRadius: 'var(--border-radius)',
-                            cursor: 'pointer'
-                        }}
+                        className="p-[10px] mb-2 bg-[color:var(--color-secondary-bg)] rounded cursor-pointer"
                     >
                         <div>{c.entryDate}</div>
-                        <div style={{ fontSize: '10px', color: 'gray', marginTop: '4px' }}>
+                        <div className="text-[10px] text-gray-400 mt-1">
                             {new Date(c.localModified).toLocaleString()}
                         </div>
                     </div>
@@ -67,53 +62,39 @@ export default function Conflicts() {
 
     // Detail view
     return (
-        <div style={{ padding: '20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '14px', color: '#e74c3c', margin: '0 0 10px 0' }}>
+        <div className="p-5 h-full flex flex-col">
+            <h3 className="text-[14px] text-[#e74c3c] m-0 mb-[10px]">
                 {selected.entryDate}
             </h3>
 
-            <div style={{ display: 'flex', gap: '10px', flex: 1, overflow: 'hidden' }}>
+            <div className="flex gap-[10px] flex-1 overflow-hidden">
                 {(['local', 'remote'] as const).map(v => (
                     <div
                         key={v}
                         onClick={() => setVersion(v)}
-                        style={{
-                            flex: 1,
-                            border: version === v ? '2px solid var(--text-color)' : '1px solid var(--border-color)',
-                            borderRadius: 'var(--border-radius)',
-                            padding: '10px',
-                            cursor: 'pointer',
-                            background: version === v ? 'var(--third-bg)' : 'var(--secondary-bg)',
-                            overflow: 'hidden',
-                            display: 'flex',
-                            flexDirection: 'column'
-                        }}
+                        className={clsx(
+                            'flex-1 rounded p-[10px] cursor-pointer overflow-hidden flex flex-col',
+                            version === v
+                                ? 'border-2 border-current bg-[color:var(--color-third-bg)]'
+                                : 'border border-[color:var(--color-third-bg)] bg-[color:var(--color-secondary-bg)]'
+                        )}
                     >
-                        <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
+                        <div className="text-[12px] font-bold mb-1">
                             {v === 'local' ? 'Local' : 'Remote'} {version === v && '✓'}
                         </div>
-                        <div style={{ fontSize: '10px', color: 'gray', marginBottom: '8px' }}>
+                        <div className="text-[10px] text-gray-400 mb-2">
                             {new Date(v === 'local' ? selected.localModified : selected.remoteModified).toLocaleString()}
                         </div>
                         <div
-                            style={{
-                                flex: 1,
-                                overflow: 'auto',
-                                fontSize: '11px',
-                                padding: '8px',
-                                borderRadius: 'var(--border-radius)',
-                                background: 'var(--app-bg)'
-                            }}
+                            className="flex-1 overflow-auto text-[11px] p-2 rounded bg-[color:var(--color-app-bg)]"
                             dangerouslySetInnerHTML={{ __html: markdownToHtml(v === 'local' ? selected.localVersion : selected.remoteVersion) }}
                         />
                     </div>
                 ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button onClick={() => setSelected(null)} disabled={loading}>
-                    Back
-                </button>
+            <div className="flex gap-2 justify-end mt-[10px]">
+                <button onClick={() => setSelected(null)} disabled={loading}>Back</button>
                 <button onClick={handleResolve} disabled={loading}>
                     {loading ? 'Resolving...' : 'Keep Selected'}
                 </button>

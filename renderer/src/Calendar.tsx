@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { clsx } from 'clsx'
 import type { DecodedEntry } from '../lib/types'
 import { journalToCalendar, createCalendarDate } from '../lib/utils'
 import YearSelector from './components/YearSelector'
@@ -14,30 +15,25 @@ interface CalendarProps {
 export default function Calendar({ entries, loadEntries, selectedYear, setSelectedYear }: CalendarProps) {
     const navigate = useNavigate()
 
-    // initial mount, reloads 
     useEffect(() => {
         if (entries.length > 0) return
         loadEntries()
     }, [])
 
-    // create a map of dates that have entries
     const entriesByDate = entries.reduce((acc, entry) => {
         const calendarDate = journalToCalendar(entry.date)
         acc[calendarDate] = entry
         return acc
     }, {} as Record<string, DecodedEntry>)
 
-    // get days in month
     const getDaysInMonth = (year: number, month: number) => {
         return new Date(year, month + 1, 0).getDate()
     }
 
-    // get first day of month (0 = Sunday, 1 = Monday, etc.)
     const getFirstDayOfMonth = (year: number, month: number) => {
         return new Date(year, month, 1).getDay()
     }
 
-    // handle date click
     const handleDateClick = (date: string) => {
         const entry = entriesByDate[date]
         if (entry) {
@@ -50,7 +46,6 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
         }
     }
 
-    // generate calendar for a month
     const generateMonthCalendar = (year: number, month: number) => {
         const daysInMonth = getDaysInMonth(year, month)
         const firstDay = getFirstDayOfMonth(year, month)
@@ -58,12 +53,10 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
 
         const days: React.JSX.Element[] = []
 
-        // add empty cells for days before the first day of the month
         for (let i = 0; i < firstDay; i++) {
             days.push(<div key={`empty-${i}`}></div>)
         }
 
-        // add days of the month
         for (let day = 1; day <= daysInMonth; day++) {
             const date = createCalendarDate(year, month, day)
             const hasEntry = entriesByDate[date]
@@ -72,10 +65,12 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
                 <div
                     key={day}
                     onClick={() => handleDateClick(date)}
-                    style={{
-                        backgroundColor: hasEntry ? 'var(--third-bg)' : 'transparent'
-                    }}
-                    className="calendar-day"
+                    className={clsx(
+                        'rounded text-center w-5 h-5 cursor-pointer text-[10px] flex items-center justify-center',
+                        'md:w-[25px] md:h-[25px] md:text-[12px] md:p-[3px]',
+                        'lg:w-[30px] lg:h-[30px] lg:text-[14px] lg:p-1',
+                        hasEntry ? 'bg-[color:var(--color-third-bg)]' : 'bg-transparent'
+                    )}
                 >
                     {day}
                 </div>
@@ -83,16 +78,12 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
         }
 
         return (
-            <div key={month} style={{ margin: '3px', display: 'inline-block' }}>
-                <h3 style={{ textAlign: 'center', margin: '0 0 5px 0', fontSize: '14px' }}>{monthName}</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 20px)', gap: '3px' }} className="calendar-grid">
-                    <div className="calendar-header">S</div>
-                    <div className="calendar-header">M</div>
-                    <div className="calendar-header">T</div>
-                    <div className="calendar-header">W</div>
-                    <div className="calendar-header">T</div>
-                    <div className="calendar-header">F</div>
-                    <div className="calendar-header">S</div>
+            <div key={month} className="m-[3px] inline-block">
+                <h3 className="text-center mb-[5px] mt-0 text-[14px]">{monthName}</h3>
+                <div className="grid gap-[3px]" style={{ gridTemplateColumns: 'repeat(7, 20px)' }}>
+                    {['S','M','T','W','T','F','S'].map((d, i) => (
+                        <div key={i} className="p-[2px] text-center font-bold text-[10px] md:text-[12px] md:p-[3px] lg:text-[14px] lg:p-1">{d}</div>
+                    ))}
                     {days}
                 </div>
             </div>
@@ -100,13 +91,12 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
     }
 
     return (
-        <div style={{ padding: '10px' }}>
+        <div className="p-[10px]">
             <YearSelector
                 currentYear={selectedYear}
                 onYearChange={setSelectedYear}
             />
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly', gap: '10px' }}>
+            <div className="flex flex-wrap justify-evenly gap-[10px]">
                 {Array.from({ length: 12 }, (_, month) => generateMonthCalendar(selectedYear, month))}
             </div>
         </div>

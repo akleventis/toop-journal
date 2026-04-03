@@ -34,10 +34,10 @@ const TextEditNav: React.FC<TextEditNavProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px var(--p-out-horizontal)' }}>
-      <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div className="flex items-center justify-between px-5 py-[5px]">
+      <div className="relative inline-block">
         <button
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="flex items-center justify-center"
           onMouseDown={e => e.stopPropagation()}
           onClick={() => setShowDropdown(v => !v)}
           aria-label="Settings"
@@ -50,15 +50,15 @@ const TextEditNav: React.FC<TextEditNavProps> = ({
           </svg>
         </button>
         {showDropdown && (
-          <div ref={dropdownRef} style={{ position: 'absolute', left: '100%', top: 0, zIndex: 1000, background: 'var(--secondary-bg)', padding: '4px', borderRadius: 'var(--border-radius)', marginLeft: '4px' }}>
+          <div ref={dropdownRef} className="absolute left-full top-0 z-[1000] bg-[color:var(--color-secondary-bg)] p-1 rounded ml-1">
             <button
-              style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: '12px' }}
+              className="block w-full text-left text-[12px]"
               onClick={() => { onToggleEditMode(); setShowDropdown(false); }}
             >
               Edit
             </button>
             <button
-              style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: '12px' }}
+              className="block w-full text-left text-[12px]"
               onClick={() => { onDelete(); setShowDropdown(false); }}
             >
               Delete
@@ -66,7 +66,7 @@ const TextEditNav: React.FC<TextEditNavProps> = ({
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', gap: '4px' }}>
+      <div className="flex gap-1">
         <button onClick={() => { onNavigate?.(NavDirection.PREV); }}> ← </button>
         <button onClick={() => { onNavigate?.(NavDirection.NEXT); }}> → </button>
       </div>

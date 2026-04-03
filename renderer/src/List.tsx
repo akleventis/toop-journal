@@ -12,7 +12,7 @@ export default function ListView({ entries, style }: ListViewProps) {
   const navigate = useNavigate()
   const [mappedEntries, setMappedEntries] = useState<React.ReactNode[]>([])
   const [searchValue, setSearchValue] = useState('');
-  const [submittedSearchValue, setSubmittedSearchValue] = useState(''); 
+  const [submittedSearchValue, setSubmittedSearchValue] = useState('');
 
   const handleEntryClick = (entryId: string) => {
     navigate(`/edit?id=${entryId}`)
@@ -50,27 +50,16 @@ export default function ListView({ entries, style }: ListViewProps) {
         <div
           key={entry.id}
           onClick={() => handleEntryClick(entry.id)}
-          style={{
-            display: 'flex',
-            borderBottom: '1px solid var(--secondary-bg)',
-            padding: 'var(--p-out-vertical) var(--p-out-horizontal) var(--p-out-vertical) 0',
-            flexWrap: 'nowrap'
-          }}
+          className="flex border-b border-[color:var(--color-secondary-bg)] py-[10px] pr-5 flex-nowrap"
         >
-          <div style={{ display: 'flex', flexDirection: 'row', flex: 1, justifyContent: 'space-between' }}>
-            <div style={{ width: 100, textAlign: 'center', flexShrink: 0, alignItems: 'center', justifyContent: 'space-evenly', display: 'flex', flexDirection: 'column', padding: '10px 0' }}>
+          <div className="flex flex-row flex-1 justify-between">
+            <div className="w-[100px] text-center shrink-0 flex flex-col items-center justify-evenly py-[10px]">
               <div>{weekday}</div>
               <div>{month} {day} {year}</div>
             </div>
-            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <div className="flex-1 min-w-0 overflow-hidden">
               <div
-                style={{
-                  maxHeight: '55px',
-                  overflow: 'hidden',
-                  wordBreak: 'break-word',
-                  cursor: 'default'
-
-                }}
+                className="max-h-[72px] overflow-hidden break-words cursor-default"
                 dangerouslySetInnerHTML={{ __html: entry.decodedContent }}
               />
             </div>
@@ -85,11 +74,11 @@ export default function ListView({ entries, style }: ListViewProps) {
     <div style={{ overflowY: 'auto', height: '100vh', ...style }} >
       {mappedEntries}
       {mappedEntries.length > 0 && (
-        <div style={{ position: 'sticky', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', bottom: 0, width: '100%', height: '25px', backgroundColor: 'var(--app-bg)' }}>
+        <div className="sticky bottom-0 p-[2px] flex items-center justify-start w-full h-[25px] bg-[color:var(--color-app-bg)]">
           <form onSubmit={handleSearchSubmit}>
-            <input type='text' placeholder='Search' value={searchValue} style={{ padding: '2px', fontSize: '10px', outline: 'none' }} onChange={handleSearchChange} />
+            <input type='text' placeholder='Search' value={searchValue} className="p-[2px] text-[10px] outline-none" onChange={handleSearchChange} />
           </form>
-          {searchValue.length > 0 && <button type='button' style={{fontSize: '10px'}} onClick={handleClearSearch}>Clear</button>}
+          {searchValue.length > 0 && <button type='button' className="text-[10px]" onClick={handleClearSearch}>Clear</button>}
         </div>
       )}
     </div>

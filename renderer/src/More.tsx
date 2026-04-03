@@ -7,18 +7,17 @@ import { useNavigate } from 'react-router-dom'
 
 export default function More() {
     return (
-        <div style={{ padding: '10px', display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+        <div className="p-[10px] flex items-center flex-col">
             <Password />
-            <div style={{ margin: '15px' }} />
+            <div className="m-[15px]" />
             <EntryLimit />
-            <div style={{ margin: '15px' }} />
+            <div className="m-[15px]" />
             <ExportEntries />
-            <div style={{ margin: '15px' }} />
+            <div className="m-[15px]" />
             <AWSConfig />
-            <div style={{ margin: '15px' }} />
+            <div className="m-[15px]" />
             <ConflictsNav />
         </div>
-
     )
 }
 
@@ -37,29 +36,13 @@ export function ConflictsNav() {
     if (conflictCount === 0) return null;
 
     return (
-        <div style={{ width: '100%', maxWidth: '300px' }}>
+        <div className="w-full max-w-[300px]">
             <h3
                 onClick={() => navigate('/conflicts')}
-                style={{
-                    textAlign: 'center',
-                    marginBottom: '10px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px'
-                }}
+                className="text-center mb-[10px] cursor-pointer relative flex items-center justify-center gap-[10px]"
             >
                 Conflicts
-                <span style={{
-                    backgroundColor: '#e74c3c',
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '10px',
-                    fontWeight: 'bold'
-                }}>
+                <span className="bg-[#e74c3c] text-white px-2 py-[2px] rounded-xl text-[10px] font-bold">
                     {conflictCount}
                 </span>
             </h3>
@@ -77,33 +60,30 @@ export function EntryLimit() {
 
     const handleSave = () => {
         const trimmed = limit.trim()
-
         if (!trimmed) {
             localStorage.removeItem('entryLimit')
             return
         }
-
         const parsed = parseInt(trimmed, 10)
         if (isNaN(parsed) || parsed <= 0) {
             alert('Please enter a valid number')
             return
         }
-
         localStorage.setItem('entryLimit', trimmed)
     }
 
     return (
         <div>
-            <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>Initial Entry Load Limit</h3>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
+            <h3 className="text-center mb-[10px]">Initial Entry Load Limit</h3>
+            <div className="flex gap-[10px] items-center justify-center">
                 <input
                     type="number"
                     value={limit}
                     onChange={(e) => setLimit(e.target.value)}
                     placeholder="All entries"
-                    style={{ width: '120px', fontSize: '12px' }}
+                    className="w-[120px] text-[12px]"
                 />
-                <button onClick={handleSave} style={{ fontSize: '12px' }}>Save</button>
+                <button onClick={handleSave} className="text-[12px]">Save</button>
             </div>
         </div>
     )
@@ -192,29 +172,29 @@ export function ExportEntries() {
 
     return (
         <div>
-            <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>Export</h3>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: "center", maxWidth: '450px' }}>
-                <div style={{ width: "130px" }}>
+            <h3 className="text-center mb-[10px]">Export</h3>
+            <div className="flex justify-center items-center max-w-[450px]">
+                <div className="w-[130px]">
                     <label>Start</label>
                     <input
-                        style={{ fontSize: '12px', height: '30px', marginTop: '4px' }}
+                        className="text-[12px] h-[30px] mt-1"
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
                     />
                 </div>
-                <div style={{ width: "130px" }}>
+                <div className="w-[130px]">
                     <label>End</label>
                     <input
-                        style={{ fontSize: '12px', height: '30px', marginTop: '4px' }}
+                        className="text-[12px] h-[30px] mt-1"
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
                     />
                 </div>
-                <div style={{ width: "130px" }}>
+                <div className="w-[130px]">
                     <label>Format</label>
-                    <select style={{ fontSize: '12px', height: '30px', marginTop: '4px' }} value={format} onChange={(e) => setFormat(e.target.value)}>
+                    <select className="text-[12px] h-[30px] mt-1" value={format} onChange={(e) => setFormat(e.target.value)}>
                         <option value="html">HTML</option>
                         <option value="json">JSON</option>
                         <option value="csv">CSV</option>
@@ -222,12 +202,12 @@ export function ExportEntries() {
                         <option value="encoded_html">Encoded HTML</option>
                     </select>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="flex flex-col">
                     <label>Export</label>
                     <button
                         onClick={handleExport}
                         disabled={isExporting}
-                        style={{ fontSize: '12px', height: '30px', marginTop: '4px', paddingTop: '7px' }}
+                        className="text-[12px] h-[30px] mt-1 pt-[7px]"
                     >{"↩︎"}
                     </button>
                 </div>
@@ -242,7 +222,6 @@ export function Password() {
     const { passwordProtected, updatePasswordProtection } = usePasswordProtection()
 
     const handleTogglePassword = async () => {
-        // password is protected already, just clear out password, no need to input
         if (passwordProtected) {
             await window.sqlite.clearPasswordCredentials()
             setShowPasswordInput(false)
@@ -262,7 +241,6 @@ export function Password() {
                 await window.sqlite.setPasswordSalt(salt)
                 setShowPasswordInput(false)
                 setPassword('')
-                // update password protection state without reloading
                 await updatePasswordProtection()
             } catch (error) {
                 alert('Error enabling password')
@@ -277,13 +255,13 @@ export function Password() {
 
     return (
         <div>
-            <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>Password Protection</h3>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <h3 className="text-center mb-[10px]">Password Protection</h3>
+            <div className="flex items-center justify-center gap-[10px]">
                 <span>Enabled: </span>
                 <div
                     onClick={handleTogglePassword}
                     className="toggle"
-                    style={{ background: passwordProtected ? 'var(--third-bg)' : 'grey' }}
+                    style={{ background: passwordProtected ? 'var(--color-third-bg)' : 'grey' }}
                 >
                     <div
                         className="toggle-slider"
@@ -293,8 +271,8 @@ export function Password() {
             </div>
 
             {showPasswordInput && (
-                <div style={{ position: 'fixed', zIndex: 1, top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.86)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ textAlign: 'center' }}>
+                <div className="fixed z-[1] inset-0 bg-black/85 flex items-center justify-center">
+                    <div className="text-center">
                         <input
                             type="text"
                             value={password}
@@ -303,7 +281,7 @@ export function Password() {
                             autoFocus
                         />
                         <br />
-                        <div style={{ marginTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                        <div className="mt-[10px] flex gap-[10px] justify-center">
                             <button onClick={handlePasswordSubmit}>
                                 {passwordProtected ? 'Disable' : 'Enable'}
                             </button>
@@ -325,20 +303,19 @@ function AWSConfigModal({ formData, setFormData, syncState, onSave, onCancel }: 
     onSave: () => void
     onCancel: () => void
 }) {
-    const inputStyle = { fontSize: '10px' }
     return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(28, 28, 28, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '250px' }}>
-                <p style={{ textAlign: 'center' }}>AWS Config</p>
+        <div className="fixed inset-0 bg-[rgba(28,28,28,0.95)] flex items-center justify-center">
+            <div className="p-5 rounded-[10px] flex flex-col gap-[10px] min-w-[250px]">
+                <p className="text-center">AWS Config</p>
                 {syncState === SyncState.ERROR && (
-                    <p style={{ color: '#e74c3c', fontSize: '11px', textAlign: 'center', margin: 0 }}>
+                    <p className="text-[#e74c3c] text-[11px] text-center m-0">
                         Failed — verify credentials and try again
                     </p>
                 )}
-                <input style={inputStyle} type="text" placeholder="Access Key" value={formData.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
-                <input style={inputStyle} type="text" placeholder="Secret Key" value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
-                <input style={inputStyle} type="text" placeholder="Bucket" value={formData.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
-                <input style={inputStyle} type="text" placeholder="Region" value={formData.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
+                <input className="text-[10px]" type="text" placeholder="Access Key" value={formData.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
+                <input className="text-[10px]" type="text" placeholder="Secret Key" value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
+                <input className="text-[10px]" type="text" placeholder="Bucket" value={formData.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
+                <input className="text-[10px]" type="text" placeholder="Region" value={formData.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
                 <button onClick={onSave} disabled={syncState === SyncState.INITIALIZING}>Save</button>
                 <button onClick={onCancel}>Cancel</button>
             </div>
@@ -373,7 +350,6 @@ export function AWSConfig() {
         getConfig()
     }, [])
 
-    // todo: test w/out network connection
     const handleToggleAWS = async () => {
         if (!hasCredentials) {
             if (!window.network.isOnline()) {
@@ -419,7 +395,7 @@ export function AWSConfig() {
         let succeeded = false
         try {
             if (wasDisabled) {
-                await window.cloudSync.initS3Client() // already runs cloudSyncPipeline internally
+                await window.cloudSync.initS3Client()
             } else {
                 await window.cloudSync.cloudSyncPipeline()
             }
@@ -433,32 +409,32 @@ export function AWSConfig() {
 
     return (
         <div>
-            <h3 style={{ textAlign: 'center', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <h3 className="text-center mb-[10px] flex items-center justify-center gap-2">
                 AWS Cloud Sync
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', display: 'inline-block', backgroundColor: dotColor }} />
+                <span className="w-[5px] h-[5px] rounded-full inline-block" style={{ backgroundColor: dotColor }} />
             </h3>
             {syncState === SyncState.ERROR && (
-                <p style={{ color: '#e74c3c', textAlign: 'center', fontSize: '11px', margin: '0 0 8px' }}>
+                <p className="text-[#e74c3c] text-center text-[11px] m-0 mb-2">
                     Sync error — check your connection or credentials
                 </p>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <div className="flex items-center justify-center gap-[10px]">
                 <span>Enabled: </span>
-                <div onClick={handleToggleAWS} className="toggle" style={{ background: isActive ? 'var(--third-bg)' : 'grey' }}>
+                <div onClick={handleToggleAWS} className="toggle" style={{ background: isActive ? 'var(--color-third-bg)' : 'grey' }}>
                     <div className="toggle-slider" style={{ left: isActive ? '17px' : '2px' }} />
                 </div>
                 {hasCredentials && (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                        <button style={{ fontSize: '12px' }} onClick={() => setModalOpen(true)}>Edit</button>
-                        <button style={{ fontSize: '12px' }} onClick={handleSyncAWS} disabled={isBusy}>Sync</button>
+                    <div className="flex gap-[5px]">
+                        <button className="text-[12px]" onClick={() => setModalOpen(true)}>Edit</button>
+                        <button className="text-[12px]" onClick={handleSyncAWS} disabled={isBusy}>Sync</button>
                     </div>
                 )}
             </div>
             {confirmDisable && (
-                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
-                    <button style={{ fontSize: '11px' }} onClick={handleDisableKeep}>Disable</button>
-                    <button style={{ fontSize: '11px' }} onClick={handleDisableDelete}>Delete credentials</button>
-                    <button style={{ fontSize: '11px' }} onClick={() => setConfirmDisable(false)}>Cancel</button>
+                <div className="flex gap-[6px] justify-center mt-2">
+                    <button className="text-[11px]" onClick={handleDisableKeep}>Disable</button>
+                    <button className="text-[11px]" onClick={handleDisableDelete}>Delete credentials</button>
+                    <button className="text-[11px]" onClick={() => setConfirmDisable(false)}>Cancel</button>
                 </div>
             )}
             {modalOpen && (

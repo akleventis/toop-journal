@@ -1,11 +1,12 @@
 // renderer/vite.config.ts
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   // this config file is in renderer/, so "." == renderer/
   root: '.',
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   define: {
     __IS_DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
   },

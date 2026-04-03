@@ -68,7 +68,7 @@ const TextEditor: React.FC<TextEditProps> = ({
     }, [entry?.id, displayNav, editable]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div className="flex flex-col h-full">
             <TextEditNav
                 displayNav={displayNavState}
                 onToggleEditMode={toggleEditMode}
@@ -76,7 +76,7 @@ const TextEditor: React.FC<TextEditProps> = ({
                 onNavigate={onNavigate}
             />
 
-            <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div className="flex-1 overflow-auto flex flex-col">
                 <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown}>
                     <Toolbar>
                     </Toolbar>

@@ -64,15 +64,11 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{
-        textAlign: 'center',
-        fontSize: '12px',
-        color: 'grey',
-      }}>
+    <div className="h-screen flex flex-col overflow-hidden">
+      <div className="text-center text-[12px] text-gray-400">
         {entry?.date}
       </div>
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="flex-1 overflow-hidden flex flex-col">
         <TextEditor
           displayNav={true}
           editable={false}
@@ -83,8 +79,8 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
         />
       </div>
       {isEditing && (
-        <div style={{ borderTop: '1px solid var(--border-color)', textAlign: 'right', padding: '0 10px 10px' }}>
-          <button onClick={handleSave} style={{ padding: '4px 8px', fontSize: '12px' }}>Done</button>
+        <div className="border-t border-[color:var(--color-third-bg)] text-right px-[10px] pb-[10px]">
+          <button onClick={handleSave} className="px-2 py-1 text-[12px]">Done</button>
         </div>
       )}
     </div>
