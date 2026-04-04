@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('sqlite', {
   getEntries: (limit?: number) => ipcRenderer.invoke('sqlite:getEntries', limit),
   getEntryById: (id: string) => ipcRenderer.invoke('sqlite:getEntryById', id),
   getMostRecentEntry: () => ipcRenderer.invoke('sqlite:getMostRecentEntry'),
+  getEntryCount: () => ipcRenderer.invoke('sqlite:getEntryCount'),
+  searchEntries: (query: string, limit?: number) => ipcRenderer.invoke('sqlite:searchEntries', query, limit),
   getEntriesBetweenTimestamps: (startTs: number, endTs: number) => ipcRenderer.invoke('sqlite:getEntriesBetweenTimestamps', startTs, endTs),
   createEntry: (entry: Entry) => ipcRenderer.invoke('sqlite:createEntry', entry),
   updateEntry: (id: string, entry: Entry) => ipcRenderer.invoke('sqlite:updateEntry', id, entry),

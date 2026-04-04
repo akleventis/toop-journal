@@ -14,6 +14,8 @@ export interface SQLiteAPI {
   getEntries: (limit?: number) => Promise<Entry[]>,
   getEntryById: (id: string) => Promise<Entry | null>,
   getMostRecentEntry: () => Promise<Entry | null>,
+  getEntryCount: () => Promise<number>,
+  searchEntries: (query: string, limit?: number) => Promise<Entry[]>,
   getEntriesBetweenTimestamps: (startTs: number, endTs: number) => Promise<Entry[]>,
   createEntry: (entry: Entry) => Promise<void>,
   updateEntry: (id: string, entry: Entry) => Promise<void>,

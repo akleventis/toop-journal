@@ -58,7 +58,34 @@ db.exec(`
     localModified INTEGER NOT NULL,
     remoteModified INTEGER NOT NULL
   );
+
+  CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+    id UNINDEXED,
+    content,
+    content=entries_t,
+    content_rowid=rowid
+  );
+
+  CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries_t BEGIN
+    INSERT INTO entries_fts(rowid, id, content) VALUES (new.rowid, new.id, new.content);
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries_t BEGIN
+    DELETE FROM entries_fts WHERE rowid = old.rowid;
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries_t BEGIN
+    UPDATE entries_fts SET content = new.content WHERE rowid = new.rowid;
+  END;
 `);
+
+// One-time population of FTS index from existing entries
+const ftsPopulated = db.prepare("SELECT value FROM settings_t WHERE key = 'fts5_populated'").get();
+if (!ftsPopulated) {
+  db.exec(`INSERT INTO entries_fts(rowid, id, content) SELECT rowid, id, content FROM entries_t`);
+  db.prepare("INSERT OR REPLACE INTO settings_t (key, value) VALUES ('fts5_populated', '1')").run();
+  logger.info('FTS5 index populated from existing entries');
+}
 
 function getEntries(limit?: number): Entry[] {
     let query = 'SELECT * FROM entries_t order by timestamp DESC';
@@ -276,6 +303,24 @@ function validateEntry(entry: Entry): void {
     }
 }
 
+function getEntryCount(): number {
+  return (db.prepare('SELECT COUNT(*) as count FROM entries_t').get() as { count: number }).count;
+}
+
+function searchEntries(query: string, limit = 50): Entry[] {
+  try {
+    return db.prepare(`
+      SELECT e.* FROM entries_t e
+      JOIN entries_fts f ON e.rowid = f.rowid
+      WHERE entries_fts MATCH ?
+      ORDER BY e.timestamp DESC
+      LIMIT ?
+    `).all(query, limit) as Entry[];
+  } catch {
+    return [];
+  }
+}
+
 function getSetting(key: string): string | null {
     const row = db.prepare('SELECT value FROM settings_t WHERE key = ?').get(key) as { value: string } | undefined;
     return row?.value ?? null;
@@ -287,6 +332,8 @@ function setSetting(key: string, value: string): void {
 
 export {
     getEntries,
+    getEntryCount,
+    searchEntries,
     getEntryById,
     getMostRecentEntry,
     getEntriesBetweenTimestamps,

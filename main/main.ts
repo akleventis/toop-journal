@@ -134,6 +134,12 @@ ipcMain.handle('sqlite:getMostRecentEntry', () => {
   return db.getMostRecentEntry();
 });
 
+ipcMain.handle('sqlite:getEntryCount', () => db.getEntryCount());
+
+ipcMain.handle('sqlite:searchEntries', (_, query: string, limit?: number) => {
+  return db.searchEntries(query, limit);
+});
+
 ipcMain.handle('sqlite:getEntriesBetweenTimestamps', (event, startTs: number, endTs: number) => {
   return db.getEntriesBetweenTimestamps(startTs, endTs);
 });

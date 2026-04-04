@@ -37,6 +37,14 @@ export async function getMostRecentEntry(): Promise<Entry | null> {
   return await window.sqlite.getMostRecentEntry();
 }
 
+export async function getEntryCount(): Promise<number> {
+  return await window.sqlite.getEntryCount();
+}
+
+export async function searchEntries(query: string, limit?: number): Promise<Entry[]> {
+  return await window.sqlite.searchEntries(query, limit);
+}
+
 export async function createEntry(entry: Entry): Promise<Entry> {
   const now = Date.now();
   entry = { ...entry, timestamp: now, lastModified: now };
