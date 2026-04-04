@@ -65,6 +65,11 @@ contextBridge.exposeInMainWorld('syncState', {
   },
 })
 
+contextBridge.exposeInMainWorld('backup', {
+  list: () => ipcRenderer.invoke('backup:list'),
+  restore: (filename: string) => ipcRenderer.invoke('backup:restore', filename),
+})
+
 contextBridge.exposeInMainWorld('logs', {
   getRecent: (): Promise<string[]> => ipcRenderer.invoke('logs:getRecent'),
   onLine: (callback: (line: string) => void): (() => void) => {

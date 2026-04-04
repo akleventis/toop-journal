@@ -55,6 +55,17 @@ export interface DialogAPI {
   showError: (message: string) => Promise<void>;
 }
 
+export interface BackupInfo {
+  filename: string;
+  date: string;
+  sizeBytes: number;
+}
+
+export interface BackupAPI {
+  list: () => Promise<BackupInfo[]>;
+  restore: (filename: string) => Promise<void>;
+}
+
 export interface LogsAPI {
   getRecent: () => Promise<string[]>;
   onLine: (callback: (line: string) => void) => () => void;
@@ -70,6 +81,7 @@ declare global {
     conflicts: ConflictsAPI
     syncState: SyncStateAPI
     dialog: DialogAPI
+    backup: BackupAPI
     logs: LogsAPI
   }
 }

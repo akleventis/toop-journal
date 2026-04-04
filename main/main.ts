@@ -6,6 +6,7 @@ import { Entry, S3Config } from '../renderer/lib/types';
 import { cloudSyncPipeline, state } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
+import { createBackup, listBackups, restoreBackup } from './backup';
 import { hashPassword, verifyPassword } from './security/password';
 import './cloudsync/sync_coordinator';
 import { syncStateMachine } from './cloudsync/sync_state';
@@ -14,6 +15,7 @@ import { logger, LOG_RECENT_LINES } from './logger';
 const isDev = !app.isPackaged;
 
 let mainWindow: BrowserWindow | null = null;
+let skipSyncOnQuit = false;
 
 const iconPath = isDev
   ? path.join(__dirname, '../../../assets/icon.png')
@@ -27,6 +29,7 @@ const preloadPath = path.join(__dirname, '../preload/preload.js');
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+  createBackup();
   await initLocalMasterIndex();
   createWindow();
 
@@ -66,9 +69,9 @@ app.on('activate', () => {
 
 // Sync before app quits (including reloads)
 app.on('before-quit', async (event) => {
-  // Only sync if AWS is configured
-  if (state.AWSClient && state.AWSConfig) {
+  if (state.AWSClient && state.AWSConfig && !skipSyncOnQuit) {
     event.preventDefault();
+    skipSyncOnQuit = true;
     try {
       logger.info('Syncing before quit...');
       await cloudSyncPipeline();
@@ -76,7 +79,7 @@ app.on('before-quit', async (event) => {
     } catch (error) {
       logger.error('Error syncing before quit:', error);
     } finally {
-      app.exit();
+      app.quit();
     }
   }
 });
@@ -228,7 +231,13 @@ ipcMain.on('logs:error', (_, msg: string) => {
   logger.error(`[Renderer] ${msg}`);
 });
 
-ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {
+ipcMain.handle('backup:list', () => listBackups());
+ipcMain.handle('backup:restore', async (_, filename: string) => {
+  skipSyncOnQuit = true; // skip before-quit sync so restored DB isn't pushed to S3
+  restoreBackup(filename);
+});
+
+ipcMain.handle('conflicts:resolveConflict', async (_, entryId: string, version: 'local' | 'remote') => {
   const conflict = db.getConflictByEntryId(entryId);
   if (!conflict) {
     throw new Error(`Conflict not found for entry ${entryId}`);

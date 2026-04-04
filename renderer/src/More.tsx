@@ -5,6 +5,8 @@ import { S3Config, SyncState } from '../lib/types'
 import { networkManager } from '../lib/network-manager'
 import { handleError } from '../lib/error-handler'
 import * as db from '../db/db'
+import { clearDecodedCache } from '../db/db'
+
 import { useNavigate } from 'react-router-dom'
 import Modal from './components/Modal'
 
@@ -22,6 +24,8 @@ export default function More() {
             <ConflictsNav />
             <div className="m-[15px]" />
             <LogsNav />
+            <div className="m-[15px]" />
+            <BackupsNav />
         </div>
     )
 }
@@ -35,6 +39,20 @@ export function LogsNav() {
                 className="text-center mb-[10px] cursor-pointer"
             >
                 View Logs
+            </h3>
+        </div>
+    );
+}
+
+export function BackupsNav() {
+    const navigate = useNavigate();
+    return (
+        <div className="w-full max-w-[300px]">
+            <h3
+                onClick={() => navigate('/backups')}
+                className="text-center mb-[10px] cursor-pointer"
+            >
+                Backups
             </h3>
         </div>
     );
@@ -70,7 +88,9 @@ export function ConflictsNav() {
 }
 
 export function EntryLimit() {
+    const navigate = useNavigate()
     const [limit, setLimit] = useState<string>('')
+    const [saved, setSaved] = useState(false)
 
     useEffect(() => {
         const stored = localStorage.getItem('entryLimit') || ''
@@ -81,14 +101,17 @@ export function EntryLimit() {
         const trimmed = limit.trim()
         if (!trimmed) {
             localStorage.removeItem('entryLimit')
-            return
+        } else {
+            const parsed = parseInt(trimmed, 10)
+            if (isNaN(parsed) || parsed <= 0) {
+                alert('Please enter a valid number')
+                return
+            }
+            localStorage.setItem('entryLimit', trimmed)
         }
-        const parsed = parseInt(trimmed, 10)
-        if (isNaN(parsed) || parsed <= 0) {
-            alert('Please enter a valid number')
-            return
-        }
-        localStorage.setItem('entryLimit', trimmed)
+        setSaved(true)
+        clearDecodedCache()
+        setTimeout(() => navigate('/list?reload=true'), 500)
     }
 
     return (
@@ -102,7 +125,7 @@ export function EntryLimit() {
                     placeholder="All entries"
                     className="w-[120px] text-[12px]"
                 />
-                <button onClick={handleSave} className="text-[12px]">Save</button>
+                <button onClick={handleSave} className="text-[12px]">{saved ? 'Saved ✓' : 'Save'}</button>
             </div>
         </div>
     )

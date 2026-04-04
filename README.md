@@ -5,10 +5,12 @@ I've been writing to a journal every day since 2018. Over the past year, the app
 ## Features
 
 - **Local-first storage**: All entries stored in SQLite database
+- **Full-text search**: FTS5-powered search across all entries
 - **Calendar & List views**: Browse entries by calendar or chronological list
-- **Rich text editing**: WYSIWYG editor for journal entries
+- **Rich text editing**: WYSIWYG editor with Markdown storage
 - **Password protection**: Optional app-level password security
-- **Cloud sync**: Optional AWS S3 synchronization for backup and cross-device access
+- **Cloud sync**: Optional AWS S3 synchronization for cross-device access
+- **Automatic backups**: Daily local DB backups, retained for 30 days (More → Backups)
 - **Offline-first**: Works without internet connection
 
 ## Tech Stack
@@ -98,6 +100,8 @@ The packaged app will be in the `release/` directory.
 **Note**: In production, the database is stored at `~/Library/Application Support/toop journal/journal.db`
 
 **Logs**: Stored at `~/Library/Application Support/toop journal/logs/app-YYYY-MM-DD.log` — one file per day, retained for 30 days. Viewable in-app via More → View Logs, or open directly in any text editor for post-crash investigation.
+
+**Backups**: Daily automatic backups stored at `~/Library/Application Support/toop journal/backups/`. Retained for 30 days. Restorable via More → Backups (restoring replaces the current DB and restarts the app).
 
 ## Cloud Sync Setup
 
