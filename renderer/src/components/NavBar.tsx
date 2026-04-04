@@ -40,11 +40,15 @@ export default function NavBar({ activeTab }: NavBarProps) {
       >
         More
       </Link>
-      <div
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full"
-        style={{ backgroundColor: online ? '#2ecc71' : '#e74c3c' }}
-        title={online ? 'Online' : 'Offline'}
-      />
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 group flex items-center gap-1">
+        <span className="text-[9px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          {online ? 'online' : 'offline'}
+        </span>
+        <div
+          className="w-[6px] h-[6px] rounded-full"
+          style={{ backgroundColor: online ? '#2ecc71' : '#e74c3c' }}
+        />
+      </div>
     </nav>
   )
 }

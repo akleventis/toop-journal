@@ -1,5 +1,9 @@
 import { pbkdf2Sync, randomBytes } from 'crypto';
 
+const PBKDF2_ITERATIONS = 100000;
+const SALT_BYTES = 32;
+const HASH_BYTES = 64;
+
 /**
  * Hashes a password using PBKDF2-SHA512.
  *
@@ -8,8 +12,8 @@ import { pbkdf2Sync, randomBytes } from 'crypto';
  * @returns Object containing the hash and salt as hex strings
  */
 export function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
-  const saltBuffer = salt ? Buffer.from(salt, 'hex') : randomBytes(32);
-  const hashBuffer = pbkdf2Sync(password, saltBuffer, 100000, 64, 'sha512');
+  const saltBuffer = salt ? Buffer.from(salt, 'hex') : randomBytes(SALT_BYTES);
+  const hashBuffer = pbkdf2Sync(password, saltBuffer, PBKDF2_ITERATIONS, HASH_BYTES, 'sha512');
   return {
     hash: hashBuffer.toString('hex'),
     salt: saltBuffer.toString('hex')

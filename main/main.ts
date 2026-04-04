@@ -9,7 +9,7 @@ import { initLocalMasterIndex } from './cloudsync/master_index';
 import { hashPassword, verifyPassword } from './security/password';
 import './cloudsync/sync_coordinator';
 import { syncStateMachine } from './cloudsync/sync_state';
-import { logger } from './logger';
+import { logger, LOG_RECENT_LINES } from './logger';
 
 const isDev = !app.isPackaged;
 
@@ -215,7 +215,7 @@ ipcMain.handle('dialog:showError', async (_, message: string) => {
 });
 
 ipcMain.handle('logs:getRecent', () => {
-  return logger.getRecentLines(200);
+  return logger.getRecentLines(LOG_RECENT_LINES);
 });
 
 ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {

@@ -10,6 +10,7 @@ export enum LogLevel {
 }
 
 const LOG_RETENTION_DAYS = 30;
+export const LOG_RECENT_LINES = 200;
 
 class Logger {
   private level: LogLevel;
@@ -78,7 +79,7 @@ class Logger {
   warn(message: string, ...args: unknown[]): void { this.write(LogLevel.WARN, message, ...args); }
   error(message: string, ...args: unknown[]): void { this.write(LogLevel.ERROR, message, ...args); }
 
-  getRecentLines(n = 200): string[] {
+  getRecentLines(n = LOG_RECENT_LINES): string[] {
     try {
       const content = fs.readFileSync(this.logFile, 'utf-8');
       return content.split('\n').filter(l => l.trim()).slice(-n);
