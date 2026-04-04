@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { clsx } from 'clsx'
 import { markdownToHtml } from '../lib/utils'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState } from '../lib/types'
 import * as db from '../db/db'
 import { useNavigate } from 'react-router-dom'
+import Modal from './components/Modal'
 
 export default function More() {
     return (
@@ -287,26 +287,24 @@ export function Password() {
                 </div>
             </div>
 
-            {showPasswordInput && (
-                <div className="fixed z-[1] inset-0 bg-black/85 flex items-center justify-center">
-                    <div className="text-center">
-                        <input
-                            type="text"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder={passwordProtected ? 'Enter current password' : 'Enter new password'}
-                            autoFocus
-                        />
-                        <br />
-                        <div className="mt-[10px] flex gap-[10px] justify-center">
-                            <button onClick={handlePasswordSubmit}>
-                                {passwordProtected ? 'Disable' : 'Enable'}
-                            </button>
-                            <button onClick={handleCancel}>Cancel</button>
-                        </div>
+            <Modal isOpen={showPasswordInput} title="Password Protection" onClose={handleCancel}>
+                <div className="text-center">
+                    <input
+                        type="text"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={passwordProtected ? 'Enter current password' : 'Enter new password'}
+                        autoFocus
+                    />
+                    <br />
+                    <div className="mt-[10px] flex gap-[10px] justify-center">
+                        <button onClick={handlePasswordSubmit}>
+                            {passwordProtected ? 'Disable' : 'Enable'}
+                        </button>
+                        <button onClick={handleCancel}>Cancel</button>
                     </div>
                 </div>
-            )}
+            </Modal>
         </div>
     )
 }
@@ -321,22 +319,19 @@ function AWSConfigModal({ formData, setFormData, syncState, onSave, onCancel }: 
     onCancel: () => void
 }) {
     return (
-        <div className="fixed inset-0 bg-[rgba(28,28,28,0.95)] flex items-center justify-center">
-            <div className="p-5 rounded-[10px] flex flex-col gap-[10px] min-w-[250px]">
-                <p className="text-center">AWS Config</p>
-                {syncState === SyncState.ERROR && (
-                    <p className="text-[#e74c3c] text-[11px] text-center m-0">
-                        Failed — verify credentials and try again
-                    </p>
-                )}
-                <input className="text-[10px]" type="text" placeholder="Access Key" value={formData.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
-                <input className="text-[10px]" type="text" placeholder="Secret Key" value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
-                <input className="text-[10px]" type="text" placeholder="Bucket" value={formData.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
-                <input className="text-[10px]" type="text" placeholder="Region" value={formData.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
-                <button onClick={onSave} disabled={syncState === SyncState.INITIALIZING}>Save</button>
-                <button onClick={onCancel}>Cancel</button>
-            </div>
-        </div>
+        <Modal isOpen={true} title="AWS Config" onClose={onCancel}>
+            {syncState === SyncState.ERROR && (
+                <p className="text-[#e74c3c] text-[11px] text-center m-0">
+                    Failed — verify credentials and try again
+                </p>
+            )}
+            <input className="text-[10px]" type="text" placeholder="Access Key" value={formData.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
+            <input className="text-[10px]" type="text" placeholder="Secret Key" value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
+            <input className="text-[10px]" type="text" placeholder="Bucket" value={formData.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
+            <input className="text-[10px]" type="text" placeholder="Region" value={formData.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
+            <button onClick={onSave} disabled={syncState === SyncState.INITIALIZING}>Save</button>
+            <button onClick={onCancel}>Cancel</button>
+        </Modal>
     )
 }
 
