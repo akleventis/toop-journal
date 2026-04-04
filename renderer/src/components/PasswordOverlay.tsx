@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { handleError } from '../../lib/error-handler'
 
 interface PasswordOverlayProps {
     onPasswordVerified: () => void
@@ -32,7 +33,7 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
                 setPassword('')
             }
         } catch (error) {
-            alert('Error verifying password')
+            handleError(error, 'Error verifying password')
         }
     }
 

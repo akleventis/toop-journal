@@ -1,4 +1,5 @@
 import React from 'react'
+import { handleError } from '../../lib/error-handler'
 
 // Error boundaries must be class components — getDerivedStateFromError 
 // and componentDidCatch have no hook equivalents.
@@ -14,8 +15,8 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   }
 
   // called after fallback renders; safe for side effects like logging and dialogs
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('React Error:', error, errorInfo) // todo: build out logging system
+  componentDidCatch(error: Error, _errorInfo: React.ErrorInfo) {
+    handleError(error)
     window.dialog.showError('Something went wrong :( Please reload the app.')
   }
 

@@ -6,6 +6,7 @@ import type { DecodedEntry } from '../lib/types';
 import { NavDirection } from '../lib/constants';
 import { markdownToHtml } from '../lib/markdown';
 import { saveEntry } from '../lib/entries';
+import { handleError } from '../lib/error-handler';
 
 interface EditProps {
   entries: DecodedEntry[];
@@ -29,7 +30,7 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
             setEntry(decoded);
           }
         } catch (error) {
-          console.error('Failed to load entry:', error);
+          handleError(error);
         }
       }
     };

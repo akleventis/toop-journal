@@ -218,6 +218,10 @@ ipcMain.handle('logs:getRecent', () => {
   return logger.getRecentLines(LOG_RECENT_LINES);
 });
 
+ipcMain.on('logs:error', (_, msg: string) => {
+  logger.error(`[Renderer] ${msg}`);
+});
+
 ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {
   const conflict = db.getConflictByEntryId(entryId);
   if (!conflict) {

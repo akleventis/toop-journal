@@ -3,6 +3,7 @@ import { markdownToHtml } from '../lib/markdown'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState } from '../lib/types'
 import { networkManager } from '../lib/network-manager'
+import { handleError } from '../lib/error-handler'
 import * as db from '../db/db'
 import { useNavigate } from 'react-router-dom'
 import Modal from './components/Modal'
@@ -182,7 +183,7 @@ export function ExportEntries() {
             a.click()
             URL.revokeObjectURL(url)
         } catch (error) {
-            alert('Export failed: ' + error)
+            handleError(error, 'Export failed')
         } finally {
             setIsExporting(false)
         }
@@ -261,7 +262,7 @@ export function Password() {
                 setPassword('')
                 await updatePasswordProtection()
             } catch (error) {
-                alert('Error enabling password')
+                handleError(error, 'Error enabling password')
             }
         }
     }

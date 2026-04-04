@@ -70,4 +70,5 @@ contextBridge.exposeInMainWorld('logs', {
     ipcRenderer.on('logs:line', handler);
     return () => ipcRenderer.removeListener('logs:line', handler);
   },
+  error: (msg: string) => ipcRenderer.send('logs:error', msg),
 })

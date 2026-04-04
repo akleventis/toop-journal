@@ -56,6 +56,7 @@ export interface DialogAPI {
 export interface LogsAPI {
   getRecent: () => Promise<string[]>;
   onLine: (callback: (line: string) => void) => () => void;
+  error: (msg: string) => void;
 }
 
 declare global {

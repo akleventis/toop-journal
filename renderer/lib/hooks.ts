@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as db from '../db/db';
 import { SyncState } from './types';
 import { networkManager } from './network-manager';
+import { handleError } from './error-handler';
 
 /**
  * useSyncState hook to subscribe to sync state changes from the main process.
@@ -42,7 +43,7 @@ export const usePasswordProtection = () => {
         setPasswordVerified(true)
       }
     } catch (error) {
-      console.error('Failed to initialize app:', error)
+      handleError(error)
       setPasswordVerified(true)
     } finally {
       setIsInitializing(false)
@@ -64,7 +65,7 @@ export const usePasswordProtection = () => {
         setPasswordVerified(true)
       }
     } catch (error) {
-      console.error('Failed to update password protection state:', error)
+      handleError(error)
     }
   }
 

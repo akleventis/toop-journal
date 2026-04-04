@@ -4,6 +4,7 @@ import { Conflict } from '../lib/types';
 import { useNavigate } from 'react-router-dom';
 import { markdownToHtml } from '../lib/markdown';
 import { clearDecodedCache } from '../db/db';
+import { handleError } from '../lib/error-handler';
 
 export default function Conflicts() {
     const [conflicts, setConflicts] = useState<Conflict[]>([]);
@@ -30,7 +31,7 @@ export default function Conflicts() {
             clearDecodedCache();
             navigate('/list?reload=true');
         } catch (error) {
-            alert('Failed: ' + error);
+            handleError(error, 'Failed to resolve conflict');
         } finally {
             setLoading(false);
         }
