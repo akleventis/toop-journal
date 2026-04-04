@@ -13,7 +13,7 @@ import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import ErrorBoundary from './components/ErrorBoundary'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
-import { journalToCalendar, getCurrentCalendarDate } from '../lib/utils'
+import { journalToCalendar, getCurrentCalendarDate } from '../lib/dates'
 
 // type declaration for the global variable defined in vite.config.ts
 declare global {

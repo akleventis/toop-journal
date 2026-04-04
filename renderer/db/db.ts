@@ -1,4 +1,5 @@
-import { parseJournalDate, markdownToHtml } from '../lib/utils';
+import { parseJournalDate } from '../lib/dates';
+import { markdownToHtml } from '../lib/markdown';
 import type { Entry, DecodedEntry } from '../lib/types';
 
 // memoized entries per renderer session

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DecodedEntry } from '../lib/types'
-import { getDateParts } from '../lib/utils'
+import { getDateParts } from '../lib/dates'
 
 interface ListViewProps {
   entries: DecodedEntry[];

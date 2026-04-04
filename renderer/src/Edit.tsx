@@ -4,7 +4,8 @@ import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
 import type { DecodedEntry } from '../lib/types';
 import { NavDirection } from '../lib/constants';
-import { markdownToHtml, saveEntry } from '../lib/utils';
+import { markdownToHtml } from '../lib/markdown';
+import { saveEntry } from '../lib/entries';
 
 interface EditProps {
   entries: DecodedEntry[];

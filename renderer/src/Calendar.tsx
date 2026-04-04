@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import type { DecodedEntry } from '../lib/types'
-import { journalToCalendar, createCalendarDate } from '../lib/utils'
+import { journalToCalendar, createCalendarDate } from '../lib/dates'
 import YearSelector from './components/YearSelector'
 
 interface CalendarProps {

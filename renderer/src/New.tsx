@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { formatCurrentDate, calendarToJournal, journalToCalendar, getCurrentCalendarDate, saveEntry } from '../lib/utils';
+import { formatCurrentDate, calendarToJournal, journalToCalendar, getCurrentCalendarDate } from '../lib/dates';
+import { saveEntry } from '../lib/entries';
 import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
 

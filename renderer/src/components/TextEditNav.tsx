@@ -20,8 +20,8 @@ const TextEditNav: React.FC<TextEditNavProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     if (!showDropdown) return;
-    function handle(e) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+    function handle(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
     }

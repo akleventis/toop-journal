@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Editor, { Toolbar } from 'react-simple-wysiwyg';
+import type { ContentEditableEvent } from 'react-simple-wysiwyg';
 import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
 import type { Entry } from '../../lib/types';
-import { markdownToHtml, deleteEntry } from '../../lib/utils';
+import { markdownToHtml } from '../../lib/markdown';
+import { deleteEntry } from '../../lib/entries';
 import { NavDirection } from '../../lib/constants';
 
 interface TextEditProps {
@@ -35,7 +37,7 @@ const TextEditor: React.FC<TextEditProps> = ({
     };
 
 
-    const onChange = (e: any) => {
+    const onChange = (e: ContentEditableEvent) => {
         setHtml(e.target.value);
         onContentChange?.(e.target.value);
     };

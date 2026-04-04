@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { markdownToHtml } from '../lib/utils'
+import { markdownToHtml } from '../lib/markdown'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState } from '../lib/types'
 import * as db from '../db/db'

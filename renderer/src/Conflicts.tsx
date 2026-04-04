@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { Conflict } from '../lib/types';
 import { useNavigate } from 'react-router-dom';
-import { markdownToHtml } from '../lib/utils';
+import { markdownToHtml } from '../lib/markdown';
 import { clearDecodedCache } from '../db/db';
 
 export default function Conflicts() {
