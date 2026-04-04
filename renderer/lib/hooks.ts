@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as db from '../db/db';
 import { SyncState } from './types';
+import { networkManager } from './network-manager';
 
 /**
  * useSyncState hook to subscribe to sync state changes from the main process.
@@ -86,8 +87,7 @@ export const useNetworkSync = () => {
 
   useEffect(() => {
     const tryInitS3Client = async () => {
-      if (!window.network.isOnline()) {
-        console.log("network offline")
+      if (!networkManager.isOnline()) {
         setSyncStatus('network offline');
         return;
       }
@@ -96,16 +96,12 @@ export const useNetworkSync = () => {
         await window.cloudSync.initS3Client();
         setSyncStatus('cloud sync success');
       } catch (err) {
-        console.log('cloud sync not initialized')
         setSyncStatus('cloud sync failed');
       }
     };
 
-    // register for future network status changes only
-    window.network.onStatusChange((online) => {
-      console.log("network status change", online)
+    const unsubscribe = networkManager.subscribe((online) => {
       if (!online) {
-        console.log("network offline")
         setSyncStatus('network offline');
         return;
       }
@@ -113,6 +109,8 @@ export const useNetworkSync = () => {
     });
 
     tryInitS3Client();
+
+    return unsubscribe;
   }, []);
 
   return { syncStatus };

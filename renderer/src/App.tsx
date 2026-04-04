@@ -20,6 +20,7 @@ declare global {
   const __IS_DEV__: boolean;
 }
 
+
 // using the global variable defined in vite.config.ts
 const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 

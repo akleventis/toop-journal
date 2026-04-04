@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { markdownToHtml } from '../lib/markdown'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState } from '../lib/types'
+import { networkManager } from '../lib/network-manager'
 import * as db from '../db/db'
 import { useNavigate } from 'react-router-dom'
 import Modal from './components/Modal'
@@ -364,7 +365,7 @@ export function AWSConfig() {
 
     const handleToggleAWS = async () => {
         if (!hasCredentials) {
-            if (!window.network.isOnline()) {
+            if (!networkManager.isOnline()) {
                 alert('Please connect to the internet to create an AWS config')
                 return
             }

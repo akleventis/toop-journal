@@ -1,14 +1,21 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { clsx } from 'clsx'
+import { networkManager } from '../../lib/network-manager'
 
 interface NavBarProps {
   activeTab: string
 }
 
 export default function NavBar({ activeTab }: NavBarProps) {
+  const [online, setOnline] = useState(networkManager.isOnline());
+
+  useEffect(() => {
+    return networkManager.subscribe(setOnline);
+  }, []);
+
   return (
-    <nav className="flex gap-[2px] justify-center text-center py-[10px] px-5">
+    <nav className="relative flex gap-[2px] justify-center text-center py-[10px] px-5">
       <Link
         to="/new"
         className={clsx('w-20 py-[5px] rounded-tl rounded-bl', activeTab === '/new' ? 'bg-[color:var(--color-third-bg)]' : 'bg-[color:var(--color-secondary-bg)]')}
@@ -33,6 +40,11 @@ export default function NavBar({ activeTab }: NavBarProps) {
       >
         More
       </Link>
+      <div
+        className="absolute right-4 top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full"
+        style={{ backgroundColor: online ? '#2ecc71' : '#e74c3c' }}
+        title={online ? 'Online' : 'Offline'}
+      />
     </nav>
   )
 }
