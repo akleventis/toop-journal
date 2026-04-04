@@ -62,3 +62,12 @@ contextBridge.exposeInMainWorld('syncState', {
     ipcRenderer.on('sync-state:changed', (_event: unknown, state: SyncState) => callback(state));
   },
 })
+
+contextBridge.exposeInMainWorld('logs', {
+  getRecent: (): Promise<string[]> => ipcRenderer.invoke('logs:getRecent'),
+  onLine: (callback: (line: string) => void): (() => void) => {
+    const handler = (_event: unknown, line: string) => callback(line);
+    ipcRenderer.on('logs:line', handler);
+    return () => ipcRenderer.removeListener('logs:line', handler);
+  },
+})

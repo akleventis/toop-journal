@@ -53,6 +53,11 @@ export interface DialogAPI {
   showError: (message: string) => Promise<void>;
 }
 
+export interface LogsAPI {
+  getRecent: () => Promise<string[]>;
+  onLine: (callback: (line: string) => void) => () => void;
+}
+
 declare global {
   interface Window {
     cloudSync: CloudSyncAPI
@@ -62,5 +67,6 @@ declare global {
     conflicts: ConflictsAPI
     syncState: SyncStateAPI
     dialog: DialogAPI
+    logs: LogsAPI
   }
 }

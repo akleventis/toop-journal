@@ -4,6 +4,7 @@ import { S3Config } from '../../renderer/lib/types';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { initS3MasterIndex } from './master_index';
 import { syncStateMachine, SyncState } from './sync_state';
+import { logger } from '../logger';
 
 let S3ClientInitializing = false; // prevent multiple initialization attempts
 
@@ -19,13 +20,13 @@ let S3ClientInitializing = false; // prevent multiple initialization attempts
  */
 export const initS3Client = async (): Promise<void> => {
   if (S3ClientInitializing) {
-    console.log('initS3Client: S3 client is already initializing, skipping initialization')
+    logger.debug('initS3Client: S3 client is already initializing, skipping initialization')
     return;
   }
 
   // if the client is already initialized, skip initialization
   if (state.AWSClient) {
-    console.log('initS3Client: S3 client is already initialized, skipping initialization')
+    logger.debug('initS3Client: S3 client is already initialized, skipping initialization')
     return;
   }
 
@@ -37,7 +38,7 @@ export const initS3Client = async (): Promise<void> => {
   } catch (error) {
     S3ClientInitializing = false;
     syncStateMachine.setState(SyncState.ERROR);
-    console.error('initS3Client: failed to load aws config:', error);
+    logger.error('initS3Client: failed to load aws config:', error);
     throw error;
   }
 
@@ -53,7 +54,7 @@ export const initS3Client = async (): Promise<void> => {
   } catch (error) {
     S3ClientInitializing = false;
     syncStateMachine.setState(SyncState.ERROR);
-    console.error('initS3Client: failed to set aws client:', error);
+    logger.error('initS3Client: failed to set aws client:', error);
     throw error;
   }
   S3ClientInitializing = false;

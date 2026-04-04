@@ -9,6 +9,7 @@ import { initLocalMasterIndex } from './cloudsync/master_index';
 import { hashPassword, verifyPassword } from './security/password';
 import './cloudsync/sync_coordinator';
 import { syncStateMachine } from './cloudsync/sync_state';
+import { logger } from './logger';
 
 const isDev = !app.isPackaged;
 
@@ -69,11 +70,11 @@ app.on('before-quit', async (event) => {
   if (state.AWSClient && state.AWSConfig) {
     event.preventDefault();
     try {
-      console.log('Syncing before quit...');
+      logger.info('Syncing before quit...');
       await cloudSyncPipeline();
-      console.log('Sync complete, quitting...');
+      logger.info('Sync complete, quitting...');
     } catch (error) {
-      console.error('Error syncing before quit:', error);
+      logger.error('Error syncing before quit:', error);
     } finally {
       app.exit();
     }
@@ -109,7 +110,7 @@ ipcMain.handle('cloud-sync:initS3Client', async () => {
     try {
       await cloudSyncPipeline();
     } catch (error) {
-      console.error('Error during initial sync:', error);
+      logger.error('Error during initial sync:', error);
       throw error;
     }
   }
@@ -213,6 +214,10 @@ ipcMain.handle('dialog:showError', async (_, message: string) => {
   mainWindow?.webContents.reload();
 });
 
+ipcMain.handle('logs:getRecent', () => {
+  return logger.getRecentLines(200);
+});
+
 ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, version: 'local' | 'remote') => {
   const conflict = db.getConflictByEntryId(entryId);
   if (!conflict) {
@@ -236,7 +241,7 @@ ipcMain.handle('conflicts:resolveConflict', async (event, entryId: string, versi
     try {
       await cloudSyncPipeline();
     } catch (error) {
-      console.error('Error syncing after conflict resolution:', error);
+      logger.error('Error syncing after conflict resolution:', error);
     }
   }
 });

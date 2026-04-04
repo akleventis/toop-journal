@@ -3,6 +3,7 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import { EventEmitter } from 'node:events';
 import { Entry, Conflict } from "../../renderer/lib/types";
+import { logger } from '../logger';
 
 export const dbEvents = new EventEmitter();
 
@@ -13,7 +14,7 @@ const dbPath = app.isPackaged
 
 const db = new Database(dbPath);
 
-console.log("dbPath: ", dbPath);
+logger.info('dbPath:', dbPath);
 
 // .entries_t
 // | Column       | Type       | Constraints |
@@ -85,7 +86,7 @@ function createEntry(entry: Entry, skipSync = false): void {
     try {
         validateEntry(entry);
     } catch (error) {
-        console.error(`createEntry: validation failed for entry ${entry.id}:`, error);
+        logger.error(`createEntry: validation failed for entry ${entry.id}:`, error);
         throw error;
     }
 
@@ -108,7 +109,7 @@ function createEntry(entry: Entry, skipSync = false): void {
             dbEvents.emit('entry:created', { id: entry.id, lastModified: Date.now() });
         }
     } catch (error) {
-        console.error(`createEntry: error creating entry ${entry.id}:`, error);
+        logger.error(`createEntry: error creating entry ${entry.id}:`, error);
         throw error;
     }
 }
@@ -124,7 +125,7 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
         }
         validateEntry(entry);
     } catch (error) {
-        console.error(`updateEntry: validation failed for entry ${id}:`, error);
+        logger.error(`updateEntry: validation failed for entry ${id}:`, error);
         throw error;
     }
 
@@ -151,7 +152,7 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
             dbEvents.emit('entry:updated', { id, lastModified: Date.now() });
         }
     } catch (error) {
-        console.error(`updateEntry: error updating entry ${id}:`, error);
+        logger.error(`updateEntry: error updating entry ${id}:`, error);
         throw error;
     }
 }
@@ -168,7 +169,7 @@ function deleteEntry(id: string, skipSync = false): void {
             dbEvents.emit('entry:deleted', { id, lastModified: Date.now() });
         }
     } catch (error) {
-        console.error(`deleteEntry: error deleting entry ${id}:`, error);
+        logger.error(`deleteEntry: error deleting entry ${id}:`, error);
         throw error;
     }
 }

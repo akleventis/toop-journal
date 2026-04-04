@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { setAWSClient } from './aws_client';
 import { state } from './transact';
 import { syncStateMachine, SyncState } from './sync_state';
+import { logger } from '../logger';
 
 /**
  * Loads the AWS configuration from the `config.json` file.
@@ -32,7 +33,7 @@ export const getConfig = (): S3Config | null => {
  * @returns {S3Config} The created AWS configuration object.
  */
 export const createConfig = async (config: S3Config): Promise<S3Config> => {
-    console.log('creating aws config:', config)
+    logger.info('createConfig: saving new AWS config')
     if (!isValidAWSConfig(config)) {
         throw new Error('createConfig: invalid aws config');
     }
@@ -42,7 +43,7 @@ export const createConfig = async (config: S3Config): Promise<S3Config> => {
         await setAWSClient(config);
     } catch (error) {
         syncStateMachine.setState(SyncState.ERROR);
-        console.error('createConfig: failed to create aws config:', error);
+        logger.error('createConfig: failed to create aws config:', error);
         throw error;
     }
 
@@ -60,7 +61,7 @@ export const createConfig = async (config: S3Config): Promise<S3Config> => {
  * @returns {S3Config} The updated AWS configuration object.
  */
 export const updateConfig = async (config: S3Config): Promise<S3Config> => {
-    console.log('updating aws config:', config)
+    logger.info('updateConfig: updating AWS config')
     if (!isValidAWSConfig(config)) {
         throw new Error('updateConfig: invalid aws config');
     }
@@ -70,7 +71,7 @@ export const updateConfig = async (config: S3Config): Promise<S3Config> => {
         await setAWSClient(config);
     } catch (error) {
         syncStateMachine.setState(SyncState.ERROR);
-        console.error('updateConfig: failed to update aws config:', error);
+        logger.error('updateConfig: failed to update aws config:', error);
         throw error;
     }
 
@@ -97,7 +98,7 @@ export const disableSync = (): void => {
  * @returns {Promise<void>}
  */
 export const deleteConfig = async (): Promise<void> => {
-    console.log('deleting aws config')
+    logger.info('deleteConfig: deleting AWS config')
     const configPath = path.join(state.UserDataPath, 'config.json');
     if (fs.existsSync(configPath)) {
         fs.rmSync(configPath);
@@ -105,7 +106,7 @@ export const deleteConfig = async (): Promise<void> => {
     state.AWSClient = null;
     state.AWSConfig = null;
     syncStateMachine.setState(SyncState.DISABLED);
-    console.log('aws config deleted')
+    logger.info('deleteConfig: AWS config deleted')
 };
 
 /**

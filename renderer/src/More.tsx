@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { clsx } from 'clsx'
 import { markdownToHtml } from '../lib/utils'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState } from '../lib/types'
@@ -17,8 +18,24 @@ export default function More() {
             <AWSConfig />
             <div className="m-[15px]" />
             <ConflictsNav />
+            <div className="m-[15px]" />
+            <LogsNav />
         </div>
     )
+}
+
+export function LogsNav() {
+    const navigate = useNavigate();
+    return (
+        <div className="w-full max-w-[300px]">
+            <h3
+                onClick={() => navigate('/logs')}
+                className="text-center mb-[10px] cursor-pointer"
+            >
+                View Logs
+            </h3>
+        </div>
+    );
 }
 
 export function ConflictsNav() {

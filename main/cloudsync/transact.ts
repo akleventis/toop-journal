@@ -5,6 +5,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
 import { syncStateMachine, SyncState } from './sync_state';
+import { logger } from '../logger';
 
 /**
  * State object to store the AWS variables to be shared between cloudsync files.
@@ -40,7 +41,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         localMasterIndex = await loadLocalMasterIndex();
     } catch (error) {
         syncStateMachine.setState(SyncState.ERROR);
-        console.error('failed to load master index:', error);
+        logger.error('failed to load master index:', error);
         throw error;
     }
 
@@ -48,7 +49,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         s3MasterIndex = await loadS3MasterIndex();
     } catch (error) {
         syncStateMachine.setState(SyncState.ERROR);
-        console.error('failed to load s3 master index:', error);
+        logger.error('failed to load s3 master index:', error);
         throw error;
     }
 
@@ -62,11 +63,11 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         const finalPath = path.join(state.UserDataPath, state.MasterIndexFileName);
         const mergedJSON = JSON.stringify(merged, null, 2);
 
-        console.log('writing to temporary master index file');
+        logger.debug('writing to temporary master index file');
         fs.writeFileSync(tempPath, mergedJSON);
 
         // upload to S3
-        console.log('uploading master index to S3');
+        logger.debug('uploading master index to S3');
         await state.AWSClient.send(new PutObjectCommand({
             Bucket: state.AWSConfig.aws_bucket,
             Key: state.MasterIndexFileName,
@@ -74,11 +75,11 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         }));
 
         // only rename if S3 upload succeeded
-        console.log('committing local master index');
+        logger.debug('committing local master index');
         fs.renameSync(tempPath, finalPath);
     } catch (error) {
         syncStateMachine.setState(SyncState.ERROR);
-        console.error('failed to sync master index:', error);
+        logger.error('failed to sync master index:', error);
 
         // clean up temporary file if it exists
         const tempPath = path.join(state.UserDataPath, `${state.MasterIndexFileName}.tmp`);

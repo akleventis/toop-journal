@@ -8,6 +8,7 @@ import More from './More'
 import New from './New'
 import Edit from './Edit'
 import Conflicts from './Conflicts'
+import Logs from './Logs'
 import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -105,6 +106,7 @@ function AppContent() {
         <Route path="/calendar" element={<ErrorBoundary><Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} /></ErrorBoundary>} />
         <Route path="/more" element={<ErrorBoundary><More /></ErrorBoundary>} />
         <Route path="/conflicts" element={<ErrorBoundary><Conflicts /></ErrorBoundary>} />
+        <Route path="/logs" element={<ErrorBoundary><Logs /></ErrorBoundary>} />
         <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
         <Route path="/edit" element={<ErrorBoundary><Edit entries={entries} /></ErrorBoundary>} />
       </Routes>

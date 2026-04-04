@@ -97,6 +97,8 @@ The packaged app will be in the `release/` directory.
 
 **Note**: In production, the database is stored at `~/Library/Application Support/toop journal/journal.db`
 
+**Logs**: Stored at `~/Library/Application Support/toop journal/logs/app-YYYY-MM-DD.log` — one file per day, retained for 30 days. Viewable in-app via More → View Logs, or open directly in any text editor for post-crash investigation.
+
 ## Cloud Sync Setup
 
 Cloud sync is optional and uses AWS S3 for backup and synchronization. See [main/cloudsync/README.md](main/cloudsync/README.md) for detailed setup instructions.
