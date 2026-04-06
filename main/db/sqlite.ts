@@ -330,6 +330,10 @@ function setSetting(key: string, value: string): void {
     db.prepare('INSERT OR REPLACE INTO settings_t (key, value) VALUES (?, ?)').run(key, value);
 }
 
+function closeDb(): void {
+    db.close();
+}
+
 export {
     getEntries,
     getEntryCount,
@@ -351,5 +355,6 @@ export {
     getConflictByEntryId,
     deleteConflict,
     getSetting,
-    setSetting
+    setSetting,
+    closeDb
 };

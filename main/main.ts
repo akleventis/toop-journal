@@ -234,7 +234,10 @@ ipcMain.on('logs:error', (_, msg: string) => {
 ipcMain.handle('backup:list', () => listBackups());
 ipcMain.handle('backup:restore', async (_, filename: string) => {
   skipSyncOnQuit = true; // skip before-quit sync so restored DB isn't pushed to S3
+  db.closeDb();          // close DB before overwriting the file
   restoreBackup(filename);
+  app.relaunch();
+  app.exit(0);           // exit(0) skips before-quit, avoiding any DB access after close
 });
 
 ipcMain.handle('conflicts:resolveConflict', async (_, entryId: string, version: 'local' | 'remote') => {

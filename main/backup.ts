@@ -85,8 +85,5 @@ export function restoreBackup(filename: string): void {
   }
 
   fs.copyFileSync(backupPath, getDbPath());
-  logger.info(`backup: restored ${filename}, relaunching`);
-
-  app.relaunch();
-  app.quit();
+  logger.info(`backup: restored ${filename}`);
 }
