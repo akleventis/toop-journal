@@ -172,7 +172,7 @@ Auto-configured upon successful link:
 {
   "id": "jun.14.2025",
   "date": "Jun 14, 2025 at 12:35:55",
-  "content": "{encoded_html}",
+  "content": "{markdown string}",
   "timestamp": 1749926155000
 }
 ```
