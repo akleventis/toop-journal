@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { jsPDF } from 'jspdf'
 import { markdownToHtml } from '../lib/markdown'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState } from '../lib/types'
@@ -157,8 +158,65 @@ export function ExportEntries() {
                 return
             }
 
+            const filename = `journal_export_${startDate}_${endDate}`
+
+            if (format === 'pdf') {
+                const doc = new jsPDF({ unit: 'pt', format: 'letter' })
+                const margin = 40
+                const pageWidth = doc.internal.pageSize.getWidth()
+                const pageHeight = doc.internal.pageSize.getHeight()
+                const maxWidth = pageWidth - margin * 2
+                let y = margin
+
+                const checkY = (needed: number) => {
+                    if (y + needed > pageHeight - margin) {
+                        doc.addPage()
+                        y = margin
+                    }
+                }
+
+                for (const entry of entries) {
+                    doc.setFontSize(13)
+                    doc.setFont('helvetica', 'bold')
+                    checkY(20)
+                    doc.text(entry.date, margin, y)
+                    y += 18
+
+                    if (entry.location) {
+                        doc.setFontSize(9)
+                        doc.setFont('helvetica', 'italic')
+                        checkY(14)
+                        doc.text(entry.location, margin, y)
+                        y += 14
+                    }
+
+                    const div = document.createElement('div')
+                    div.innerHTML = markdownToHtml(entry.content)
+                    const plainText = (div.textContent || '').trim()
+
+                    doc.setFontSize(10)
+                    doc.setFont('helvetica', 'normal')
+                    const lines = doc.splitTextToSize(plainText, maxWidth) as string[]
+                    for (const line of lines) {
+                        checkY(13)
+                        doc.text(line, margin, y)
+                        y += 13
+                    }
+
+                    y += 12
+                }
+
+                const blob = doc.output('blob')
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = filename + '.pdf'
+                a.click()
+                URL.revokeObjectURL(url)
+                return
+            }
+
             let content = ''
-            let filename = `journal_export_${startDate}_${endDate}`
 
             switch (format) {
                 case 'html':
@@ -166,24 +224,20 @@ export function ExportEntries() {
                         `<div><h3>${entry.date}</h3>${markdownToHtml(entry.content)}</div><hr>`
                     ).join('')
                     content = `<html><body>${content}</body></html>`
-                    filename += '.html'
                     break
                 case 'json':
                     content = JSON.stringify(entries, null, 2)
-                    filename += '.json'
                     break
                 case 'csv':
                     content = 'Date,Location,Content\n'
                     content += entries.map(entry =>
                         `"${entry.date}","${entry.location || ""},"${entry.content.replace(/"/g, '""')}""`
                     ).join('\n')
-                    filename += '.csv'
                     break
                 case 'txt':
                     content = entries.map(entry =>
                         `${entry.date}\n${entry.content}\n${entry.location || ''}\n---\n`
                     ).join('\n')
-                    filename += '.txt'
                     break
                 case 'encoded_html':
                     const encodedEntries = entries.map(entry => ({
@@ -194,15 +248,15 @@ export function ExportEntries() {
                         timestamp: entry.timestamp
                     }))
                     content = JSON.stringify(encodedEntries, null, 2)
-                    filename += '.json'
                     break
             }
 
+            const ext: Record<string, string> = { html: '.html', json: '.json', csv: '.csv', txt: '.txt', encoded_html: '.json' }
             const blob = new Blob([content], { type: 'text/plain' })
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = filename
+            a.download = filename + (ext[format] ?? '')
             a.click()
             URL.revokeObjectURL(url)
         } catch (error) {
@@ -242,6 +296,7 @@ export function ExportEntries() {
                         <option value="csv">CSV</option>
                         <option value="txt">TXT</option>
                         <option value="encoded_html">Encoded HTML</option>
+                        <option value="pdf">PDF</option>
                     </select>
                 </div>
                 <div className="flex flex-col">
