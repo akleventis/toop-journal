@@ -16,6 +16,16 @@
 | key    | TEXT | PRIMARY KEY |
 | value  | TEXT | NOT NULL    |
 
+### conflicts_t
+| Column         | Type    | Constraints |
+|----------------|---------|-------------|
+| entryId        | TEXT    | PRIMARY KEY |
+| entryDate      | TEXT    | NOT NULL    |
+| localVersion   | TEXT    | NOT NULL    |
+| remoteVersion  | TEXT    | NOT NULL    |
+| localModified  | INTEGER | NOT NULL    |
+| remoteModified | INTEGER | NOT NULL    |
+
 ---
 
 ```bash
