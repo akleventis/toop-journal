@@ -47,8 +47,48 @@ function createWindow() {
       preload: preloadPath,
       webSecurity: false,
       contextIsolation: true,
+      spellcheck: true,
     },
     icon: iconPath,
+  });
+
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    const menuTemplate: Electron.MenuItemConstructorOptions[] = [];
+
+    if (params.misspelledWord) {
+      if (params.dictionarySuggestions.length > 0) {
+        params.dictionarySuggestions.forEach((suggestion) => {
+          menuTemplate.push({
+            label: suggestion,
+            click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
+          });
+        });
+      } else {
+        menuTemplate.push({ label: 'No suggestions', enabled: false });
+      }
+      menuTemplate.push(
+        { type: 'separator' },
+        {
+          label: 'Add to Dictionary',
+          click: () => mainWindow?.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+        },
+        { type: 'separator' }
+      );
+    }
+
+    if (params.isEditable) {
+      menuTemplate.push(
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+      );
+    } else if (params.selectionText) {
+      menuTemplate.push({ role: 'copy' });
+    }
+
+    if (menuTemplate.length > 0) {
+      Menu.buildFromTemplate(menuTemplate).popup();
+    }
   });
 
   if (isDev) {

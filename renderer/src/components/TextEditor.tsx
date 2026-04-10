@@ -79,7 +79,7 @@ const TextEditor: React.FC<TextEditProps> = ({
             />
 
             <div className="flex-1 overflow-auto flex flex-col">
-                <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown}>
+                <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown} spellCheck={true}>
                     <Toolbar>
                     </Toolbar>
                 </Editor>
