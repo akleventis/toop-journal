@@ -20,12 +20,18 @@ toop-journal is an Electron app with two isolated processes that communicate exc
 │  ┌──────────────┐  ┌───────────────────┐  ┌─────────────────┐   │
 │  │  SQLite DB   │  │  Cloud Sync       │  │  Logger         │   │
 │  │  (sqlite.ts) │  │  (cloudsync/)     │  │  (logger.ts)    │   │
+│  └──────┬───────┘  └───────────────────┘  └─────────────────┘   │
+│         │ postMessage                                           │
+│  ┌──────▼───────┐  ┌───────────────────┐  ┌─────────────────┐   │
+│  │  FTS Worker  │  │  Password         │  │  Encryption     │   │
+│  │ (fts-worker) │  │  (password.ts)    │  │  (enc-key.ts +  │   │
+│  │  own thread  │  │                   │  │  encryption.ts) │   │
 │  └──────────────┘  └───────────────────┘  └─────────────────┘   │
 │                                                                 │
-│  ┌──────────────┐  ┌───────────────────┐                        │
-│  │  Backup      │  │  Password         │                        │
-│  │  (backup.ts) │  │  (password.ts)    │                        │
-│  └──────────────┘  └───────────────────┘                        │
+│  ┌──────────────┐                                               │
+│  │  Backup      │                                               │
+│  │  (backup.ts) │                                               │
+│  └──────────────┘                                               │
 └─────────────────────────────────────────────────────────────────┘
                               │
                      AWS S3 (optional)
@@ -181,8 +187,9 @@ ipcMain.handle('sqlite:updateEntry')        ← main/main.ts
     ▼
 sqlite.updateEntry(id, entry)              ← main/db/sqlite.ts
     │
-    ├── writes to entries_t
-    ├── updates FTS5 index (via trigger)
+    ├── encrypt(entry.content) → AES-256-GCM ciphertext
+    ├── writes to entries_t (encrypted content)
+    ├── posts { type:'upsert', id, content, timestamp } to FTS worker (plaintext — worker stores in in-memory FTS5)
     └── dbEvents.emit('entry:updated', { id, lastModified })
             │
             ▼
@@ -201,7 +208,10 @@ App startup → getDecodedEntries()     ← renderer/db/db.ts (memoized)
 sqlite.getEntries()                   ← entries_t ORDER BY timestamp DESC
     │
     ▼
-entries returned as Entry[]
+decryptEntry(row)                     ← AES-256-GCM decrypt per row
+    │
+    ▼
+entries returned as Entry[] (plaintext content)
     │
     ▼
 markdownToHtml(entry.content)         ← marked (on display, not stored)
@@ -221,6 +231,7 @@ markdownToHtml(entry.content)         ← marked (on display, not stored)
 | AWS config | `~/Library/Application Support/toop-journal/config.json` |
 | Backups | `~/Library/Application Support/toop-journal/backups/` |
 | Logs | `~/Library/Application Support/toop-journal/logs/app-YYYY-MM-DD.log` |
+| Encryption key | `~/Library/Application Support/toop-journal/enc.key` |
 
 ---
 

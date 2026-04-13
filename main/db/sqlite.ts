@@ -1,9 +1,11 @@
 import { app } from 'electron';
 import path from 'node:path';
 import Database from 'better-sqlite3';
+import { Worker } from 'worker_threads';
 import { EventEmitter } from 'node:events';
 import { Entry, Conflict } from "../../renderer/lib/types";
 import { logger } from '../logger';
+import { isEncryptedContent, encrypt, decrypt } from '../security/encryption';
 
 export const dbEvents = new EventEmitter();
 
@@ -25,7 +27,7 @@ logger.info('dbPath:', dbPath);
 // | location     | TEXT       |             |
 // | timestamp    | INTEGER    | NOT NULL    |
 // | lastModified | INTEGER    |             |
-// 
+//
 // .settings_t
 // | Column | Type | Constraints |
 // |--------|------|-------------|
@@ -58,34 +60,87 @@ db.exec(`
     localModified INTEGER NOT NULL,
     remoteModified INTEGER NOT NULL
   );
-
-  CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
-    id UNINDEXED,
-    content,
-    content=entries_t,
-    content_rowid=rowid
-  );
-
-  CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries_t BEGIN
-    INSERT INTO entries_fts(rowid, id, content) VALUES (new.rowid, new.id, new.content);
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries_t BEGIN
-    DELETE FROM entries_fts WHERE rowid = old.rowid;
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries_t BEGIN
-    UPDATE entries_fts SET content = new.content WHERE rowid = new.rowid;
-  END;
 `);
 
-// One-time population of FTS index from existing entries
-const ftsPopulated = db.prepare("SELECT value FROM settings_t WHERE key = 'fts5_populated'").get();
-if (!ftsPopulated) {
-  db.exec(`INSERT INTO entries_fts(rowid, id, content) SELECT rowid, id, content FROM entries_t`);
-  db.prepare("INSERT OR REPLACE INTO settings_t (key, value) VALUES ('fts5_populated', '1')").run();
-  logger.info('FTS5 index populated from existing entries');
+// Encryption key set at startup via setEncryptionKey(). Encrypt/decrypt
+// primitives live in main/security/encryption.ts.
+let encKey: Buffer | null = null;
+
+// ---------------------------------------------------------------------------
+// FTS worker — runs in a separate thread so search never blocks the main loop.
+// See main/db/fts-worker.ts for the worker implementation.
+// ---------------------------------------------------------------------------
+let ftsWorker: Worker | null = null;
+let ftsWorkerReady = false;
+// At most one search is in flight at a time. A new search cancels the previous.
+let pendingSearch: { resolve: (ids: string[]) => void; reject: (err: unknown) => void } | null = null;
+
+function decryptEntry(entry: Entry): Entry {
+  if (!encKey || !isEncryptedContent(entry.content)) return entry;
+  try {
+    return { ...entry, content: decrypt(entry.content, encKey) };
+  } catch (error) {
+    logger.warn(`decryptEntry: failed to decrypt entry ${entry.id}:`, error);
+    return entry;
+  }
 }
+
+export function setEncryptionKey(key: Buffer): void {
+  encKey = key;
+}
+
+/**
+ * Spawns the FTS worker thread. The worker opens the DB read-only, decrypts
+ * all entries, and builds an in-memory FTS5 index entirely in the background.
+ * The main process event loop is never blocked — search works via message
+ * passing once the worker posts { type: 'ready' }.
+ */
+export function buildInMemoryFts(onReady?: () => void): void {
+  const workerPath = path.join(__dirname, 'fts-worker.js');
+
+  ftsWorker = new Worker(workerPath, {
+    workerData: {
+      dbPath,
+      encKeyHex: encKey ? encKey.toString('hex') : null,
+    },
+  });
+
+  ftsWorker.on('message', (msg: { type: string; count?: number; ids?: string[]; message?: string }) => {
+    if (msg.type === 'ready') {
+      ftsWorkerReady = true;
+      onReady?.();
+      logger.info(`buildInMemoryFts: worker indexed ${msg.count} entries`);
+    } else if (msg.type === 'result') {
+      if (pendingSearch) {
+        pendingSearch.resolve(msg.ids ?? []);
+        pendingSearch = null;
+      }
+    } else if (msg.type === 'warn' && msg.message) {
+      logger.warn(msg.message);
+    }
+  });
+
+  ftsWorker.on('error', (err) => {
+    logger.error('FTS worker error:', err);
+    pendingSearch?.reject(err);
+    pendingSearch = null;
+    ftsWorkerReady = false;
+    ftsWorker = null;
+  });
+
+  ftsWorker.on('exit', (code) => {
+    if (code !== 0) logger.warn(`FTS worker exited with code ${code}`);
+    // Resolve any pending search so the Promise doesn't hang forever.
+    pendingSearch?.resolve([]);
+    pendingSearch = null;
+    ftsWorkerReady = false;
+    ftsWorker = null;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Entry CRUD
+// ---------------------------------------------------------------------------
 
 function getEntries(limit?: number): Entry[] {
     let query = 'SELECT * FROM entries_t order by timestamp DESC';
@@ -93,19 +148,22 @@ function getEntries(limit?: number): Entry[] {
         query += ` LIMIT ${limit}`;
     }
     const rows = db.prepare(query).all() as Entry[];
-    return rows;
+    return rows.map(decryptEntry);
 }
 
 function getEntryById(id: string): Entry | null {
-    return db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null;
+    const row = db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null;
+    return row ? decryptEntry(row) : null;
 }
 
 function getMostRecentEntry(): Entry | null {
-    return db.prepare('SELECT * FROM entries_t ORDER BY timestamp DESC LIMIT 1').get() as Entry | null;
+    const row = db.prepare('SELECT * FROM entries_t ORDER BY timestamp DESC LIMIT 1').get() as Entry | null;
+    return row ? decryptEntry(row) : null;
 }
 
 function getEntriesBetweenTimestamps(startTs: number, endTs: number): Entry[] {
-    return db.prepare('SELECT * FROM entries_t WHERE timestamp BETWEEN ? AND ? order by timestamp desc').all(startTs, endTs) as Entry[];
+    const rows = db.prepare('SELECT * FROM entries_t WHERE timestamp BETWEEN ? AND ? order by timestamp desc').all(startTs, endTs) as Entry[];
+    return rows.map(decryptEntry);
 }
 
 function createEntry(entry: Entry, skipSync = false): void {
@@ -125,12 +183,19 @@ function createEntry(entry: Entry, skipSync = false): void {
         entry.lastModified = Date.now();
     }
 
+    const storedContent = encKey ? encrypt(entry.content, encKey) : entry.content;
+
     const transaction = db.transaction(() => {
-        db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
+        db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, storedContent, entry.location, entry.timestamp, entry.lastModified);
     });
 
     try {
         transaction();
+        // Keep worker FTS in sync. entry.content is plaintext here — worker
+        // handles its own storage and doesn't need to decrypt.
+        if (ftsWorker) {
+            ftsWorker.postMessage({ type: 'upsert', id: entry.id, content: entry.content, timestamp: entry.timestamp });
+        }
         // only update master index if db transaction succeeded
         if (!skipSync) {
             dbEvents.emit('entry:created', { id: entry.id, lastModified: Date.now() });
@@ -161,10 +226,13 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
         entry.lastModified = Date.now();
     }
 
-    const transaction = db.transaction(() => {
-        db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified, id);
+    const storedContent = encKey ? encrypt(entry.content, encKey) : entry.content;
 
-        // Update conflict if one exists for this entry
+    const transaction = db.transaction(() => {
+        db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, storedContent, entry.location, entry.timestamp, entry.lastModified, id);
+
+        // Update conflict if one exists for this entry — store plaintext in conflicts_t
+        // (conflicts come from/go to S3 which is unencrypted)
         const conflict = getConflictByEntryId(id);
         if (conflict) {
             db.prepare('UPDATE conflicts_t SET localVersion = ?, localModified = ? WHERE entryId = ?')
@@ -174,6 +242,9 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
 
     try {
         transaction();
+        if (ftsWorker) {
+            ftsWorker.postMessage({ type: 'upsert', id, content: entry.content, timestamp: entry.timestamp });
+        }
         // only update master index if db transaction succeeded
         if (!skipSync) {
             dbEvents.emit('entry:updated', { id, lastModified: Date.now() });
@@ -191,6 +262,9 @@ function deleteEntry(id: string, skipSync = false): void {
 
     try {
         transaction();
+        if (ftsWorker) {
+            ftsWorker.postMessage({ type: 'delete', id });
+        }
         // only update master index if db transaction succeeded
         if (!skipSync) {
             dbEvents.emit('entry:deleted', { id, lastModified: Date.now() });
@@ -307,7 +381,28 @@ function getEntryCount(): number {
   return (db.prepare('SELECT COUNT(*) as count FROM entries_t').get() as { count: number }).count;
 }
 
-function searchEntries(query: string, limit = 50): Entry[] {
+function isFtsReady(): boolean {
+  return ftsWorkerReady;
+}
+
+async function searchEntries(query: string, limit = 50): Promise<Entry[]> {
+  if (encKey) {
+    // Hold off until the FTS worker has finished building the index.
+    if (!ftsWorker || !ftsWorkerReady) return [];
+
+    const ids = await new Promise<string[]>((resolve, reject) => {
+      // Cancel any in-flight search — only the latest result is relevant.
+      if (pendingSearch) pendingSearch.resolve([]);
+      pendingSearch = { resolve, reject };
+      ftsWorker!.postMessage({ type: 'search', query, limit });
+    });
+    return ids
+      .map(id => db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null)
+      .filter((e): e is Entry => e !== null)
+      .map(decryptEntry);
+  }
+
+  // No encryption — on-disk FTS path (not normally reached in production).
   try {
     return db.prepare(`
       SELECT e.* FROM entries_t e
@@ -331,12 +426,15 @@ function setSetting(key: string, value: string): void {
 }
 
 function closeDb(): void {
+    ftsWorker?.terminate();
+    ftsWorker = null;
     db.close();
 }
 
 export {
     getEntries,
     getEntryCount,
+    isFtsReady,
     searchEntries,
     getEntryById,
     getMostRecentEntry,
@@ -356,5 +454,5 @@ export {
     deleteConflict,
     getSetting,
     setSetting,
-    closeDb
+    closeDb,
 };

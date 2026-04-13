@@ -8,6 +8,7 @@ import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
 import { createBackup, listBackups, restoreBackup } from './backup';
 import { hashPassword, verifyPassword } from './security/password';
+import { loadOrCreateEncKey } from './security/enc-key';
 import './cloudsync/sync_coordinator';
 import { syncStateMachine } from './cloudsync/sync_state';
 import { logger, LOG_RECENT_LINES } from './logger';
@@ -31,10 +32,24 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
   createBackup();
   await initLocalMasterIndex();
+
+  // Set up content encryption. loadOrCreateEncKey() generates a random 32-byte
+  // key on first launch and persists it via Electron safeStorage (macOS Keychain).
+  const encKey = loadOrCreateEncKey();
+  db.setEncryptionKey(encKey);
+
   createWindow();
 
   syncStateMachine.onStateChange((newState) => {
     mainWindow?.webContents.send('sync-state:changed', newState);
+  });
+
+  // Spawn the FTS worker thread. Reads the DB and builds the in-memory FTS5
+  // index entirely in a background thread — main process is never blocked.
+  // Pushes 'fts:ready' to the renderer once the index is built.
+  // See main/db/fts-worker.ts and docs/encryption.md.
+  db.buildInMemoryFts(() => {
+    mainWindow?.webContents.send('fts:ready');
   });
 });
 
@@ -178,8 +193,9 @@ ipcMain.handle('sqlite:getMostRecentEntry', () => {
 });
 
 ipcMain.handle('sqlite:getEntryCount', () => db.getEntryCount());
+ipcMain.handle('sqlite:isFtsReady', () => db.isFtsReady());
 
-ipcMain.handle('sqlite:searchEntries', (_, query: string, limit?: number) => {
+ipcMain.handle('sqlite:searchEntries', async (_, query: string, limit?: number) => {
   return db.searchEntries(query, limit);
 });
 

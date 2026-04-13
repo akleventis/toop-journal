@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld('sqlite', {
   clearPasswordCredentials: () => ipcRenderer.invoke('sqlite:clearPasswordCredentials'),
   getSetting: (key: string) => ipcRenderer.invoke('sqlite:getSetting', key),
   setSetting: (key: string, value: string) => ipcRenderer.invoke('sqlite:setSetting', key, value),
+  isFtsReady: (): Promise<boolean> => ipcRenderer.invoke('sqlite:isFtsReady'),
+  onFtsReady: (callback: () => void) => ipcRenderer.once('fts:ready', () => callback()),
 })
 
 contextBridge.exposeInMainWorld('security', {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DecodedEntry, Entry } from '../lib/types'
 import { getDateParts } from '../lib/dates'
@@ -48,6 +48,20 @@ export default function ListView({ entries, style }: ListViewProps) {
   const [hasMoreSearchResults, setHasMoreSearchResults] = useState(false);
   const [activeQuery, setActiveQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [ftsReady, setFtsReady] = useState(false);
+
+  useEffect(() => {
+    // The worker may have already finished before this component mounted (e.g.
+    // on a small DB the build completes almost instantly). Check first so we
+    // don't wait forever for an event that already fired.
+    window.sqlite.isFtsReady().then(ready => {
+      if (ready) {
+        setFtsReady(true);
+      } else {
+        window.sqlite.onFtsReady(() => setFtsReady(true));
+      }
+    });
+  }, []);
 
   const handleLoadMoreSearchResults = async () => {
     const newLimit = searchLimit + SEARCH_LIMIT;
@@ -118,9 +132,10 @@ export default function ListView({ entries, style }: ListViewProps) {
           <form onSubmit={handleSearchSubmit}>
             <input
               type="text"
-              placeholder="Search"
+              placeholder={ftsReady ? 'Search' : 'Indexing...'}
               value={searchValue}
-              className="p-[2px] text-[10px] outline-none"
+              disabled={!ftsReady}
+              className="p-[2px] text-[10px] outline-none disabled:opacity-40"
               onChange={(e) => setSearchValue(e.target.value)}
             />
           </form>
@@ -131,7 +146,7 @@ export default function ListView({ entries, style }: ListViewProps) {
           {hasMoreSearchResults && !isSearching && (
             <button type="button" className="text-[10px]" onClick={handleLoadMoreSearchResults}>Load more</button>
           )}
-{searchValue.length > 0 && (
+          {searchValue.length > 0 && (
             <button type="button" className="text-[10px]" onClick={handleClearSearch}>Clear</button>
           )}
         </div>

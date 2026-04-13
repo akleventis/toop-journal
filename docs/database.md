@@ -10,6 +10,8 @@
 | timestamp    | INTEGER    | NOT NULL    |
 | lastModified | INTEGER    |             |
 
+> **Note:** `content` is stored encrypted (`enc:<iv_hex>:<ciphertext+tag_hex>`) using AES-256-GCM. The app layer decrypts transparently on every read. See [docs/encryption.md](encryption.md) for details.
+
 ### settings_t 
 | Column | Type | Constraints |
 |--------|------|-------------|

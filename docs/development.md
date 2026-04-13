@@ -108,8 +108,6 @@ interface.d.ts         Global Window type declarations for all IPC APIs
 scripts/               Standalone scripts (import_pdf.py)
 ```
 
-See `CLAUDE.md` for the full key file map and architecture conventions.
-
 ## Adding a Feature
 
 Every new IPC channel requires exactly 4 edits:
