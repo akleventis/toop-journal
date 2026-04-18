@@ -15,6 +15,7 @@ import NavBar from './components/NavBar'
 import ErrorBoundary from './components/ErrorBoundary'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
 import { journalToCalendar, getCurrentCalendarDate } from '../lib/dates'
+import LoadingSpinner from './components/LoadingSpinner'
 
 // type declaration for the global variable defined in vite.config.ts
 declare global {
@@ -60,7 +61,7 @@ function AppContent() {
 
   const loadEntries = async () => {
     setLoading(true)
-    const entries = await db.getDecodedEntries()
+const entries = await db.getDecodedEntries()
     setEntries(entries)
     setLoading(false)
   }
@@ -113,7 +114,7 @@ function AppContent() {
         <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
         <Route path="/edit" element={<ErrorBoundary><Edit entries={entries} /></ErrorBoundary>} />
       </Routes>
-      {loading && <div className="absolute top-[40px] left-0 w-full h-full flex justify-center items-center bg-[color:var(--color-app-bg)] z-[1000]">Loading ...</div>}
+      {loading && <div className="absolute top-[40px] left-0 w-full h-full flex justify-center items-center bg-[color:var(--color-app-bg)] z-[1000]"><LoadingSpinner size={32} /></div>}
     </div>
   );
 }

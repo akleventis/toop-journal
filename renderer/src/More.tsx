@@ -409,7 +409,7 @@ function AWSConfigModal({ formData, setFormData, syncState, onSave, onCancel }: 
             <input className="text-[10px]" type="text" placeholder="Secret Key" value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
             <input className="text-[10px]" type="text" placeholder="Bucket" value={formData.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
             <input className="text-[10px]" type="text" placeholder="Region" value={formData.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
-            <button onClick={onSave} disabled={syncState === SyncState.INITIALIZING}>Save</button>
+            <button onClick={onSave} disabled={syncState === SyncState.INITIALIZING}>{syncState === SyncState.INITIALIZING ? 'Saving...' : 'Save'}</button>
             <button onClick={onCancel}>Cancel</button>
         </Modal>
     )

@@ -15,6 +15,7 @@ interface EditProps {
 const Edit: React.FC<EditProps> = ({ entries }) => {
   const [entry, setEntry] = useState<DecodedEntry | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [currentHtml, setCurrentHtml] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -54,7 +55,12 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
   };
 
   const handleSave = async () => {
-    await saveEntry(currentHtml, entry, navigate);
+    setIsSaving(true);
+    try {
+      await saveEntry(currentHtml, entry, navigate);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleEditModeChange = (editing: boolean) => {
@@ -82,7 +88,7 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
       </div>
       {isEditing && (
         <div className="border-t border-[color:var(--color-third-bg)] text-right px-[10px] pb-[10px]">
-          <button onClick={handleSave} className="px-2 py-1 text-[12px]">Done</button>
+          <button onClick={handleSave} disabled={isSaving} className="px-2 py-1 text-[12px]">{isSaving ? 'Saving...' : 'Done'}</button>
         </div>
       )}
     </div>
