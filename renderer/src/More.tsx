@@ -19,6 +19,8 @@ export default function More() {
             <div className="m-[15px]" />
             <EntryLimit />
             <div className="m-[15px]" />
+            <ImageWidthSetting />
+            <div className="m-[15px]" />
             <ExportEntries />
             <div className="m-[15px]" />
             <AWSConfig />
@@ -144,6 +146,50 @@ export function ConflictsNav() {
                     {conflictCount}
                 </span>
             </h3>
+        </div>
+    );
+}
+
+export function ImageWidthSetting() {
+    const [width, setWidth] = useState('250');
+    const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        window.sqlite.getSetting('imageWidth').then(v => {
+            if (v) setWidth(v);
+        });
+    }, []);
+
+    const handleSave = async () => {
+        const parsed = parseInt(width, 10);
+        if (isNaN(parsed) || parsed <= 0 || parsed > 1000) {
+            alert('Please enter a width between 1 and 1000');
+            return;
+        }
+        try {
+            await window.sqlite.setSetting('imageWidth', String(parsed));
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } catch (error) {
+            handleError(error, 'Failed to save image width');
+        }
+    };
+
+    return (
+        <div>
+            <h3 className="text-center mb-[10px]">Default Image Width</h3>
+            <div className="flex gap-[10px] items-center justify-center">
+                <input
+                    type="number"
+                    value={width}
+                    onChange={(e) => setWidth(e.target.value)}
+                    className="w-[80px] text-[12px]"
+                    min="1"
+                    max="1000"
+                />
+                <span className="text-[12px]">px</span>
+                <button onClick={handleSave} className="text-[12px]">{saved ? 'Saved ✓' : 'Save'}</button>
+            </div>
         </div>
     );
 }

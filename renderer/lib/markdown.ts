@@ -3,6 +3,23 @@ import { marked } from 'marked';
 
 const __turndown = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-' });
 
+// Preserve base64 <img> tags as raw HTML so width attributes survive the
+// round-trip through markdown. Turndown's default image rule converts
+// <img src="data:..."> to ![](data:...) which drops width and changes format.
+__turndown.addRule('base64Image', {
+  filter: (node) => {
+    const el = node as Element;
+    return el.nodeName === 'IMG' && (el.getAttribute('src') ?? '').startsWith('data:');
+  },
+  replacement: (_content, node) => {
+    const el = node as Element;
+    const src = el.getAttribute('src') ?? '';
+    const width = el.getAttribute('width') ?? '';
+    const alt = el.getAttribute('alt') ?? '';
+    return `<img src="${src}"${width ? ` width="${width}"` : ''}${alt ? ` alt="${alt}"` : ''} />`;
+  },
+});
+
 /**
  * Converts HTML (from the WYSIWYG editor) to Markdown for DB storage.
  */
