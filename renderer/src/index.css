@@ -18,7 +18,7 @@
 /* Base */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 12px; font-family: 'Inter', sans-serif; color-scheme: light dark; }
+html { scroll-behavior: smooth; font-size: 12px; font-family: 'Inter', sans-serif; color-scheme: light dark; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 a { text-decoration: none; color: inherit; }
 input, select { padding: 4px; }
 button {

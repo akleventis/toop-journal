@@ -1,129 +1,102 @@
-# Personal Journal App
+# toop journal
 
-I've been writing to a journal every day since 2018. Over the past year, the app I've been using has become increasingly buggy. Since it wasn't quite built for scale, I decided to create an alternative with cloud sync to persist data with the intention of migrating off my current journal app. 
+I've been writing to a journal every day since 2018. Over the past year, the app I've been using has become increasingly buggy. Since it wasn't quite built for scale, I decided to create an alternative with cloud sync to persist data with the intention of migrating off my current journal app.
 
 ## Features
 
-- **Local-first storage**: All entries stored in SQLite database
-- **Full-text search**: FTS5-powered search across all entries
-- **Calendar & List views**: Browse entries by calendar or chronological list
-- **Rich text editing**: WYSIWYG editor with Markdown storage
-- **Password protection**: Optional app-level password security
-- **Cloud sync**: Optional AWS S3 synchronization for cross-device access
-- **Automatic backups**: Daily local DB backups, retained for 30 days (More → Backups)
-- **Offline-first**: Works without internet connection
+- **Local-first storage** — SQLite database, all data owned by you
+- **Encryption at rest** — AES-256-GCM on all entry content
+- **Full-text search** — FTS5-powered, runs in a background worker thread
+- **Calendar & List views** — browse entries by calendar or chronological list
+- **Rich text editing** — WYSIWYG editor with Markdown storage
+- **Password protection** — optional app-level password
+- **Cloud sync** — optional AWS S3 sync for cross-device access
+- **Conflict resolution** — per-entry conflict detection and resolution UI
+- **Automatic backups** — daily local snapshots, 30-day retention (More → Backups)
+- **Health checks** — DB integrity, S3 connectivity, disk space (More → Health)
+- **Offline-first** — full functionality without internet
 
 ## Tech Stack
 
-- **Electron** Desktop app framework
-- **React** UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool for renderer process
-- **React Router** - Client-side routing
-- **better-sqlite3** - Local SQLite database storage
-- **AWS SDK v3** - S3 cloud sync
-- **electron-builder** - App packaging
+- **Electron** — desktop app framework
+- **React + React Router** — UI and client-side routing
+- **TypeScript** — end-to-end type safety
+- **Vite** — renderer build tool
+- **better-sqlite3** — local SQLite storage
+- **AWS SDK v3** — S3 cloud sync
+- **electron-builder** — app packaging and DMG creation
 
 ## Project Structure
 
 ```
 toop-journal/
-├── main/               # electron main process (node.js)
-│   ├── main.ts         # main window setup & ipc handlers
-│   ├── db/             # sqlite database operations
-│   └── cloudsync/      # aws s3 sync logic
-│       ├── aws_client.ts
-│       ├── aws_config.ts
-│       ├── master_index.ts
-│       └── transact.ts
-├── renderer/           # react frontend (browser context)
-│   ├── src/            # react components & pages
-│   ├── db/             # database wrapper functions
-│   └── lib/            # utilities, types, hooks
-└── preload/            # preload scripts (bridge between main & renderer)
+├── main/                  # Electron main process (Node.js)
+│   ├── main.ts            # window setup, IPC handlers, app lifecycle
+│   ├── db/                # SQLite operations + FTS worker thread
+│   ├── cloudsync/         # AWS S3 sync pipeline
+│   ├── security/          # AES-256-GCM encryption, password hashing
+│   ├── backup.ts          # daily backup creation and restore
+│   ├── health.ts          # health check system
+│   └── logger.ts          # structured logger, streams to in-app viewer
+├── renderer/              # React frontend
+│   ├── src/               # pages and components
+│   ├── db/                # renderer-side DB wrapper
+│   └── lib/               # hooks, utilities, date/markdown helpers
+├── preload/               # contextBridge IPC bridge
+├── shared/                # types and API contracts shared across processes
+└── scripts/               # build and maintenance scripts
 ```
 
 ## Installation
 
-1. Clone the repository:
 ```bash
 git clone https://github.com/akleventis/toop-journal.git
 cd toop-journal
-```
-
-2. Install dependencies:
-```bash
 npm install
-cd renderer
-npm install
-cd ..
+npm --prefix renderer install
 ```
 
 ## Development
-
-Start the development environment:
 
 ```bash
 npm run dev
 ```
 
-This runs:
-- Vite dev server on `http://localhost:5173` with hot-reload for React components
-- Electron app with TypeScript compilation for main process
-- Changes to renderer (React) hot-reload automatically
-- Changes to main process require restart (Ctrl+C, then `npm run dev` again)
+Runs the Vite dev server (`localhost:5173`) and Electron concurrently. Renderer changes hot-reload; main process changes require restart.
 
 ## Build & Distribution
 
-### Production Build
-Compile all code for production:
 ```bash
-npm run build
+./scripts/build.sh
 ```
 
-This creates optimized bundles in `dist/`:
-- `dist/renderer/` - Minified React app
-- `dist/main/` - Compiled Electron main process and preload scripts
+Installs dependencies, compiles everything, and produces `release/toop journal-<version>-arm64.dmg`.
 
-### Package for Distribution
-Create a distributable macOS app:
-```bash
-# Create unpacked app for local testing
-npm run package:dir
+### npm scripts
 
-# Create .dmg installer for distribution
-npm run package
-```
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev environment |
+| `npm run build` | Compile renderer + main |
+| `npm run package` | Build + create .dmg |
+| `npm run package:dir` | Build + create unpacked app |
 
-The packaged app will be in the `release/` directory.
+## Data Locations
 
-**Note**: In production, the database is stored at `~/Library/Application Support/toop journal/journal.db`
+All runtime data lives in `~/Library/Application Support/toop-journal/`:
 
-**Logs**: Stored at `~/Library/Application Support/toop journal/logs/app-YYYY-MM-DD.log` — one file per day, retained for 30 days. Viewable in-app via More → View Logs, or open directly in any text editor for post-crash investigation.
+| Path | Description |
+|---|---|
+| `journal.db` | SQLite database |
+| `enc.key` | AES-256 encryption key (hex, chmod 600) |
+| `masterIndex.json` | S3 sync index |
+| `backups/` | Daily DB snapshots (30-day retention) |
+| `logs/` | Log files — one per session, cleared on each launch |
+| `config.json` | AWS credentials |
 
-**Backups**: Daily automatic backups stored at `~/Library/Application Support/toop journal/backups/`. Retained for 30 days. Restorable via More → Backups (restoring replaces the current DB and restarts the app).
+Logs are viewable in-app via More → View Logs.
+Backups are restorable via More → Backups (replaces DB and restarts app).
 
-## Cloud Sync Setup
+## Cloud Sync
 
-Cloud sync is optional and uses AWS S3 for backup and synchronization. See [main/cloudsync/README.md](main/cloudsync/README.md) for detailed setup instructions.
-
-Quick setup:
-1. Configure S3 bucket with appropriate IAM permissions
-1. Configure AWS credentials through the app's settings (stored in UserData directory)
-1. App will automatically sync entries on create/update/delete
-
-## Scripts
-
-### Development
-- `npm run dev` - Start dev environment (Vite dev server + Electron)
-- `npm run dev:renderer` - Start only Vite dev server
-- `npm run dev:electron` - Build main process and start Electron (requires Vite running)
-
-### Build
-- `npm run build` - Build both renderer and main process for production
-- `npm run build:renderer` - Build only React app
-- `npm run build:main` - Compile only TypeScript for main process
-
-### Distribution
-- `npm run package` - Create distributable .dmg installer
-- `npm run package:dir` - Create unpacked app for testing
+Optional. Uses AWS S3 for cross-device sync. Configure credentials via More → AWS Config. The app syncs on startup, shutdown, and manual trigger. Conflicts are detected per-entry and resolvable via More → Conflicts.

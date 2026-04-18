@@ -22,7 +22,7 @@ release/mac-arm64/toop journal.app/
         ├── app.asar                         # Application code (archived)
         ├── app.asar.unpacked/               # Native modules (better-sqlite3)
         │   └── node_modules/
-        ├── icon.icns                        # App icon
+        ├── icon.icns                         # App icon
         └── *.lproj/                         # Localization resources
 ```
 
@@ -34,7 +34,7 @@ The `app.asar` file contains the application code in an archived format:
 app.asar/
 ├── package.json
 ├── assets/
-│   └── icon_v1.png                          # Window icon
+│   └── icon.png                             # Window icon
 ├── dist/
 │   ├── main/
 │   │   ├── main/                            # Main process (entry point)
@@ -69,8 +69,8 @@ process.resourcesPath = "/path/to/toop journal.app/Contents/Resources"
 ```
 
 **Relative paths from `__dirname`:**
-- Icon: `path.join(__dirname, '../../assets/icon_v1.png')`
-  - Resolves to: `app.asar/assets/icon_v1.png`
+- Icon: `path.join(__dirname, '../../assets/icon.png')`
+  - Resolves to: `app.asar/assets/icon.png`
 - Preload: `path.join(__dirname, '../preload/preload.js')`
   - Resolves to: `app.asar/dist/main/preload/preload.js`
 - Renderer: `path.join(__dirname, '../../renderer/index.html')`
@@ -101,6 +101,6 @@ app.getPath('userData')
 | `__dirname`   | `/path/to/toop-journal/main`             | `.../app.asar/dist/main/main`                          |
 | HTML          | `http://localhost:5173`                   | `file://.../app.asar/dist/renderer/index.html`         |
 | Preload       | `../preload/preload.js`                   | `../preload/preload.js` (same relative path!)          |
-| Icon          | `../assets/icon_v1.png`                   | `../../assets/icon_v1.png`                             |
+| Icon          | `../assets/icon.png`                      | `../../assets/icon.png`                                |
 | User Data     | `~/Library/Application Support/toop-journal` | Same in both environments                           |
 

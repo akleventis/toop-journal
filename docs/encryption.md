@@ -21,14 +21,9 @@ Only entry content is encrypted. Metadata (dates, IDs, locations) and all S3 dat
 
 ## Key generation and storage
 
-On first launch, the app generates a cryptographically random 32-byte (256-bit) key using Node's `crypto.randomBytes`. It stores the key via **Electron's `safeStorage` API**:
+On first launch, the app generates a cryptographically random 32-byte (256-bit) key using Node's `crypto.randomBytes`. It writes the key as a plain hex string to `userData/enc.key` with mode `0o600` (owner-readable only).
 
-- `safeStorage.encryptString(keyHex)` → encrypted blob
-- Written to `userData/enc.key`
-
-`safeStorage` on macOS delegates to the **macOS Keychain** (specifically, the app's entry in the login keychain). The raw key never touches disk in plaintext. The `enc.key` file on disk is useless without the OS-level Keychain credential.
-
-On every subsequent launch, the app reads `enc.key` and calls `safeStorage.decryptString()` to recover the key into memory.
+On every subsequent launch, the app reads `enc.key` and parses the hex string back into a `Buffer` for use in memory.
 
 **Key path:** `~/Library/Application Support/toop-journal/enc.key`
 
@@ -97,7 +92,7 @@ See **`docs/search.md`** for the full technical details: FTS5 concepts, worker t
 
 ## Multi-device behavior
 
-The encryption key is per-machine (tied to the macOS Keychain on each device). S3 sync stores entries **unencrypted** — the DB layer decrypts before upload and the receiving machine re-encrypts after download with its own key.
+The encryption key is per-machine (`enc.key` in each machine's userData). S3 sync stores entries **unencrypted** — the DB layer decrypts before upload and the receiving machine re-encrypts after download with its own key.
 
 ```
 Machine A (key A)                S3                Machine B (key B)
@@ -112,13 +107,13 @@ Each machine's local DB is independently encrypted. A backup from Machine A cann
 
 ## Key loss / recovery
 
-If `enc.key` is lost or `safeStorage` fails to decrypt it (e.g., catastrophic OS credential change), the app will fail to start with a decryption error.
+If `enc.key` is lost or deleted, the app will fail to start with a decryption error — all local DB content is unreadable without it.
 
 ### Option A — Restore from a local backup
 
-Daily backups are written to `userData/backups/` before any DB changes. Restoring a backup only helps if `safeStorage` can still decrypt `enc.key` — the backup DB is encrypted with the same key, so without it the backup is equally unreadable. Use this option when the DB file itself is corrupted but the key is intact.
+Daily backups are written to `userData/backups/` before any DB changes. Restoring a backup only helps if `enc.key` is still intact — the backup DB is encrypted with the same key, so without it the backup is equally unreadable. Use this option when the DB file itself is corrupted but the key is intact.
 
-If `safeStorage` cannot recover the key, skip directly to Option B.
+If `enc.key` is missing, skip directly to Option B.
 
 ### Option B — Re-sync from S3
 
@@ -131,7 +126,7 @@ Use this if no usable backup exists. S3 stores entries as plaintext, so all sync
    - Prod: `~/Library/Application Support/toop-journal/journal.db`
    - Dev: `~/Library/Application Support/toop-journal/journal-dev.db`
 3. Delete `~/Library/Application Support/toop-journal/enc.key`.
-4. Relaunch the app — a new AES-256 key is generated and stored via `safeStorage`.
+4. Relaunch the app — a new AES-256 key is generated and written to `enc.key`.
 5. The sync pipeline sees all S3 entries as new → pulls them down as plaintext → re-encrypts with the new key.
 
 Any entries that were never synced to S3 (created offline since the last sync) cannot be recovered via this path.

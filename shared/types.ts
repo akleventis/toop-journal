@@ -16,14 +16,15 @@ export type S3Config = {
 };
 
 export type Entry = {
-  id: string;
-  date: string;
-  content: string;
+  id: string;           // format: "jun.14.2025"
+  date: string;         // format: "Jun 14, 2025 at 12:35"
+  content: string;      // markdown; stored encrypted in DB
   location?: string;
-  timestamp?: number;
-  lastModified?: number;
+  timestamp?: number;   // ms
+  lastModified?: number; // ms
 };
 
+// keyed by entry id — tracks every entry's sync state across devices
 export type MasterIndex = Record<string, MasterIndexEntry>;
 
 export type MasterIndexEntry = {
@@ -41,7 +42,7 @@ export type Conflict = {
 };
 
 export interface DecodedEntry extends Entry {
-  decodedContent: string;
+  decodedContent: string; // content converted from markdown to HTML for display
 }
 
 export type HealthCheck = {

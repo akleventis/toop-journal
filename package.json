@@ -10,14 +10,15 @@
   "main": "dist/main/main/main.js",
   "type": "commonjs",
   "scripts": {
-     "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:electron\"",
-     "dev:renderer": "npm --prefix renderer run dev",
-     "dev:electron": "npm run build:main && electron dist/main/main/main.js",
-     "build": "npm run build:renderer && npm run build:main",
-     "build:renderer": "npm --prefix renderer run build",
-     "build:main": "tsc -p tsconfig.main.json",
-     "package": "npm run build && electron-builder",
-     "package:dir": "npm run build && electron-builder --dir"
+    "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:renderer": "npm --prefix renderer run dev",
+    "dev:electron": "npm run build:main && electron dist/main/main/main.js",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "npm --prefix renderer run build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "package": "npm run build && electron-builder",
+    "package:dir": "npm run build && electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
   },
   "license": "ISC",
   "devDependencies": {
@@ -25,7 +26,6 @@
     "concurrently": "^9.2.0",
     "electron": "^37.1.0",
     "electron-builder": "^26.0.12",
-    "electron-rebuild": "^3.2.9",
     "typescript": "^5.8.3"
   },
   "dependencies": {
@@ -35,19 +35,27 @@
   "build": {
     "appId": "com.toopjournal.app",
     "productName": "toop journal",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/bindings/**/*",
+      "node_modules/file-uri-to-path/**/*"
+    ],
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
-      "cloudsync/**/*",
       "assets/**/*",
       "node_modules/**/*",
       "package.json"
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": "dmg",
+      "target": {
+        "target": "dmg",
+        "arch": "arm64"
+      },
       "icon": "assets/icon.png"
     }
   }

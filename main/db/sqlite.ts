@@ -7,9 +7,10 @@ import { Entry, Conflict } from "../../shared/types";
 import { logger } from '../logger';
 import { isEncryptedContent, encrypt, decrypt } from '../security/encryption';
 
+// fires on entry create/update/delete — consumed by sync_coordinator to update local master index
 export const dbEvents = new EventEmitter();
 
-// Use userData for both prod and dev to avoid committing journal.db to git
+// use userData for both prod and dev to avoid committing journal.db to git
 const dbPath = app.isPackaged
   ? path.join(app.getPath('userData'), 'journal.db')
   : path.join(app.getPath('userData'), 'journal-dev.db');
@@ -18,23 +19,6 @@ const db = new Database(dbPath);
 
 logger.info('dbPath:', dbPath);
 
-// .entries_t
-// | Column       | Type       | Constraints |
-// |--------------|------------|-------------|
-// | id           | TEXT       | PRIMARY KEY |
-// | date         | TEXT       | NOT NULL    |
-// | content      | TEXT       | NOT NULL    |
-// | location     | TEXT       |             |
-// | timestamp    | INTEGER    | NOT NULL    |
-// | lastModified | INTEGER    |             |
-//
-// .settings_t
-// | Column | Type | Constraints |
-// |--------|------|-------------|
-// | key    | TEXT | PRIMARY KEY |
-// | value  | TEXT | NOT NULL    |
-
-// Initialize database tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS entries_t (
     id TEXT PRIMARY KEY,
@@ -66,13 +50,10 @@ db.exec(`
 // primitives live in main/security/encryption.ts.
 let encKey: Buffer | null = null;
 
-// ---------------------------------------------------------------------------
-// FTS worker — runs in a separate thread so search never blocks the main loop.
-// See main/db/fts-worker.ts for the worker implementation.
-// ---------------------------------------------------------------------------
+// fts worker — runs in a separate thread so search never blocks the main loop
 let ftsWorker: Worker | null = null;
 let ftsWorkerReady = false;
-// At most one search is in flight at a time. A new search cancels the previous.
+// at most one search is in flight at a time; a new search cancels the previous
 let pendingSearch: { resolve: (ids: string[]) => void; reject: (err: unknown) => void } | null = null;
 
 function decryptEntry(entry: Entry): Entry {
@@ -130,17 +111,13 @@ export function buildInMemoryFts(onReady?: () => void): void {
 
   ftsWorker.on('exit', (code) => {
     if (code !== 0) logger.warn(`FTS worker exited with code ${code}`);
-    // Resolve any pending search so the Promise doesn't hang forever.
+    // resolve any pending search so the Promise doesn't hang forever
     pendingSearch?.resolve([]);
     pendingSearch = null;
     ftsWorkerReady = false;
     ftsWorker = null;
   });
 }
-
-// ---------------------------------------------------------------------------
-// Entry CRUD
-// ---------------------------------------------------------------------------
 
 function getEntries(limit?: number): Entry[] {
     let query = 'SELECT * FROM entries_t order by timestamp DESC';
@@ -167,7 +144,6 @@ function getEntriesBetweenTimestamps(startTs: number, endTs: number): Entry[] {
 }
 
 function createEntry(entry: Entry, skipSync = false): void {
-    // validate entry before database insertion
     try {
         validateEntry(entry);
     } catch (error) {
@@ -191,8 +167,7 @@ function createEntry(entry: Entry, skipSync = false): void {
 
     try {
         transaction();
-        // Keep worker FTS in sync. entry.content is plaintext here — worker
-        // handles its own storage and doesn't need to decrypt.
+        // keep worker FTS in sync — entry.content is plaintext here
         if (ftsWorker) {
             ftsWorker.postMessage({ type: 'upsert', id: entry.id, content: entry.content, timestamp: entry.timestamp });
         }
@@ -207,9 +182,7 @@ function createEntry(entry: Entry, skipSync = false): void {
 }
 
 function updateEntry(id: string, entry: Entry, skipSync = false): void {
-    // validate entry before database update
     try {
-        // ensure entry.id matches the id parameter
         if (!entry.id) {
             entry.id = id;
         } else if (entry.id !== id) {
@@ -231,8 +204,7 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
     const transaction = db.transaction(() => {
         db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, storedContent, entry.location, entry.timestamp, entry.lastModified, id);
 
-        // Update conflict if one exists for this entry — store plaintext in conflicts_t
-        // (conflicts come from/go to S3 which is unencrypted)
+        // update conflict if one exists — conflicts_t stores plaintext (S3 is unencrypted)
         const conflict = getConflictByEntryId(id);
         if (conflict) {
             db.prepare('UPDATE conflicts_t SET localVersion = ?, localModified = ? WHERE entryId = ?')
@@ -297,7 +269,6 @@ function clearPasswordCredentials(): void {
     db.prepare('DELETE FROM settings_t WHERE key IN (?, ?)').run('passwordHash', 'passwordSalt');
 }
 
-// Conflict functions
 function createConflict(conflict: Conflict): void {
     db.prepare(`
         INSERT OR REPLACE INTO conflicts_t
@@ -337,39 +308,33 @@ function deleteConflict(entryId: string): void {
  * @throws {Error} If validation fails.
  */
 function validateEntry(entry: Entry): void {
-    // validate id
     if (!entry.id || typeof entry.id !== 'string' || entry.id.trim() === '') {
         throw new Error('Invalid entry: id is required and must be a non-empty string');
     }
 
-    // validate date
     if (!entry.date || typeof entry.date !== 'string' || entry.date.trim() === '') {
         throw new Error('Invalid entry: date is required and must be a non-empty string');
     }
 
-    // validate date format matches expected pattern (e.g., "Jun 14, 2025 at 12:35")
+    // format: "Jun 14, 2025 at 12:35"
     if (!entry.date.match(/^\w{3} \d{1,2}, \d{4} at \d{2}:\d{2}(:\d{2})?$/)) {
         throw new Error(`Invalid entry: date format incorrect. Expected format: "Jun 14, 2025 at 12:35". Got: "${entry.date}"`);
     }
 
-    // validate content
     if (!entry.content || typeof entry.content !== 'string' || entry.content.trim() === '') {
         throw new Error('Invalid entry: content is required and must be a non-empty string');
     }
 
-    // validate location if provided (todo: delete?)
     if (entry.location !== undefined && entry.location !== null && typeof entry.location !== 'string') {
         throw new Error('Invalid entry: location must be a string if provided');
     }
 
-    // validate timestamp if provided
     if (entry.timestamp !== undefined) {
         if (typeof entry.timestamp !== 'number' || isNaN(entry.timestamp) || entry.timestamp < 0) {
             throw new Error('Invalid entry: timestamp must be a positive number');
         }
     }
 
-    // validate lastModified if provided
     if (entry.lastModified !== undefined) {
         if (typeof entry.lastModified !== 'number' || isNaN(entry.lastModified) || entry.lastModified < 0) {
             throw new Error('Invalid entry: lastModified must be a positive number');
@@ -387,11 +352,11 @@ function isFtsReady(): boolean {
 
 async function searchEntries(query: string, limit = 50): Promise<Entry[]> {
   if (encKey) {
-    // Hold off until the FTS worker has finished building the index.
+    // hold off until the FTS worker has finished building the index
     if (!ftsWorker || !ftsWorkerReady) return [];
 
     const ids = await new Promise<string[]>((resolve, reject) => {
-      // Cancel any in-flight search — only the latest result is relevant.
+      // cancel any in-flight search — only the latest result is relevant
       if (pendingSearch) pendingSearch.resolve([]);
       pendingSearch = { resolve, reject };
       ftsWorker!.postMessage({ type: 'search', query, limit });
@@ -402,7 +367,7 @@ async function searchEntries(query: string, limit = 50): Promise<Entry[]> {
       .map(decryptEntry);
   }
 
-  // No encryption — on-disk FTS path (not normally reached in production).
+  // no encryption — on-disk FTS path (not normally reached in production)
   try {
     return db.prepare(`
       SELECT e.* FROM entries_t e

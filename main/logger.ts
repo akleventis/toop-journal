@@ -9,9 +9,11 @@ export enum LogLevel {
   ERROR = 3
 }
 
-const LOG_RETENTION_DAYS = 30;
-export const LOG_RECENT_LINES = 200;
+const LOG_RETENTION_DAYS = 30; // days
+export const LOG_RECENT_LINES = 200; // default lines loaded in the in-app log viewer
 
+// Writes structured log entries to a daily log file, console, and the renderer via IPC.
+// Log files live at userData/logs/app-YYYY-MM-DD.log, retained for LOG_RETENTION_DAYS days.
 class Logger {
   private level: LogLevel;
   private logDir: string;
@@ -20,6 +22,7 @@ class Logger {
     this.level = level;
     this.logDir = path.join(app.getPath('userData'), 'logs');
     fs.mkdirSync(this.logDir, { recursive: true });
+    this.clearCurrentLog();
     this.pruneOldLogs();
   }
 
@@ -28,6 +31,16 @@ class Logger {
     return path.join(this.logDir, `app-${date}.log`);
   }
 
+  // clears the current day's log file on startup
+  private clearCurrentLog(): void {
+    try {
+      fs.writeFileSync(this.logFile, '');
+    } catch {
+      // non-fatal
+    }
+  }
+
+  // deletes log files older than LOG_RETENTION_DAYS
   private pruneOldLogs(): void {
     try {
       const cutoff = Date.now() - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -39,10 +52,18 @@ class Logger {
         }
       }
     } catch {
-      // Non-fatal: best-effort prune
+      // non-fatal — best-effort prune
     }
   }
 
+  /**
+   * Formats a log line as "[ISO_TIMESTAMP] [LEVEL] message ...args".
+   *
+   * @param {LogLevel} level
+   * @param {string} message
+   * @param {unknown[]} args
+   * @returns {string}
+   */
   private format(level: LogLevel, message: string, args: unknown[]): string {
     const ts = new Date().toISOString();
     const lvl = LogLevel[level];
@@ -52,21 +73,28 @@ class Logger {
     return `[${ts}] [${lvl}] ${message}${extra}`;
   }
 
+  /**
+   * Gates on log level, then writes to disk, console, and the renderer via IPC.
+   *
+   * @param {LogLevel} level
+   * @param {string} message
+   * @param {...unknown[]} args
+   */
   private write(level: LogLevel, message: string, ...args: unknown[]): void {
     if (level < this.level) return;
     const line = this.format(level, message, args);
 
-    // Sync write — survives crashes
+    // sync write — survives crashes
     try {
       fs.appendFileSync(this.logFile, line + '\n');
     } catch {
-      // If we can't write to log, at least console it
+      // if we can't write to log, at least console it
     }
 
-    // Console mirror
+    // console mirror
     level >= LogLevel.ERROR ? console.error(line) : console.log(line);
 
-    // Stream to renderer if window is open
+    // stream to renderer if window is open
     for (const win of BrowserWindow.getAllWindows()) {
       if (!win.isDestroyed()) {
         win.webContents.send('logs:line', line);
@@ -79,6 +107,12 @@ class Logger {
   warn(message: string, ...args: unknown[]): void { this.write(LogLevel.WARN, message, ...args); }
   error(message: string, ...args: unknown[]): void { this.write(LogLevel.ERROR, message, ...args); }
 
+  /**
+   * Returns the last n lines from today's log file.
+   *
+   * @param {number} n - Number of lines to return. Defaults to LOG_RECENT_LINES.
+   * @returns {string[]}
+   */
   getRecentLines(n = LOG_RECENT_LINES): string[] {
     try {
       const content = fs.readFileSync(this.logFile, 'utf-8');
@@ -89,6 +123,7 @@ class Logger {
   }
 }
 
+// singleton — INFO in production, DEBUG in dev
 export const logger = new Logger(
   app.isPackaged ? LogLevel.INFO : LogLevel.DEBUG
 );

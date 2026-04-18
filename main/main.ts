@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import path from 'node:path';
 import { updateConfig, getConfig, createConfig, deleteConfig, disableSync } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
@@ -34,8 +34,7 @@ app.whenReady().then(async () => {
   createBackup();
   await initLocalMasterIndex();
 
-  // Set up content encryption. loadOrCreateEncKey() generates a random 32-byte
-  // key on first launch and persists it via Electron safeStorage (macOS Keychain).
+  // load or create AES-256 key; stored as plain hex (0o600) in userData on first launch
   const encKey = loadOrCreateEncKey();
   db.setEncryptionKey(encKey);
 
@@ -45,15 +44,13 @@ app.whenReady().then(async () => {
     mainWindow?.webContents.send('sync-state:changed', newState);
   });
 
-  // Spawn the FTS worker thread. Reads the DB and builds the in-memory FTS5
-  // index entirely in a background thread — main process is never blocked.
-  // Pushes 'fts:ready' to the renderer once the index is built.
-  // See main/db/fts-worker.ts and docs/encryption.md.
+  // spawn FTS worker thread; sends 'fts:ready' to renderer when index is built
   db.buildInMemoryFts(() => {
     mainWindow?.webContents.send('fts:ready');
   });
 });
 
+// creates the BrowserWindow with spell check context menu and zoom reset
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 600,
@@ -107,6 +104,11 @@ function createWindow() {
     }
   });
 
+  // override any persisted per-origin zoom so dev and prod render identically
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow?.webContents.setZoomLevel(0);
+  });
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
@@ -123,7 +125,7 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-// Sync before app quits (including reloads)
+// sync before app quits (including reloads)
 app.on('before-quit', async (event) => {
   if (state.AWSClient && state.AWSConfig && !skipSyncOnQuit) {
     event.preventDefault();
@@ -164,7 +166,7 @@ ipcMain.handle('cloud-sync:getConfig', async () => {
 // aws client functions
 ipcMain.handle('cloud-sync:initS3Client', async () => {
   await initS3Client();
-  // Trigger initial sync after S3 client is initialized
+  // trigger initial sync after S3 client is initialized
   if (state.AWSClient && state.AWSConfig) {
     try {
       await cloudSyncPipeline();
@@ -236,6 +238,7 @@ ipcMain.handle('sqlite:clearPasswordCredentials', () => {
   return db.clearPasswordCredentials();
 });
 
+// security
 ipcMain.handle('security:hashPassword', (event, password: string) => {
   return hashPassword(password);
 });
@@ -257,10 +260,12 @@ ipcMain.handle('conflicts:getConflictByEntryId', (event, entryId: string) => {
   return db.getConflictByEntryId(entryId);
 });
 
+// sync state
 ipcMain.handle('sync-state:getState', () => {
   return syncStateMachine.getState();
 });
 
+// settings
 ipcMain.handle('sqlite:getSetting', (event, key: string) => {
   return db.getSetting(key);
 });
@@ -269,6 +274,7 @@ ipcMain.handle('sqlite:setSetting', (event, key: string, value: string) => {
   return db.setSetting(key, value);
 });
 
+// dialog
 ipcMain.handle('dialog:showError', async (_, message: string) => {
   await dialog.showMessageBox({
     type: 'error',
@@ -280,6 +286,7 @@ ipcMain.handle('dialog:showError', async (_, message: string) => {
   mainWindow?.webContents.reload();
 });
 
+// logs
 ipcMain.handle('logs:getRecent', () => {
   return logger.getRecentLines(LOG_RECENT_LINES);
 });
@@ -288,8 +295,10 @@ ipcMain.on('logs:error', (_, msg: string) => {
   logger.error(`[Renderer] ${msg}`);
 });
 
+// health
 ipcMain.handle('health:run', () => runHealthCheck());
 
+// backup
 ipcMain.handle('backup:list', () => listBackups());
 ipcMain.handle('backup:restore', async (_, filename: string) => {
   skipSyncOnQuit = true; // skip before-quit sync so restored DB isn't pushed to S3
@@ -299,6 +308,7 @@ ipcMain.handle('backup:restore', async (_, filename: string) => {
   app.exit(0);           // exit(0) skips before-quit, avoiding any DB access after close
 });
 
+// conflict resolution
 ipcMain.handle('conflicts:resolveConflict', async (_, entryId: string, version: 'local' | 'remote') => {
   const conflict = db.getConflictByEntryId(entryId);
   if (!conflict) {

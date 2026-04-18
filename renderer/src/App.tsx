@@ -13,8 +13,9 @@ import Backups from './Backups'
 import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import ErrorBoundary from './components/ErrorBoundary'
-import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
+import { usePasswordProtection, useNetworkSync, useSyncState } from '../lib/hooks'
 import { journalToCalendar, getCurrentCalendarDate } from '../lib/dates'
+import { SyncState } from '../../shared/types'
 import LoadingSpinner from './components/LoadingSpinner'
 
 // type declaration for the global variable defined in vite.config.ts
@@ -88,6 +89,15 @@ const entries = await db.getDecodedEntries()
 
   // monitor network status and reinitialize S3 client when connection is restored
   useNetworkSync();
+
+  // reload entries when sync completes so newly downloaded entries appear
+  const syncState = useSyncState();
+  useEffect(() => {
+    if (syncState === SyncState.READY && passwordVerified) {
+      db.clearDecodedCache();
+      loadEntries();
+    }
+  }, [syncState]);
 
   const reload = searchParams.get('reload') === 'true'
 

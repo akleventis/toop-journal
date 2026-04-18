@@ -146,7 +146,6 @@ const verifyMasterIndex = (masterIndex: MasterIndex): MasterIndex => {
  * @throws Will throw an error if the S3 client or config is not found.
  */
 export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): Promise<MasterIndex> => {
-  logger.debug('syncing master index');
   if (!state.AWSClient) {
     throw new Error('syncMasterIndex: no s3 client found');
   }
@@ -158,6 +157,13 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
   const syncedIndex: MasterIndex = {};
 
   const ids = new Set([...Object.keys(localMasterIndex), ...Object.keys(s3MasterIndex)])
+  const total = ids.size;
+  logger.info(`syncMasterIndex: local=${Object.keys(localMasterIndex).length} entries, S3=${Object.keys(s3MasterIndex).length} entries, total=${total} to reconcile`);
+
+  let processed = 0;
+  let downloaded = 0;
+  let uploaded = 0;
+  let conflicts = 0;
 
   for (const id of ids) {
     const localIndex = localMasterIndex[id]
@@ -167,15 +173,11 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
 
     // local entry does not exist, create it
     if (!localIndex) {
-      // if already entry exists in local database, continue
+      // if entry already exists in local database, continue
       let localEntryExists = false;
       try {
         if (db.getEntryById(id) !== null) {
-          logger.debug(`syncMasterIndex: local entry ${id} already exists`);
           localEntryExists = true;
-        }
-        if (!localEntryExists) {
-          logger.debug(`syncMasterIndex: local entry ${id} not found, creating...`);
         }
       } catch (error) {
         logger.error(`syncMasterIndex: error fetching local entry ${id}:`, error);
@@ -193,26 +195,29 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
           }
           db.createEntry(entry, true); // skipSync to avoid recursive loop
           syncedIndex[id] = s3Index;
-          continue;
-        } catch (error) {
-          logger.error(`syncMasterIndex: error creating local entry ${id}:`);
-          throw error;
+          downloaded++;
+        } catch (error: any) {
+          if (error.name === 'NoSuchKey') {
+            // Entry in masterIndex but missing from S3 — orphaned reference, drop it from the index
+            logger.warn(`syncMasterIndex: entry ${id} in masterIndex but missing from S3, removing from index`);
+            delete syncedIndex[id];
+          } else {
+            logger.error(`syncMasterIndex: error creating local entry ${id}:`);
+            throw error;
+          }
         }
       }
     }
 
     // s3 index does not exist, create it
-    if (!s3Index) {
-      // if already entry exists in s3, continue
+    else if (!s3Index) {
+      // if entry already exists in s3, continue
       let s3EntryExists = false;
       try {
         await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
-        logger.debug(`syncMasterIndex: s3 entry ${id} already exists`);
         s3EntryExists = true;
       } catch (error: any) {
-        if (error.name === 'NoSuchKey') {
-          logger.debug(`syncMasterIndex: s3 entry ${id} not found, creating...`);
-        } else {
+        if (error.name !== 'NoSuchKey') {
           logger.error(`syncMasterIndex: error fetching s3 entry ${id}:`, error);
           throw error;
         }
@@ -227,7 +232,7 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
           }
           await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
           syncedIndex[id] = localIndex;
-          continue;
+          uploaded++;
         } catch (error) {
           logger.error(`syncMasterIndex: error creating s3 entry ${id}:`);
           throw error;
@@ -236,46 +241,38 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
     }
 
     // local index is newer, update s3 bucket entry
-    if (s3Index !== undefined && localIndex !== undefined && localIndex.lastModified > s3Index.lastModified) {
+    else if (localIndex.lastModified > s3Index.lastModified) {
       if (localIndex.deleted) { // local entry is deleted, delete s3 entry and continue
-        logger.debug(`syncMasterIndex: local entry is deleted, deleting s3 entry ${id}`);
         try {
           await state.AWSClient.send(new DeleteObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
           syncedIndex[id] = localIndex;
-          continue;
         } catch (error) {
           logger.error(`syncMasterIndex: error deleting s3 entry ${id}:`);
           throw error;
         }
-      }
-
-      // local entry is not deleted, update s3 entry
-      let entry: Entry | null;
-      try {
-        entry = db.getEntryById(id);
-        if (!entry) {
-          throw new Error(`syncMasterIndex: error fetching local entry ${id}`);
+      } else {
+        // local entry is not deleted, update s3 entry
+        let entry: Entry | null;
+        try {
+          entry = db.getEntryById(id);
+          if (!entry) throw new Error(`syncMasterIndex: error fetching local entry ${id}`);
+        } catch (error) {
+          logger.error(`syncMasterIndex: error fetching local entry ${id}:`);
+          throw error;
         }
-      } catch (error) {
-        logger.error(`syncMasterIndex: error fetching local entry ${id}:`);
-        throw error;
-      }
-      try {
-        logger.debug(`syncMasterIndex: updating s3 entry ${id}`);
-        await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
-        syncedIndex[id] = localIndex;
-        continue;
-      } catch (error) {
-        logger.error(`syncMasterIndex: error updating s3 entry ${id}:`);
-        throw error;
+        try {
+          await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
+          syncedIndex[id] = localIndex;
+          uploaded++;
+        } catch (error) {
+          logger.error(`syncMasterIndex: error updating s3 entry ${id}:`);
+          throw error;
+        }
       }
     }
 
     // CONFLICT DETECTION: both modified, check if content differs
-    if (s3Index !== undefined && localIndex !== undefined &&
-        localIndex.lastModified !== s3Index.lastModified &&
-        !localIndex.deleted && !s3Index.deleted) {
-
+    else if (localIndex.lastModified !== s3Index.lastModified && !localIndex.deleted && !s3Index.deleted) {
       // Fetch both versions to compare content
       const localEntry = db.getEntryById(id);
       let s3Entry: Entry;
@@ -291,7 +288,7 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
 
       // If content differs, create conflict and skip sync
       if (localEntry && s3Entry && localEntry.content !== s3Entry.content) {
-        logger.debug(`syncMasterIndex: CONFLICT DETECTED for entry ${id}`);
+        logger.warn(`syncMasterIndex: conflict detected for entry ${id}`);
         db.createConflict({
           entryId: id,
           entryDate: localEntry.date,
@@ -302,47 +299,51 @@ export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterInd
         });
         // Keep local index (don't sync until resolved)
         syncedIndex[id] = localIndex;
-        continue;
+        conflicts++;
       }
     }
 
     // s3 index is newer, update local entry
-    if (s3Index !== undefined && localIndex !== undefined && localIndex.lastModified < s3Index.lastModified) {
+    else if (localIndex.lastModified < s3Index.lastModified) {
       if (s3Index.deleted) { // s3 index is deleted, delete local entry and continue
-        logger.debug(`syncMasterIndex: s3 entry is deleted, deleting local entry ${id}`);
         try {
           db.deleteEntry(id, true); // skipSync to avoid recursive loop
           syncedIndex[id] = s3Index;
-          continue;
         } catch (error) {
           logger.error(`syncMasterIndex: error deleting local entry ${id}:`, error);
           throw error;
         }
+      } else {
+        // s3 index is not deleted, update local entry
+        let entry: Entry;
+        try {
+          const response = await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
+          const body = await response.Body?.transformToByteArray();
+          const bodyString = body ? new TextDecoder().decode(body) : '{}';
+          entry = JSON.parse(bodyString) as Entry;
+        } catch (error) {
+          logger.error(`syncMasterIndex: error fetching s3 entry ${id}:`, error);
+          throw error;
+        }
+        try {
+          db.updateEntry(id, entry, true); // skipSync to avoid recursive loop
+          syncedIndex[id] = s3Index;
+          downloaded++;
+        } catch (error) {
+          logger.error(`syncMasterIndex: error updating local entry ${id}:`, error);
+          throw error;
+        }
       }
+    }
 
-      // s3 index is not deleted, update local entry
-      let entry: Entry;
-      try {
-        const response = await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
-        const body = await response.Body?.transformToByteArray();
-        const bodyString = body ? new TextDecoder().decode(body) : '{}';
-        entry = JSON.parse(bodyString) as Entry;
-      } catch (error) {
-        logger.error(`syncMasterIndex: error fetching s3 entry ${id}:`, error);
-        throw error;
-      }
-      try {
-        logger.debug(`syncMasterIndex: updating local entry ${id}`);
-        db.updateEntry(id, entry, true); // skipSync to avoid recursive loop
-        syncedIndex[id] = s3Index;
-        continue;
-      } catch (error) {
-        logger.error(`syncMasterIndex: error updating local entry ${id}:`, error);
-        throw error;
-      }
+    processed++;
+    // only log progress when there's actual work happening (initial sync / large uploads)
+    if ((downloaded + uploaded) > 0 && processed % 100 === 0) {
+      logger.info(`syncMasterIndex: progress ${processed}/${total} — downloaded=${downloaded} uploaded=${uploaded} conflicts=${conflicts}`);
     }
   }
 
+  logger.info(`syncMasterIndex: complete — downloaded=${downloaded} uploaded=${uploaded} conflicts=${conflicts}`);
   return syncedIndex;
 }
 

@@ -5,9 +5,9 @@ import { networkManager } from './network-manager';
 import { handleError } from './error-handler';
 
 /**
- * useSyncState hook to subscribe to sync state changes from the main process.
+ * Subscribes to sync state changes pushed from the main process.
  *
- * @returns {string} The current sync state.
+ * @returns {SyncState}
  */
 export const useSyncState = () => {
   const [syncState, setSyncState] = useState<SyncState>(SyncState.UNINITIALIZED)
@@ -21,9 +21,9 @@ export const useSyncState = () => {
 }
 
 /**
- * usePasswordProtection hook to handle password protection and initialize app.
+ * Checks for a stored password hash on mount and gates app content until verified.
  *
- * @returns {Object} An object containing the password protected state, password verified state, and functions to handle password verification and update password protection state.
+ * @returns {{ passwordProtected: boolean; passwordVerified: boolean; isInitializing: boolean; handlePasswordVerified: () => void; updatePasswordProtection: () => Promise<void> }}
  */
 export const usePasswordProtection = () => {
   const [passwordProtected, setPasswordProtected] = useState(false)
@@ -79,9 +79,9 @@ export const usePasswordProtection = () => {
 }
 
 /**
- * useNetworkSync hook to monitor network status and reinitialize S3 client when connection is restored.
+ * Monitors network status and reinitializes the S3 client when connection is restored.
  *
- * @returns {Object} An object containing the sync status.
+ * @returns {{ syncStatus: string }}
  */
 export const useNetworkSync = () => {
   const [syncStatus, setSyncStatus] = useState('initializing');

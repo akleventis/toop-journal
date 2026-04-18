@@ -2,10 +2,11 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { logger } from './logger';
+import { getEntryCount } from './db/sqlite';
 
 const isDev = !app.isPackaged;
 const dbFilename = isDev ? 'journal-dev.db' : 'journal.db';
-const BACKUP_RETENTION = 30;
+const BACKUP_RETENTION = 30; // days
 
 function getDbPath(): string {
   return path.join(app.getPath('userData'), dbFilename);
@@ -15,6 +16,10 @@ function getBackupDir(): string {
   return path.join(app.getPath('userData'), 'backups');
 }
 
+/**
+ * Creates a daily backup of the DB. Skips if one already exists for today.
+ * Prunes backups beyond BACKUP_RETENTION days on each run.
+ */
 export function createBackup(): void {
   const backupDir = getBackupDir();
   if (!fs.existsSync(backupDir)) {
@@ -24,6 +29,12 @@ export function createBackup(): void {
   const dbPath = getDbPath();
   if (!fs.existsSync(dbPath)) {
     logger.warn('backup: no database found, skipping');
+    return;
+  }
+
+  const entryCount = getEntryCount();
+  if (entryCount === 0) {
+    logger.info('backup: no entries found, skipping');
     return;
   }
 
@@ -58,6 +69,11 @@ export interface BackupInfo {
   sizeBytes: number;
 }
 
+/**
+ * Returns all backups sorted newest-first.
+ *
+ * @returns {BackupInfo[]}
+ */
 export function listBackups(): BackupInfo[] {
   const backupDir = getBackupDir();
   if (!fs.existsSync(backupDir)) return [];
@@ -73,8 +89,14 @@ export function listBackups(): BackupInfo[] {
     }));
 }
 
+/**
+ * Copies a backup file over the live DB. Caller is responsible for relaunching the app.
+ *
+ * @param {string} filename - Backup filename (basename only, no path components).
+ * @throws If the filename is invalid or the backup does not exist.
+ */
 export function restoreBackup(filename: string): void {
-  // Prevent path traversal
+  // prevent path traversal
   if (filename.includes('/') || filename.includes('\\') || !filename.endsWith('.db')) {
     throw new Error('Invalid backup filename');
   }

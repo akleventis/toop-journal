@@ -1,11 +1,9 @@
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// ============================================================================
-// Current date helpers
-// ============================================================================
-
 /**
  * Returns the current date in journal format: `Jun 14, 2025 at 12:35`
+ *
+ * @returns {string}
  */
 export function formatCurrentDate(): string {
   const now = new Date();
@@ -18,6 +16,8 @@ export function formatCurrentDate(): string {
 
 /**
  * Returns the current date in calendar format: `2025-06-14`
+ *
+ * @returns {string}
  */
 export function getCurrentCalendarDate(): string {
   const now = new Date();
@@ -27,13 +27,12 @@ export function getCurrentCalendarDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-// ============================================================================
-// Journal date parsing
-// ============================================================================
-
 /**
  * Breaks a journal date string into display parts.
  * e.g. `Jun 14, 2025 at 12:35` → `{ year: 2025, month: 'Jun', day: 14, weekday: 'Sat' }`
+ *
+ * @param {string} dateStr - Journal date string.
+ * @returns {{ year: number; month: string; day: number; weekday: string }}
  */
 export function getDateParts(dateStr: string): { year: number; month: string; day: number; weekday: string } {
   const date = new Date(dateStr.replace(/ at .*/, ''));
@@ -48,6 +47,9 @@ export function getDateParts(dateStr: string): { year: number; month: string; da
 /**
  * Converts a journal date string to a Unix timestamp (ms).
  * e.g. `Jun 14, 2025 at 12:35:55` → 1749926155000
+ *
+ * @param {string} dateStr - Journal date string.
+ * @returns {number} Unix timestamp in ms, or NaN if unparseable.
  */
 export function parseJournalDate(dateStr: string): number {
   const [datePart, timePart] = dateStr.split(' at ');
@@ -63,6 +65,9 @@ export function parseJournalDate(dateStr: string): number {
 /**
  * Generates a DB entry ID from a journal date string.
  * e.g. `Jun 14, 2025 at 12:35` → `jun.14.2025`
+ *
+ * @param {string} date - Journal date string.
+ * @returns {string}
  */
 export function journalDateToId(date: string): string {
   const [datePart] = date.split(' at ');
@@ -70,13 +75,14 @@ export function journalDateToId(date: string): string {
   return `${month.toLowerCase()}.${day}.${year}`;
 }
 
-// ============================================================================
-// Date format conversions
-// ============================================================================
+// date format conversions
 
 /**
  * Journal date → calendar date.
  * e.g. `Jun 14, 2025 at 12:35` → `2025-06-14`
+ *
+ * @param {string} journalDate
+ * @returns {string}
  */
 export function journalToCalendar(journalDate: string): string {
   const [datePart] = journalDate.split(' at ');
@@ -88,6 +94,9 @@ export function journalToCalendar(journalDate: string): string {
 /**
  * Calendar date → journal date with current time.
  * e.g. `2025-06-14` → `Jun 14, 2025 at 12:35`
+ *
+ * @param {string} calendarDate
+ * @returns {string}
  */
 export function calendarToJournal(calendarDate: string): string {
   const [year, month, day] = calendarDate.split('-');
@@ -99,6 +108,11 @@ export function calendarToJournal(calendarDate: string): string {
 /**
  * Builds a calendar date string from numeric parts.
  * e.g. (2025, 5, 14) → `2025-06-14`  (month is 0-indexed)
+ *
+ * @param {number} year
+ * @param {number} month - 0-indexed.
+ * @param {number} day
+ * @returns {string}
  */
 export function createCalendarDate(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;

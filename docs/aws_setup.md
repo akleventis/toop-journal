@@ -7,7 +7,7 @@ This feature enables syncing journal entries with an S3 bucket using a `masterIn
 The master index serves as a bidirectional sync index, tracking entries between local and cloud data stores. Conflicts are resolved using `lastModified` timestamps.
 
 **Storage Locations:**
-- Local (Development): `~/Library/Application Support/Electron/masterIndex.json`
+- Local (Development): `~/Library/Application Support/toop-journal/masterIndex.json`
 - Local (Production): `~/Library/Application Support/toop journal/masterIndex.json`
 - S3: `{bucket_name}/masterIndex.json`
 

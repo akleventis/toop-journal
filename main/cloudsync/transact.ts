@@ -7,19 +7,18 @@ import { app } from 'electron';
 import { syncStateMachine, SyncState } from './sync_state';
 import { logger } from '../logger';
 
-/**
- * State object to store the AWS variables to be shared between cloudsync files.
- */
+// Shared mutable state for all cloudsync modules. AWSClient and AWSConfig are null until initS3Client succeeds.
 export const state = {
     AWSClient: null as S3Client | null,
     AWSConfig: null as S3Config | null,
     UserDataPath: app.getPath('userData'),
     MasterIndexFileName: 'masterIndex.json',
-    lastSyncTime: 0,
+    lastSyncTime: 0, // epoch ms; read by health check
 }
 
 /**
- * Syncs master indexes & entries between local and S3.
+ * Merges local and S3 master indexes, then commits atomically:
+ * write to temp file → upload to S3 → rename to final (local only commits if S3 succeeds).
  *
  * @returns {Promise<boolean>} True if the sync was successful, false otherwise.
  * @throws Will throw an error if the AWS config or S3 client is not found.
@@ -34,6 +33,8 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
     }
 
     syncStateMachine.setState(SyncState.SYNCING);
+    logger.info('cloudSyncPipeline: starting sync');
+    const pipelineStart = Date.now();
 
     let s3MasterIndex: MasterIndex;
     let localMasterIndex: MasterIndex;
@@ -92,6 +93,8 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
     }
 
     state.lastSyncTime = Date.now();
+    const elapsed = ((Date.now() - pipelineStart) / 1000).toFixed(1);
+    logger.info(`cloudSyncPipeline: sync complete in ${elapsed}s`);
     syncStateMachine.setState(SyncState.READY);
     return true;
 }

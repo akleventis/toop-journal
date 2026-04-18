@@ -13,7 +13,8 @@ export default defineConfig({
   base: './', // make asset paths relative for file:// loads
   build: {
     outDir: '../dist/renderer', // emit to project/dist/renderer
-    emptyOutDir: true
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 1000 // irrelevant for Electron (local disk, no network)
   },
 
   // development server settings

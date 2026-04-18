@@ -87,10 +87,9 @@ export function HealthCheckWidget() {
 
     return (
         <div className="w-full max-w-[300px]">
-            <h3 className="text-center mb-[10px]">Health Check</h3>
             <div className="flex justify-center mb-[10px]">
                 <button className="text-[12px]" onClick={run} disabled={running}>
-                    {running ? 'Checking...' : 'Run Check'}
+                    {running ? 'Checking...' : 'Run Health Check'}
                 </button>
             </div>
             {health && (

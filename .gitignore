@@ -24,9 +24,9 @@ notes.txt
 release/
 aws_config.json
 masterIndex.json
-journal.db
-fts5.md
 todo.md
 claude.md
-journal.db.backup
-scripts/
+scripts/cleanup.sh
+scripts/import_pdf.py
+scripts/__pycache__/
+.claude/

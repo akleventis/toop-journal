@@ -1,5 +1,6 @@
 import { Entry } from './types';
 
+// counts returned by the sync pipeline after a completed sync
 export type SyncResult = {
   created: number;
   updated: number;
@@ -7,9 +8,7 @@ export type SyncResult = {
   conflicts: number;
 };
 
-// Contract for any journal client (Electron, web, CLI).
-// Electron implements this via IPC + SQLite; a web client would implement
-// it against S3 directly or via an API Gateway + Lambda layer.
+// abstract contract for any journal client implementation
 export interface JournalAPI {
   listEntries(limit?: number): Promise<Entry[]>;
   getEntry(id: string): Promise<Entry | null>;

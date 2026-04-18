@@ -16,6 +16,7 @@ function getEntryLimitFromStorage(): number | undefined {
   return isNaN(parsed) ? undefined : parsed;
 }
 
+// returns memoized entries with content converted from markdown to HTML
 export async function getDecodedEntries(): Promise<DecodedEntry[]> {
   if (__decodedEntriesMemo) return __decodedEntriesMemo;
 
@@ -45,6 +46,7 @@ export async function searchEntries(query: string, limit?: number): Promise<Entr
   return await window.sqlite.searchEntries(query, limit);
 }
 
+// auto-sets timestamp and lastModified
 export async function createEntry(entry: Entry): Promise<Entry> {
   const now = Date.now();
   entry = { ...entry, timestamp: now, lastModified: now };
@@ -58,6 +60,7 @@ export async function updateEntry(id: string, updates: Partial<Entry>): Promise<
   if (!entry) throw new Error(`NOT_FOUND: entry with id ${id}`);
 
   const lastModified = updates.lastModified ?? Date.now();
+  // re-derive timestamp from date string since date may have changed
   entry = { ...entry, ...updates, timestamp: parseJournalDate(updates.date ?? entry.date), lastModified };
 
   await window.sqlite.updateEntry(id, entry);

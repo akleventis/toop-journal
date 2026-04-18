@@ -144,7 +144,7 @@ The hash/salt is stored in `settings_t`. If a restore was done to a backup that 
 
 ### Logs not appearing in More → View Logs
 
-Logs stream via IPC (`logs:stream` channel). If the viewer is blank:
+Logs stream via IPC (`logs:line` channel). If the viewer is blank:
 - Check the log file directly: `cat ~/Library/Application\ Support/toop-journal/logs/app-$(date +%Y-%m-%d).log`
 - The viewer loads the last 200 lines on open; if no activity has happened today, yesterday's file won't show
 
