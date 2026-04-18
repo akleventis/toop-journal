@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { handleError } from '../lib/error-handler';
+import { formatBytes } from '../lib/format';
 import type { BackupInfo } from '../../interface';
 import Modal from './components/Modal';
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default function Backups() {
   const [backups, setBackups] = useState<BackupInfo[]>([]);
@@ -37,7 +33,7 @@ export default function Backups() {
             <div key={b.filename} className="flex items-center justify-between px-3 py-2 rounded bg-[color:var(--color-secondary-bg)]">
               <div>
                 <div className="text-[12px]">{b.date}</div>
-                <div className="text-[10px] text-gray-400">{formatSize(b.sizeBytes)}</div>
+                <div className="text-[10px] text-gray-400">{formatBytes(b.sizeBytes)}</div>
               </div>
               <button className="text-[11px]" onClick={() => setConfirming(b)}>Restore</button>
             </div>

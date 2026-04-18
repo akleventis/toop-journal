@@ -431,6 +431,11 @@ function closeDb(): void {
     db.close();
 }
 
+function integrityCheck(): boolean {
+    const result = db.pragma('integrity_check') as { integrity_check: string }[];
+    return result[0]?.integrity_check === 'ok';
+}
+
 export {
     getEntries,
     getEntryCount,
@@ -455,4 +460,5 @@ export {
     getSetting,
     setSetting,
     closeDb,
+    integrityCheck,
 };

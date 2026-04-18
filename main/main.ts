@@ -7,6 +7,7 @@ import { cloudSyncPipeline, state } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
 import { createBackup, listBackups, restoreBackup } from './backup';
+import { runHealthCheck } from './health';
 import { hashPassword, verifyPassword } from './security/password';
 import { loadOrCreateEncKey } from './security/enc-key';
 import './cloudsync/sync_coordinator';
@@ -286,6 +287,8 @@ ipcMain.handle('logs:getRecent', () => {
 ipcMain.on('logs:error', (_, msg: string) => {
   logger.error(`[Renderer] ${msg}`);
 });
+
+ipcMain.handle('health:run', () => runHealthCheck());
 
 ipcMain.handle('backup:list', () => listBackups());
 ipcMain.handle('backup:restore', async (_, filename: string) => {

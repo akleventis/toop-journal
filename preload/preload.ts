@@ -81,3 +81,7 @@ contextBridge.exposeInMainWorld('logs', {
   },
   error: (msg: string) => ipcRenderer.send('logs:error', msg),
 })
+
+contextBridge.exposeInMainWorld('health', {
+  run: () => ipcRenderer.invoke('health:run'),
+})

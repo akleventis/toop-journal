@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { jsPDF } from 'jspdf'
 import { markdownToHtml } from '../lib/markdown'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
-import { S3Config, SyncState } from '../../shared/types'
+import { S3Config, SyncState, HealthCheck } from '../../shared/types'
 import { networkManager } from '../lib/network-manager'
 import { handleError } from '../lib/error-handler'
+import { formatBytes, formatRelativeTime } from '../lib/format'
 import * as db from '../db/db'
 import { clearDecodedCache } from '../db/db'
 
@@ -27,6 +28,8 @@ export default function More() {
             <LogsNav />
             <div className="m-[15px]" />
             <BackupsNav />
+            <div className="m-[15px]" />
+            <HealthCheckWidget />
         </div>
     )
 }
@@ -55,6 +58,63 @@ export function BackupsNav() {
             >
                 Backups
             </h3>
+        </div>
+    );
+}
+
+export function HealthCheckWidget() {
+    const [health, setHealth] = useState<HealthCheck | null>(null);
+    const [running, setRunning] = useState(false);
+
+    const run = async () => {
+        setRunning(true);
+        try {
+            const result = await window.health.run();
+            setHealth(result);
+        } catch (error) {
+            handleError(error, 'Health check failed');
+        } finally {
+            setRunning(false);
+        }
+    };
+
+    const statusIcon = (ok: boolean | null) => {
+        if (ok === null) return <span style={{ color: 'grey' }} className="text-[11px]">N/A</span>;
+        return <span style={{ color: ok ? '#2ecc71' : '#e74c3c' }}>{ok ? '✓' : '✗'}</span>;
+    };
+
+    return (
+        <div className="w-full max-w-[300px]">
+            <h3 className="text-center mb-[10px]">Health Check</h3>
+            <div className="flex justify-center mb-[10px]">
+                <button className="text-[12px]" onClick={run} disabled={running}>
+                    {running ? 'Checking...' : 'Run Check'}
+                </button>
+            </div>
+            {health && (
+                <div className="text-[12px] flex flex-col gap-[6px]">
+                    <div className="flex justify-between">
+                        <span>Database</span>
+                        {statusIcon(health.databaseIntegrity)}
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Master Index</span>
+                        {statusIcon(health.masterIndexIntegrity)}
+                    </div>
+                    <div className="flex justify-between">
+                        <span>S3 Connectivity</span>
+                        {statusIcon(health.s3Connectivity)}
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Disk Free</span>
+                        <span>{formatBytes(health.diskSpace)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Last Sync</span>
+                        <span>{formatRelativeTime(health.lastSyncTime)}</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

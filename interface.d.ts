@@ -1,4 +1,4 @@
-import type { Entry, S3Config, Conflict, SyncState } from './shared/types';
+import type { Entry, S3Config, Conflict, SyncState, HealthCheck } from './shared/types';
 
 export interface CloudSyncAPI {
   initS3Client: () => Promise<void>,
@@ -74,6 +74,10 @@ export interface LogsAPI {
   error: (msg: string) => void;
 }
 
+export interface HealthAPI {
+  run: () => Promise<HealthCheck>;
+}
+
 declare global {
   interface Window {
     cloudSync: CloudSyncAPI
@@ -85,5 +89,6 @@ declare global {
     dialog: DialogAPI
     backup: BackupAPI
     logs: LogsAPI
+    health: HealthAPI
   }
 }

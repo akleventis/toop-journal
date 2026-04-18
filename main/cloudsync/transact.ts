@@ -13,8 +13,9 @@ import { logger } from '../logger';
 export const state = {
     AWSClient: null as S3Client | null,
     AWSConfig: null as S3Config | null,
-    UserDataPath: app.getPath('userData'), 
+    UserDataPath: app.getPath('userData'),
     MasterIndexFileName: 'masterIndex.json',
+    lastSyncTime: 0,
 }
 
 /**
@@ -90,6 +91,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         throw error;
     }
 
+    state.lastSyncTime = Date.now();
     syncStateMachine.setState(SyncState.READY);
     return true;
 }

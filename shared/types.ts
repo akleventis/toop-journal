@@ -43,3 +43,11 @@ export type Conflict = {
 export interface DecodedEntry extends Entry {
   decodedContent: string;
 }
+
+export type HealthCheck = {
+  databaseIntegrity: boolean;
+  masterIndexIntegrity: boolean;
+  s3Connectivity: boolean | null; // null = not configured
+  diskSpace: number; // free bytes, -1 if check failed
+  lastSyncTime: number; // ms timestamp, 0 if never synced this session
+};
