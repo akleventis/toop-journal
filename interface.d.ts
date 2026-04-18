@@ -1,4 +1,4 @@
-import type { Entry, S3Config, Conflict, SyncState } from './renderer/lib/types';
+import type { Entry, S3Config, Conflict, SyncState } from './shared/types';
 
 export interface CloudSyncAPI {
   initS3Client: () => Promise<void>,
