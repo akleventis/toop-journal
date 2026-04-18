@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import type { DecodedEntry } from '../lib/types'
+import type { DecodedEntry } from '../../shared/types'
 import * as db from '../db/db'
 import { HashRouter, BrowserRouter, Routes, Route, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ListView from './List'

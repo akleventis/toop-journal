@@ -1,6 +1,6 @@
 import { parseJournalDate } from '../lib/dates';
 import { markdownToHtml } from '../lib/markdown';
-import type { Entry, DecodedEntry } from '../lib/types';
+import type { Entry, DecodedEntry } from '../../shared/types';
 
 // memoized entries per renderer session
 let __decodedEntriesMemo: DecodedEntry[] | null = null;

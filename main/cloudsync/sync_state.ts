@@ -1,6 +1,4 @@
-// SyncState enum is defined in renderer/lib/types.ts so both the main
-// process and renderer can import it from a single source of truth.
-import { SyncState } from '../../renderer/lib/types';
+import { SyncState } from '../../shared/types';
 export { SyncState };
 
 // Manages sync state and notifies registered listeners on every transition.

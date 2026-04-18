@@ -1,6 +1,6 @@
 import { state } from './transact';
 import { getConfig } from './aws_config';
-import { S3Config } from '../../renderer/lib/types';
+import { S3Config } from '../../shared/types';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { initS3MasterIndex } from './master_index';
 import { syncStateMachine, SyncState } from './sync_state';

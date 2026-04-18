@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as db from '../db/db';
-import { SyncState } from './types';
+import { SyncState } from '../../shared/types';
 import { networkManager } from './network-manager';
 import { handleError } from './error-handler';
 

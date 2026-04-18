@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { DecodedEntry, Entry } from '../lib/types'
+import type { DecodedEntry, Entry } from '../../shared/types'
 import { getDateParts } from '../lib/dates'
 import { markdownToHtml } from '../lib/markdown'
 import { handleError } from '../lib/error-handler'

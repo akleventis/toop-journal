@@ -89,6 +89,10 @@ The packaged app uses the production DB path and `app.isPackaged === true`.
 ## Project Structure
 
 ```
+shared/                Canonical domain types imported by both main/ and renderer/
+  types.ts             Entry, MasterIndex, Conflict, SyncState, S3Config
+  api.ts               JournalAPI interface + SyncResult
+
 main/                  Node.js / Electron main process
   main.ts              IPC handlers, app lifecycle
   backup.ts            Daily backup logic

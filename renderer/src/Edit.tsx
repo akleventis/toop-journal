@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
-import type { DecodedEntry } from '../lib/types';
+import type { DecodedEntry } from '../../shared/types';
 import { NavDirection } from '../lib/constants';
 import { markdownToHtml } from '../lib/markdown';
 import { saveEntry } from '../lib/entries';

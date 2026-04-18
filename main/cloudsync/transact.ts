@@ -1,4 +1,4 @@
-import { MasterIndex, S3Config } from '../../renderer/lib/types';
+import { MasterIndex, S3Config } from '../../shared/types';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { loadLocalMasterIndex, loadS3MasterIndex, syncMasterIndex } from './master_index';
 import path from 'node:path';

@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } from 'electron
 import path from 'node:path';
 import { updateConfig, getConfig, createConfig, deleteConfig, disableSync } from './cloudsync/aws_config';
 import { initS3Client } from './cloudsync/aws_client';
-import { Entry, S3Config } from '../renderer/lib/types';
+import { Entry, S3Config } from '../shared/types';
 import { cloudSyncPipeline, state } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';

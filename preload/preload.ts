@@ -1,5 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron')
-import { Entry, S3Config, SyncState } from '../renderer/lib/types';
+import { Entry, S3Config, SyncState } from '../shared/types';
 
 // Used to bridge the gap between the main and renderer processes.
 

@@ -1,4 +1,4 @@
-import { MasterIndex, Entry, MasterIndexEntry } from '../../renderer/lib/types';
+import { MasterIndex, Entry, MasterIndexEntry } from '../../shared/types';
 import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { state } from './transact';
 import * as db from '../db/sqlite';

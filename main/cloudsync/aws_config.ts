@@ -1,4 +1,4 @@
-import { S3Config } from '../../renderer/lib/types';
+import { S3Config } from '../../shared/types';
 import path from 'node:path';
 import fs from 'node:fs';
 import { setAWSClient } from './aws_client';

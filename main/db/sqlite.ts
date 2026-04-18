@@ -3,7 +3,7 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import { Worker } from 'worker_threads';
 import { EventEmitter } from 'node:events';
-import { Entry, Conflict } from "../../renderer/lib/types";
+import { Entry, Conflict } from "../../shared/types";
 import { logger } from '../logger';
 import { isEncryptedContent, encrypt, decrypt } from '../security/encryption';
 

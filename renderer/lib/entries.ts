@@ -1,4 +1,4 @@
-import { Entry } from './types';
+import { Entry } from '../../shared/types';
 import * as db from '../db/db';
 import { htmlToMarkdown } from './markdown';
 import { formatCurrentDate, journalDateToId } from './dates';

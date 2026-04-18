@@ -3,7 +3,7 @@ import Editor, { Toolbar } from 'react-simple-wysiwyg';
 import type { ContentEditableEvent } from 'react-simple-wysiwyg';
 import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
-import type { Entry } from '../../lib/types';
+import type { Entry } from '../../../shared/types';
 import { markdownToHtml } from '../../lib/markdown';
 import { deleteEntry } from '../../lib/entries';
 import { NavDirection } from '../../lib/constants';

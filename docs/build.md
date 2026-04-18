@@ -48,9 +48,9 @@ app.asar/
 │   │   │       └── sqlite.js
 │   │   ├── preload/                         # Preload scripts
 │   │   │   └── preload.js
-│   │   └── renderer/                        # Shared types
-│   │       └── lib/
-│   │           └── types.js
+│   │   └── shared/                          # Compiled shared types
+│   │       ├── types.js
+│   │       └── api.js
 │   └── renderer/                            # Renderer process (UI)
 │       ├── index.html                       # Main HTML file
 │       └── assets/
