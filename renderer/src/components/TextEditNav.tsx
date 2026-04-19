@@ -50,15 +50,15 @@ const TextEditNav: React.FC<TextEditNavProps> = ({
           </svg>
         </button>
         {showDropdown && (
-          <div ref={dropdownRef} className="absolute left-full top-0 z-[1000] bg-[color:var(--color-secondary-bg)] p-1 rounded ml-1">
+          <div ref={dropdownRef} className="absolute left-full top-0 z-[1000] bg-[color:var(--color-secondary-bg)] p-1 rounded-sm ml-1 flex flex-col gap-[3px]">
             <button
-              className="block w-full text-left text-[12px]"
+              className="block w-full text-left text-[12px] !py-[2px]"
               onClick={() => { onToggleEditMode(); setShowDropdown(false); }}
             >
               Edit
             </button>
             <button
-              className="block w-full text-left text-[12px]"
+              className="block w-full text-left text-[12px] !py-[2px]"
               onClick={() => { onDelete(); setShowDropdown(false); }}
             >
               Delete

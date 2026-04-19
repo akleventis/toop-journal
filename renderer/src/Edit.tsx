@@ -72,22 +72,20 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="flex flex-col">
       <div className="text-center text-[12px] text-gray-400">
         {entry?.date}
       </div>
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <TextEditor
-          displayNav={true}
-          editable={false}
-          entry={entry}
-          onNavigate={handleNavigate}
-          onEditModeChange={handleEditModeChange}
-          onContentChange={handleContentChange}
-        />
-      </div>
+      <TextEditor
+        displayNav={true}
+        editable={false}
+        entry={entry}
+        onNavigate={handleNavigate}
+        onEditModeChange={handleEditModeChange}
+        onContentChange={handleContentChange}
+      />
       {isEditing && (
-        <div className="border-t border-[color:var(--color-third-bg)] text-right px-[10px] pb-[10px]">
+        <div className="fixed bottom-0 right-0 px-[10px] pb-[10px]">
           <button onClick={handleSave} disabled={isSaving} className="px-2 py-1 text-[12px]">{isSaving ? 'Saving...' : 'Done'}</button>
         </div>
       )}

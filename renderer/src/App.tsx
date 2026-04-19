@@ -109,21 +109,23 @@ const entries = await db.getDecodedEntries()
   return (
     <div className="h-full flex flex-col">
       <NavBar activeTab={location.pathname} />
-      <ListView
-        entries={entries}
-        style={{ display: location.pathname === '/list' && !reload && !loading ? 'block' : 'none' }}
+      <div className="flex-1 min-h-0 relative overflow-y-auto">
+        <ListView
+          entries={entries}
+          style={{ display: location.pathname === '/list' && !reload && !loading ? 'block' : 'none' }}
         />
-      <Routes>
-        <Route path="/" element={null} />
-        <Route path="/list" element={null} />
-        <Route path="/calendar" element={<ErrorBoundary><Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} /></ErrorBoundary>} />
-        <Route path="/more" element={<ErrorBoundary><More /></ErrorBoundary>} />
-        <Route path="/conflicts" element={<ErrorBoundary><Conflicts /></ErrorBoundary>} />
-        <Route path="/logs" element={<ErrorBoundary><Logs /></ErrorBoundary>} />
-        <Route path="/backups" element={<ErrorBoundary><Backups /></ErrorBoundary>} />
-        <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
-        <Route path="/edit" element={<ErrorBoundary><Edit entries={entries} /></ErrorBoundary>} />
-      </Routes>
+        <Routes>
+          <Route path="/" element={null} />
+          <Route path="/list" element={null} />
+          <Route path="/calendar" element={<ErrorBoundary><Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} /></ErrorBoundary>} />
+          <Route path="/more" element={<ErrorBoundary><More /></ErrorBoundary>} />
+          <Route path="/conflicts" element={<ErrorBoundary><Conflicts /></ErrorBoundary>} />
+          <Route path="/logs" element={<ErrorBoundary><Logs /></ErrorBoundary>} />
+          <Route path="/backups" element={<ErrorBoundary><Backups /></ErrorBoundary>} />
+          <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
+          <Route path="/edit" element={<ErrorBoundary><Edit entries={entries} /></ErrorBoundary>} />
+        </Routes>
+      </div>
       {loading && <div className="absolute top-[40px] left-0 w-full h-full flex justify-center items-center bg-[color:var(--color-app-bg)] z-[1000]"><LoadingSpinner size={32} /></div>}
     </div>
   );

@@ -1,59 +1,159 @@
 @import "tailwindcss";
 
 @theme {
-  --color-app-bg: #ddd;
-  --color-secondary-bg: #f0f0f0;
-  --color-third-bg: #e0e0e0;
-  --radius: 4px;
+  --color-app-bg: #d5d5d5;
+  --color-secondary-bg: rgba(255, 255, 255, 0.55);
+  --color-third-bg: rgba(255, 255, 255, 0.85);
+  --color-accent: #555;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+}
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 2px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --glass-blur: 16px;
+  --text-primary: #111;
+  --text-muted: #888;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-app-bg: #333;
-    --color-secondary-bg: #222222;
-    --color-third-bg: #111;
+    --color-app-bg: #1a1a1a;
+    --color-secondary-bg: rgba(255, 255, 255, 0.05);
+    --color-third-bg: rgba(255, 255, 255, 0.12);
+    --color-accent: #aaa;
+    --glass-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.11);
+    --glass-shadow: 0 2px 20px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
+    --text-primary: #f0f0f0;
+    --text-muted: #666;
   }
 }
 
-/* Base */
+/* Base reset */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 12px; font-family: 'Inter', sans-serif; color-scheme: light dark; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html {
+  scroll-behavior: smooth;
+  font-size: 13px;
+  font-family: 'Avenir Next', Avenir, system-ui, sans-serif;
+  color-scheme: light dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 a { text-decoration: none; color: inherit; }
-input, select { padding: 4px; }
+
+body {
+  background: var(--color-app-bg);
+  color: var(--text-primary);
+}
+
+/* Inputs and selects */
+input, select {
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  outline: none;
+  transition: border-color 0.15s ease;
+  color: inherit;
+}
+input:focus, select:focus { border-color: var(--color-accent); }
+
+/* Buttons */
 button {
   cursor: pointer;
-  border-radius: var(--radius);
-  padding: 4px;
-  border: none;
-  background: var(--color-secondary-bg);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 5px 13px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: inherit;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
-button:hover { background-color: var(--color-third-bg) !important; }
+button:hover:not(:disabled) {
+  background: var(--color-third-bg);
+  transform: translateY(-0.5px);
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-@media (prefers-color-scheme: dark) {
-  body { background: var(--color-app-bg); color: white; }
-}
-@media (prefers-color-scheme: light) {
-  body { background: var(--color-app-bg); color: black; }
+@layer components {
+  /* Shared glass treatment */
+  .card, .glass-surface {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* .card adds shape + padding on top */
+  .card {
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+
+  /* Section heading inside a card */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 10px 0;
+  }
+
+  /* Hairline divider between card sections */
+  .setting-divider {
+    border: none;
+    border-top: 1px solid var(--glass-border);
+    margin: 12px 0;
+  }
+
+  /* Tappable row used for navigation links */
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    cursor: pointer;
+    border-bottom: 1px solid var(--glass-border);
+    transition: opacity 0.15s ease;
+    font-size: 13px;
+  }
+  .nav-row:last-child { border-bottom: none; }
+  .nav-row:hover { opacity: 0.6; }
 }
 
-/* Toggle component */
+/* Toggle switch */
 .toggle {
-  width: 30px;
-  height: 15px;
-  border-radius: 15px;
+  width: 34px;
+  height: 19px;
+  border-radius: 19px;
   cursor: pointer;
   position: relative;
-  transition: background 0.3s;
+  transition: background 0.25s ease;
 }
 .toggle-slider {
-  width: 11px;
-  height: 11px;
+  width: 14px;
+  height: 14px;
   background: white;
   border-radius: 50%;
   position: absolute;
   top: 2px;
-  transition: left 0.3s;
+  transition: left 0.25s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 /* react-simple-wysiwyg overrides */
@@ -62,5 +162,8 @@ button:hover { background-color: var(--color-third-bg) !important; }
   border: none !important;
   margin: 0 20px;
   line-height: 1.5;
-  height: 100% !important;
+}
+.rsw-ce[contenteditable="true"] {
+  min-height: 100vh;
+  cursor: text;
 }

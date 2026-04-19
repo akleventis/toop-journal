@@ -66,9 +66,7 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
                     key={day}
                     onClick={() => handleDateClick(date)}
                     className={clsx(
-                        'rounded text-center w-5 h-5 cursor-pointer text-[10px] flex items-center justify-center',
-                        'md:w-[25px] md:h-[25px] md:text-[12px] md:p-[3px]',
-                        'lg:w-[30px] lg:h-[30px] lg:text-[14px] lg:p-1',
+                        'rounded text-center w-[28px] h-[28px] cursor-pointer text-[12px] flex items-center justify-center',
                         hasEntry ? 'bg-[color:var(--color-third-bg)]' : 'bg-transparent'
                     )}
                 >
@@ -78,11 +76,11 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
         }
 
         return (
-            <div key={month} className="m-[3px] inline-block">
-                <h3 className="text-center mb-[5px] mt-0 text-[14px]">{monthName}</h3>
-                <div className="grid gap-[3px]" style={{ gridTemplateColumns: 'repeat(7, 20px)' }}>
+            <div key={month} className="m-[4px] inline-block">
+                <h3 className="text-center mb-[6px] mt-0 text-[15px]">{monthName}</h3>
+                <div className="grid gap-[4px]" style={{ gridTemplateColumns: 'repeat(7, 28px)' }}>
                     {['S','M','T','W','T','F','S'].map((d, i) => (
-                        <div key={i} className="p-[2px] text-center font-bold text-[10px] md:text-[12px] md:p-[3px] lg:text-[14px] lg:p-1">{d}</div>
+                        <div key={i} className="text-center font-bold text-[11px] h-[28px] flex items-center justify-center">{d}</div>
                     ))}
                     {days}
                 </div>

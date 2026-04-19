@@ -31,7 +31,7 @@ function EntryRow({ entry, onClick }: { entry: DecodedEntry; onClick: () => void
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
           <div
-            className="max-h-[72px] overflow-hidden break-words cursor-default"
+            className="max-h-[75px] overflow-hidden break-words cursor-default"
             dangerouslySetInnerHTML={{ __html: entry.decodedContent }}
           />
         </div>
@@ -125,17 +125,18 @@ export default function ListView({ entries, style }: ListViewProps) {
   }, [displayEntries]);
 
   return (
-    <div style={{ overflowY: 'auto', height: '100vh', ...style }}>
-      {mappedEntries}
-      {displayEntries.length > 0 && (
-        <div className="sticky bottom-0 p-[2px] flex items-center justify-start gap-[6px] w-full h-[25px] bg-[color:var(--color-app-bg)]">
+    <div style={{ overflowY: 'auto', height: '100%', ...style }}>
+      <div className="min-h-[calc(100%-30px)]">
+        {mappedEntries}
+      </div>
+      <div className="sticky bottom-0 p-[2px] flex items-center justify-start gap-[6px] w-full h-[30px] bg-[color:var(--color-app-bg)]">
           <form onSubmit={handleSearchSubmit}>
             <input
               type="text"
               placeholder={ftsReady ? 'Search' : 'Indexing...'}
               value={searchValue}
               disabled={!ftsReady}
-              className="p-[2px] text-[10px] outline-none disabled:opacity-40"
+              className="p-[2px] ml-[2px] text-[10px] h-[20px] outline-none disabled:opacity-40"
               onChange={(e) => setSearchValue(e.target.value)}
             />
           </form>
@@ -144,13 +145,12 @@ export default function ListView({ entries, style }: ListViewProps) {
             <span className="text-[10px] text-gray-400">{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{activeQuery}"</span>
           )}
           {hasMoreSearchResults && !isSearching && (
-            <button type="button" className="text-[10px]" onClick={handleLoadMoreSearchResults}>Load more</button>
+            <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleLoadMoreSearchResults}>Load more</button>
           )}
           {searchValue.length > 0 && (
-            <button type="button" className="text-[10px]" onClick={handleClearSearch}>Clear</button>
+            <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleClearSearch}>Clear</button>
           )}
-        </div>
-      )}
+      </div>
     </div>
   )
 }

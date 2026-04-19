@@ -36,7 +36,7 @@ const New: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-auto">
+    <div className="flex flex-col">
       <div className="text-center text-[12px] text-gray-400">
         {dateRef.current}
       </div>
@@ -46,7 +46,7 @@ const New: React.FC = () => {
         editable={true}
         onContentChange={handleContentChange}
       />
-      <div className="border-t border-[color:var(--color-third-bg)] text-right px-[10px] pb-[10px]">
+      <div className="fixed bottom-0 right-0 px-[10px] pb-[10px]">
         <button onClick={handleSave} className="px-2 py-1 text-[12px]">Done</button>
       </div>
     </div>
