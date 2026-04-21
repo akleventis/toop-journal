@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface ModalProps {
 export default function Modal({ isOpen, title, onClose, children }: ModalProps) {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
@@ -23,6 +24,7 @@ export default function Modal({ isOpen, title, onClose, children }: ModalProps) 
         {title && <p className="section-label m-0">{title}</p>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

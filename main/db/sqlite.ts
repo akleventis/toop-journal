@@ -346,6 +346,10 @@ function getEntryCount(): number {
   return (db.prepare('SELECT COUNT(*) as count FROM entries_t').get() as { count: number }).count;
 }
 
+function hasEntriesModifiedSince(timestamp: number): boolean {
+  return db.prepare('SELECT 1 FROM entries_t WHERE lastModified > ? LIMIT 1').get(timestamp) !== undefined;
+}
+
 function isFtsReady(): boolean {
   return ftsWorkerReady;
 }
@@ -404,6 +408,7 @@ function integrityCheck(): boolean {
 export {
     getEntries,
     getEntryCount,
+    hasEntriesModifiedSince,
     isFtsReady,
     searchEntries,
     getEntryById,

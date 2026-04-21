@@ -57,6 +57,15 @@ const TextEditor: React.FC<TextEditProps> = ({
         }
     };
 
+    // Strip HTML/styles on copy — paste as plain text only
+    const onCopy = (e: React.ClipboardEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const selection = window.getSelection();
+        if (selection) {
+            e.clipboardData.setData('text/plain', selection.toString());
+        }
+    };
+
     const toggleEditMode = () => {
         setEditableState(true);
         setDisplayNavState(false);
@@ -116,7 +125,7 @@ const TextEditor: React.FC<TextEditProps> = ({
                 onNavigate={onNavigate}
             />
 
-            <div onDragOver={onDragOver} onDrop={onDrop}>
+            <div onDragOver={onDragOver} onDrop={onDrop} onCopy={onCopy}>
                 <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown} spellCheck={true}>
                     <Toolbar>
                     </Toolbar>

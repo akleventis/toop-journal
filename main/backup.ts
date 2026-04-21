@@ -2,7 +2,7 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { logger } from './logger';
-import { getEntryCount } from './db/sqlite';
+import { getEntryCount, getSetting, setSetting, hasEntriesModifiedSince } from './db/sqlite';
 
 const isDev = !app.isPackaged;
 const dbFilename = isDev ? 'journal-dev.db' : 'journal.db';
@@ -47,7 +47,14 @@ export function createBackup(): void {
     return;
   }
 
+  const lastBackupTime = getSetting('lastBackupTime');
+  if (lastBackupTime && !hasEntriesModifiedSince(parseInt(lastBackupTime, 10))) {
+    logger.info('backup: no entries modified since last backup, skipping');
+    return;
+  }
+
   fs.copyFileSync(dbPath, backupPath);
+  setSetting('lastBackupTime', String(Date.now()));
   logger.info(`backup: created ${backupPath}`);
 
   // Prune oldest backups, keep last BACKUP_RETENTION
