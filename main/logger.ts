@@ -102,6 +102,8 @@ class Logger {
     }
   }
 
+  get currentLogFile(): string { return this.logFile; }
+
   debug(message: string, ...args: unknown[]): void { this.write(LogLevel.DEBUG, message, ...args); }
   info(message: string, ...args: unknown[]): void { this.write(LogLevel.INFO, message, ...args); }
   warn(message: string, ...args: unknown[]): void { this.write(LogLevel.WARN, message, ...args); }

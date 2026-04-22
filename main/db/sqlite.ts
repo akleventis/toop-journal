@@ -17,8 +17,6 @@ const dbPath = app.isPackaged
 
 const db = new Database(dbPath);
 
-logger.info('dbPath:', dbPath);
-
 db.exec(`
   CREATE TABLE IF NOT EXISTS entries_t (
     id TEXT PRIMARY KEY,
@@ -173,6 +171,7 @@ function createEntry(entry: Entry, skipSync = false): void {
         }
         // only update master index if db transaction succeeded
         if (!skipSync) {
+            logger.info(`entry created: ${entry.id}`);
             dbEvents.emit('entry:created', { id: entry.id, lastModified: Date.now() });
         }
     } catch (error) {
@@ -219,6 +218,7 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
         }
         // only update master index if db transaction succeeded
         if (!skipSync) {
+            logger.info(`entry updated: ${id}`);
             dbEvents.emit('entry:updated', { id, lastModified: Date.now() });
         }
     } catch (error) {
@@ -239,6 +239,7 @@ function deleteEntry(id: string, skipSync = false): void {
         }
         // only update master index if db transaction succeeded
         if (!skipSync) {
+            logger.info(`entry deleted: ${id}`);
             dbEvents.emit('entry:deleted', { id, lastModified: Date.now() });
         }
     } catch (error) {

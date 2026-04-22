@@ -1,4 +1,4 @@
-# toop journal
+# Book of Toop
 
 I've been writing to a journal every day since 2018. Over the past year, the app I've been using has become increasingly buggy. Since it wasn't quite built for scale, I decided to create an alternative with cloud sync to persist data with the intention of migrating off my current journal app.
 

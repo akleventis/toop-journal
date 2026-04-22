@@ -11,7 +11,7 @@ import { runHealthCheck } from './health';
 import { hashPassword, verifyPassword } from './security/password';
 import { loadOrCreateEncKey } from './security/enc-key';
 import './cloudsync/sync_coordinator';
-import { syncStateMachine } from './cloudsync/sync_state';
+import { syncStateMachine, SyncState } from './cloudsync/sync_state';
 import { logger, LOG_RECENT_LINES } from './logger';
 
 const isDev = !app.isPackaged;
@@ -29,8 +29,21 @@ const indexHtmlPath = isDev
 
 const preloadPath = path.join(__dirname, '../preload/preload.js');
 
+function logStartupPaths(): void {
+  const userData = app.getPath('userData');
+  logger.info('paths: ' + JSON.stringify({
+    db:          path.join(userData, isDev ? 'journal-dev.db' : 'journal.db'),
+    logFile:     logger.currentLogFile,
+    backupDir:   path.join(userData, 'backups'),
+    masterIndex: path.join(userData, 'masterIndex.json'),
+    encKey:      path.join(userData, 'enc.key'),
+    awsConfig:   path.join(userData, 'config.json'),
+  }, null, 2));
+}
+
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+  logStartupPaths();
   createBackup();
   await initLocalMasterIndex();
 
@@ -125,14 +138,36 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
+const QUIT_SYNC_TIMEOUT_MS = 5000;
+
 // sync before app quits (including reloads)
 app.on('before-quit', async (event) => {
   if (state.AWSClient && state.AWSConfig && !skipSyncOnQuit) {
+    // real-time sync already pushed changes — nothing to do
+    if (state.lastSyncTime > 0 && !db.hasEntriesModifiedSince(state.lastSyncTime)) {
+      logger.info('before-quit: no changes since last sync, skipping');
+      return;
+    }
     event.preventDefault();
     skipSyncOnQuit = true;
     try {
       logger.info('Syncing before quit...');
-      await cloudSyncPipeline();
+      await Promise.race([
+        (async () => {
+          // wait for any in-flight real-time sync to settle before running ours
+          if (syncStateMachine.getState() === SyncState.SYNCING) {
+            await new Promise<void>(resolve => {
+              const unsub = syncStateMachine.onStateChange(s => {
+                if (s !== SyncState.SYNCING) { unsub(); resolve(); }
+              });
+            });
+          }
+          await cloudSyncPipeline();
+        })(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('sync timeout after 5s')), QUIT_SYNC_TIMEOUT_MS)
+        ),
+      ]);
       logger.info('Sync complete, quitting...');
     } catch (error) {
       logger.error('Error syncing before quit:', error);

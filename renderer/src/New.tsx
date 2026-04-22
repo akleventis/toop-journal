@@ -10,14 +10,13 @@ const New: React.FC = () => {
   const [currentHtml, setCurrentHtml] = useState('');
   const navigate = useNavigate();
 
-  // get most recent entry
+  // redirect to today's edit view if an entry already exists — skip when a specific date is requested
   useEffect(() => {
+    if (dateParam) return;
     const loadMostRecentEntry = async () => {
       const entry = await db.getMostRecentEntry();
-      if (entry) {
-        if (journalToCalendar(entry.date) === getCurrentCalendarDate()) {
-          navigate(`/edit?id=${entry.id}`);
-        }
+      if (entry && journalToCalendar(entry.date) === getCurrentCalendarDate()) {
+        navigate(`/edit?id=${entry.id}`);
       }
     };
     loadMostRecentEntry();
@@ -28,7 +27,7 @@ const New: React.FC = () => {
   const dateRef = useRef(dateParam ? calendarToJournal(dateParam) : formatCurrentDate());
 
   const handleSave = async () => {
-    await saveEntry(currentHtml, null, navigate);
+    await saveEntry(currentHtml, null, navigate, dateParam ? dateRef.current : undefined);
   };
 
   const handleContentChange = (html: string) => {

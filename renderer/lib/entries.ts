@@ -14,7 +14,8 @@ import { formatCurrentDate, journalDateToId } from './dates';
 export async function saveEntry(
   currentHtml: string,
   entry: Entry | null,
-  navigate: (path: string) => void
+  navigate: (path: string) => void,
+  date?: string
 ): Promise<void> {
   if (currentHtml === '' || currentHtml === '<br>' || currentHtml === '<p><br></p>') {
     alert('empty! please enter thoughts');
@@ -31,7 +32,7 @@ export async function saveEntry(
   if (exists && entry) {
     await db.updateEntry(entry.id, { content: markdown });
   } else {
-    const entryDate = formatCurrentDate();
+    const entryDate = date ?? formatCurrentDate();
     const newEntry = {
       id: journalDateToId(entryDate),
       date: entryDate,

@@ -14,6 +14,7 @@ import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import ErrorBoundary from './components/ErrorBoundary'
 import { usePasswordProtection, useNetworkSync, useSyncState } from '../lib/hooks'
+import { handleError } from '../lib/error-handler'
 import { journalToCalendar, getCurrentCalendarDate } from '../lib/dates'
 import { SyncState } from '../../shared/types'
 import LoadingSpinner from './components/LoadingSpinner'
@@ -95,7 +96,8 @@ const entries = await db.getDecodedEntries()
   useEffect(() => {
     if (syncState === SyncState.READY && passwordVerified) {
       db.clearDecodedCache();
-      loadEntries();
+      // silent reload — no spinner, entries update in place
+      db.getDecodedEntries().then(setEntries).catch(handleError);
     }
   }, [syncState]);
 
