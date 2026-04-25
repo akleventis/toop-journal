@@ -5,7 +5,6 @@ I've been writing to a journal every day since 2018. Over the past year, the app
 ## Features
 
 - **Local-first storage** — SQLite database, all data owned by you
-- **Encryption at rest** — AES-256-GCM on all entry content
 - **Full-text search** — FTS5-powered, runs in a background worker thread
 - **Calendar & List views** — browse entries by calendar or chronological list
 - **Rich text editing** — WYSIWYG editor with Markdown storage
@@ -23,6 +22,7 @@ I've been writing to a journal every day since 2018. Over the past year, the app
 - **TypeScript** — end-to-end type safety
 - **Vite** — renderer build tool
 - **better-sqlite3** — local SQLite storage
+- **@tanstack/react-virtual** — virtual scrolling for the entry list (only ~20 DOM nodes rendered at a time)
 - **AWS SDK v3** — S3 cloud sync
 - **electron-builder** — app packaging and DMG creation
 
@@ -88,7 +88,6 @@ All runtime data lives in `~/Library/Application Support/toop-journal/`:
 | Path | Description |
 |---|---|
 | `journal.db` | SQLite database |
-| `enc.key` | AES-256 encryption key (hex, chmod 600) |
 | `masterIndex.json` | S3 sync index |
 | `backups/` | Daily DB snapshots (30-day retention) |
 | `logs/` | Log files — one per session, cleared on each launch |

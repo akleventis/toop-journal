@@ -28,11 +28,6 @@ declare global {
 // using the global variable defined in vite.config.ts
 const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
-// preloads decoded HTML to warm cache
-const preloadHtmlDecodeCache = async () => {
-  db.getDecodedEntries() 
-}
-
 function AppContent() {
   const [entries, setEntries] = useState<DecodedEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -75,7 +70,7 @@ function AppContent() {
 
   const loadEntries = async () => {
     setLoading(true)
-const entries = await db.getDecodedEntries()
+    const entries = await db.getEntriesForList()
     setEntries(entries)
     setLoading(false)
   }
@@ -83,10 +78,7 @@ const entries = await db.getDecodedEntries()
   // handle reload and initial load when on /list
   useEffect(() => {
     if (!passwordVerified) return
-    if (location.pathname == '/new') {
-      preloadHtmlDecodeCache()
-      return
-    }
+    if (location.pathname == '/new') return
     if (location.pathname !== '/list') return
 
     const reload = searchParams.get('reload') === 'true'
@@ -107,7 +99,7 @@ const entries = await db.getDecodedEntries()
   useEffect(() => {
     if (!passwordVerified) return;
     return window.sqlite.onEntriesChanged(() => {
-      db.getDecodedEntries().then(setEntries).catch(handleError);
+      db.getEntriesForList().then(setEntries).catch(handleError);
     });
   }, [passwordVerified]);
 
@@ -122,10 +114,9 @@ const entries = await db.getDecodedEntries()
     <div className="h-full flex flex-col">
       <NavBar activeTab={location.pathname} />
       <div className="flex-1 min-h-0 relative overflow-y-auto">
-        <ListView
-          entries={entries}
-          style={{ display: location.pathname === '/list' && !reload && !loading ? 'block' : 'none' }}
-        />
+        <div style={{ display: location.pathname === '/list' && !reload && !loading ? undefined : 'none', height: '100%' }}>
+          <ListView entries={entries} />
+        </div>
         <Routes>
           <Route path="/" element={null} />
           <Route path="/list" element={null} />

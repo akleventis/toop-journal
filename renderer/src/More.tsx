@@ -25,6 +25,8 @@ export default function More() {
                 <div className="card">
                     <EntryLimit />
                     <hr className="setting-divider" />
+                    <SearchLimit />
+                    <hr className="setting-divider" />
                     <ImageWidthSetting />
                 </div>
 
@@ -226,6 +228,47 @@ export function EntryLimit() {
                     value={limit}
                     onChange={(e) => setLimit(e.target.value)}
                     placeholder="All entries"
+                    className="flex-1"
+                />
+                <button onClick={handleSave}>{saved ? 'Saved ✓' : 'Save'}</button>
+            </div>
+        </div>
+    )
+}
+
+export function SearchLimit() {
+    const [limit, setLimit] = useState<string>('')
+    const [saved, setSaved] = useState(false)
+
+    useEffect(() => {
+        setLimit(localStorage.getItem('searchLimit') || '')
+    }, [])
+
+    const handleSave = () => {
+        const trimmed = limit.trim()
+        if (!trimmed) {
+            localStorage.removeItem('searchLimit')
+        } else {
+            const parsed = parseInt(trimmed, 10)
+            if (isNaN(parsed) || parsed <= 0) {
+                alert('Please enter a valid number')
+                return
+            }
+            localStorage.setItem('searchLimit', trimmed)
+        }
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+    }
+
+    return (
+        <div>
+            <p className="section-label">Search Result Limit</p>
+            <div className="flex gap-2 items-center">
+                <input
+                    type="number"
+                    value={limit}
+                    onChange={(e) => setLimit(e.target.value)}
+                    placeholder="All results"
                     className="flex-1"
                 />
                 <button onClick={handleSave}>{saved ? 'Saved ✓' : 'Save'}</button>

@@ -28,6 +28,12 @@ export async function getDecodedEntries(): Promise<DecodedEntry[]> {
   return __decodedEntriesMemo;
 }
 
+// truncated content (500 chars) — sufficient for list preview, much smaller IPC payload
+export async function getEntriesForList(): Promise<DecodedEntry[]> {
+  const rows = await window.sqlite.getEntriesForList(getEntryLimitFromStorage());
+  return rows.map(entry => ({ ...entry, decodedContent: entry.content }));
+}
+
 export async function getEntryById(id: string): Promise<Entry | null> {
   return await window.sqlite.getEntryById(id);
 }
@@ -40,8 +46,15 @@ export async function getEntryCount(): Promise<number> {
   return await window.sqlite.getEntryCount();
 }
 
+export function getSearchLimit(): number | undefined {
+  const stored = localStorage.getItem('searchLimit');
+  if (!stored) return undefined;
+  const parsed = parseInt(stored, 10);
+  return isNaN(parsed) || parsed <= 0 ? undefined : parsed;
+}
+
 export async function searchEntries(query: string, limit?: number): Promise<Entry[]> {
-  return await window.sqlite.searchEntries(query, limit);
+  return await window.sqlite.searchEntries(query, limit ?? getSearchLimit());
 }
 
 // auto-sets timestamp and lastModified

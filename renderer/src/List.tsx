@@ -1,15 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import type { DecodedEntry, Entry } from '../../shared/types'
 import { getDateParts } from '../lib/dates'
 import { handleError } from '../lib/error-handler'
 import * as db from '../db/db'
 
-const SEARCH_LIMIT = 50;
+// outer padding (10) + max content (75) + outer padding (10) + border (1)
+const ROW_HEIGHT = 96;
 
 interface ListViewProps {
   entries: DecodedEntry[];
-  style?: React.CSSProperties;
 }
 
 function toDecodedEntry(entry: Entry): DecodedEntry {
@@ -39,29 +40,18 @@ function EntryRow({ entry, onClick }: { entry: DecodedEntry; onClick: () => void
   );
 }
 
-function getPageSizeFromStorage(): number {
-  const stored = localStorage.getItem('entryLimit');
-  const parsed = parseInt(stored ?? '', 10);
-  return isNaN(parsed) || parsed <= 0 ? 50 : parsed;
-}
-
-export default function ListView({ entries, style }: ListViewProps) {
+export default function ListView({ entries }: ListViewProps) {
   const navigate = useNavigate()
+  const scrollRef = useRef<HTMLDivElement>(null)
   const [searchValue, setSearchValue] = useState('');
   const [searchResults, setSearchResults] = useState<DecodedEntry[] | null>(null);
-  const [searchLimit, setSearchLimit] = useState(SEARCH_LIMIT);
   const [hasMoreSearchResults, setHasMoreSearchResults] = useState(false);
+  const [searchPage, setSearchPage] = useState(1);
   const [activeQuery, setActiveQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [ftsReady, setFtsReady] = useState(false);
-  const [extraEntries, setExtraEntries] = useState<DecodedEntry[]>([]);
-  const [totalEntryCount, setTotalEntryCount] = useState<number | null>(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
-    // The worker may have already finished before this component mounted (e.g.
-    // on a small DB the build completes almost instantly). Check first so we
-    // don't wait forever for an event that already fired.
     window.sqlite.isFtsReady().then(ready => {
       if (ready) {
         setFtsReady(true);
@@ -69,23 +59,16 @@ export default function ListView({ entries, style }: ListViewProps) {
         window.sqlite.onFtsReady(() => setFtsReady(true));
       }
     });
-    db.getEntryCount().then(setTotalEntryCount).catch(handleError);
   }, []);
 
-  const handleLoadMoreSearchResults = async () => {
-    const newLimit = searchLimit + SEARCH_LIMIT;
-    setSearchLimit(newLimit);
-    setIsSearching(true);
-    try {
-      const results = await db.searchEntries(activeQuery, newLimit);
-      setSearchResults(results.map(toDecodedEntry));
-      setHasMoreSearchResults(results.length === newLimit);
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  const displayEntries = searchResults ?? entries;
+
+  const virtualizer = useVirtualizer({
+    count: displayEntries.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 5,
+  });
 
   const handleEntryClick = (entryId: string) => {
     navigate(`/edit?id=${entryId}`)
@@ -97,16 +80,18 @@ export default function ListView({ entries, style }: ListViewProps) {
     if (!query) {
       setSearchResults(null);
       setActiveQuery('');
-      setSearchLimit(SEARCH_LIMIT);
+      setSearchPage(1);
+      setHasMoreSearchResults(false);
       return;
     }
     setIsSearching(true);
-    setSearchLimit(SEARCH_LIMIT);
+    setSearchPage(1);
+    const limit = db.getSearchLimit();
     try {
-      const results = await db.searchEntries(query, SEARCH_LIMIT);
+      const results = await db.searchEntries(query, limit);
       setSearchResults(results.map(toDecodedEntry));
-      setHasMoreSearchResults(results.length === SEARCH_LIMIT);
       setActiveQuery(query);
+      setHasMoreSearchResults(limit != null && results.length === limit);
     } catch (error) {
       handleError(error);
       setSearchResults([]);
@@ -116,75 +101,74 @@ export default function ListView({ entries, style }: ListViewProps) {
     }
   };
 
+  const handleLoadMoreSearchResults = async () => {
+    const nextPage = searchPage + 1;
+    const limit = db.getSearchLimit();
+    if (limit == null) return;
+    setIsSearching(true);
+    try {
+      const results = await db.searchEntries(activeQuery, limit * nextPage);
+      setSearchResults(results.map(toDecodedEntry));
+      setSearchPage(nextPage);
+      setHasMoreSearchResults(results.length === limit * nextPage);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleClearSearch = () => {
     setSearchValue('');
     setSearchResults(null);
     setActiveQuery('');
-    setSearchLimit(SEARCH_LIMIT);
+    setSearchPage(1);
     setHasMoreSearchResults(false);
   };
 
-  const handleLoadMore = async () => {
-    const offset = entries.length + extraEntries.length;
-    const pageSize = getPageSizeFromStorage();
-    setIsLoadingMore(true);
-    try {
-      const page = await db.getEntriesPage(offset, pageSize);
-      setExtraEntries(prev => [...prev, ...page]);
-      // update total in case DB changed since mount
-      const count = await db.getEntryCount();
-      setTotalEntryCount(count);
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  const allEntries = extraEntries.length > 0 ? [...entries, ...extraEntries] : entries;
-  const displayEntries = searchResults ?? allEntries;
-  const hasMoreEntries = totalEntryCount !== null && allEntries.length < totalEntryCount;
-
-  // memoize the rendered rows — component stays mounted, so this avoids re-renders on route changes
-  const mappedEntries = useMemo(() => {
-    return displayEntries.map(entry => (
-      <EntryRow key={entry.id} entry={entry} onClick={() => handleEntryClick(entry.id)} />
-    ));
-  }, [displayEntries]);
-
   return (
-    <div style={{ overflowY: 'auto', overflowX: 'hidden', height: '100%', ...style }}>
-      <div className="min-h-[calc(100%-30px)]">
-        {mappedEntries}
-      </div>
-      <div className="sticky bottom-0 p-[2px] flex items-center justify-between gap-[6px] w-full h-[30px] bg-[color:var(--color-app-bg)]">
-        <div className="flex items-center gap-[6px]">
-          <form onSubmit={handleSearchSubmit}>
-            <input
-              type="text"
-              placeholder={ftsReady ? 'Search' : 'Indexing...'}
-              value={searchValue}
-              disabled={!ftsReady}
-              className="p-[2px] ml-[2px] text-[10px] h-[20px] outline-none disabled:opacity-40"
-              onChange={(e) => setSearchValue(e.target.value)}
-            />
-          </form>
-          {isSearching && <span className="text-[10px] text-gray-400">...</span>}
-          {searchResults !== null && !isSearching && (
-            <span className="text-[10px] text-gray-400">{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{activeQuery}"</span>
-          )}
-          {hasMoreSearchResults && !isSearching && (
-            <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleLoadMoreSearchResults}>Load more</button>
-          )}
-          {searchValue.length > 0 && (
-            <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleClearSearch}>Clear</button>
-          )}
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+          {virtualizer.getVirtualItems().map(virtualRow => {
+            const entry = displayEntries[virtualRow.index];
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <EntryRow entry={entry} onClick={() => handleEntryClick(entry.id)} />
+              </div>
+            );
+          })}
         </div>
-        {searchResults === null && hasMoreEntries && !isLoadingMore && (
-          <button type="button" className="text-[10px] h-[20px] flex items-center mr-[4px]" onClick={handleLoadMore}>Load more</button>
+      </div>
+      <div className="p-[2px] flex items-center justify-start gap-[6px] w-full h-[30px] bg-[color:var(--color-app-bg)]">
+        <form onSubmit={handleSearchSubmit}>
+          <input
+            type="text"
+            placeholder={ftsReady ? 'Search' : 'Indexing...'}
+            value={searchValue}
+            disabled={!ftsReady}
+            className="p-[2px] ml-[2px] text-[10px] h-[20px] outline-none disabled:opacity-40"
+            onChange={(e) => setSearchValue(e.target.value)}
+          />
+        </form>
+        {isSearching && <span className="text-[10px] text-gray-400">...</span>}
+        {searchResults !== null && !isSearching && (
+          <span className="text-[10px] text-gray-400">{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{activeQuery}"</span>
         )}
-        {searchResults === null && isLoadingMore && (
-          <span className="text-[10px] text-gray-400 mr-[4px]">...</span>
+        {hasMoreSearchResults && !isSearching && (
+          <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleLoadMoreSearchResults}>Load more</button>
+        )}
+        {searchValue.length > 0 && (
+          <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleClearSearch}>Clear</button>
         )}
       </div>
     </div>

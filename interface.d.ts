@@ -12,6 +12,7 @@ export interface CloudSyncAPI {
 
 export interface SQLiteAPI {
   getEntries: (limit?: number) => Promise<Entry[]>,
+  getEntriesForList: (limit?: number) => Promise<Entry[]>,
   getEntriesPage: (offset: number, limit: number) => Promise<Entry[]>,
   getEntryById: (id: string) => Promise<Entry | null>,
   getMostRecentEntry: () => Promise<Entry | null>,

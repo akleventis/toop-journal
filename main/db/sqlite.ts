@@ -108,6 +108,13 @@ function getEntries(limit?: number): Entry[] {
     return db.prepare(query).all() as Entry[];
 }
 
+// for list view — truncated content avoids serializing full entry bodies over IPC
+function getEntriesForList(limit?: number): Entry[] {
+    let query = "SELECT id, date, location, timestamp, lastModified, substr(content, 1, 500) as content FROM entries_t ORDER BY timestamp DESC";
+    if (limit && limit > 0) query += ` LIMIT ${limit}`;
+    return db.prepare(query).all() as Entry[];
+}
+
 function getEntriesPage(offset: number, limit: number): Entry[] {
     return db.prepare('SELECT * FROM entries_t ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(limit, offset) as Entry[];
 }
@@ -399,14 +406,15 @@ function isFtsReady(): boolean {
   return ftsWorkerReady;
 }
 
-async function searchEntries(query: string, limit = 50): Promise<Entry[]> {
+async function searchEntries(query: string, limit?: number): Promise<Entry[]> {
   if (!ftsWorker || !ftsWorkerReady) return [];
 
   const ids = await new Promise<string[]>((resolve, reject) => {
     // cancel any in-flight search — only the latest result is relevant
     if (pendingSearch) pendingSearch.resolve([]);
     pendingSearch = { resolve, reject };
-    ftsWorker!.postMessage({ type: 'search', query, limit });
+    // SQLite LIMIT -1 means no limit
+    ftsWorker!.postMessage({ type: 'search', query, limit: limit ?? -1 });
   });
   return ids
     .map(id => db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null)
@@ -436,6 +444,7 @@ function integrityCheck(): boolean {
 export {
     batchUpdateContent,
     getEntries,
+    getEntriesForList,
     getEntriesPage,
     getEntryCount,
     hasEntriesModifiedSince,
