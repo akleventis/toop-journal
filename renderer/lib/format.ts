@@ -1,9 +1,4 @@
-/**
- * Formats a byte count as a human-readable string (KB/MB/GB). Returns 'Unknown' for negative values.
- *
- * @param {number} bytes
- * @returns {string}
- */
+// Formats a byte count as a human-readable string (KB/MB/GB). Returns 'Unknown' for negative values.
 export function formatBytes(bytes: number): string {
     if (bytes < 0) return 'Unknown';
     if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
@@ -11,12 +6,7 @@ export function formatBytes(bytes: number): string {
     return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-/**
- * Formats a Unix timestamp (ms) as a relative time string (e.g. '5m ago', '2h ago'). Returns 'Never' for 0.
- *
- * @param {number} ts - Unix timestamp in ms.
- * @returns {string}
- */
+// Formats a Unix timestamp (ms) as a relative time string (e.g. '5m ago', '2h ago'). Returns 'Never' for 0.
 export function formatRelativeTime(ts: number): string {
     if (ts === 0) return 'Never';
     const diff = Date.now() - ts;

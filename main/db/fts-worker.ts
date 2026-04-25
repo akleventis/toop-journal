@@ -1,7 +1,5 @@
-/**
- * FTS worker thread — builds an in-memory FTS5 index from the journal DB and
- * handles search/upsert/delete messages from the main thread off the event loop.
- */
+// FTS worker thread — builds an in-memory FTS5 index from the journal DB and
+// handles search/upsert/delete messages from the main thread off the event loop.
 
 import { workerData, parentPort } from 'worker_threads';
 import Database from 'better-sqlite3';

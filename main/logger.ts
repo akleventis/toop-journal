@@ -56,14 +56,7 @@ class Logger {
     }
   }
 
-  /**
-   * Formats a log line as "[ISO_TIMESTAMP] [LEVEL] message ...args".
-   *
-   * @param {LogLevel} level
-   * @param {string} message
-   * @param {unknown[]} args
-   * @returns {string}
-   */
+  // Formats a log line as "[ISO_TIMESTAMP] [LEVEL] message ...args".
   private format(level: LogLevel, message: string, args: unknown[]): string {
     const ts = new Date().toISOString();
     const lvl = LogLevel[level];
@@ -73,13 +66,7 @@ class Logger {
     return `[${ts}] [${lvl}] ${message}${extra}`;
   }
 
-  /**
-   * Gates on log level, then writes to disk, console, and the renderer via IPC.
-   *
-   * @param {LogLevel} level
-   * @param {string} message
-   * @param {...unknown[]} args
-   */
+  // Gates on log level, then writes to disk, console, and the renderer via IPC.
   private write(level: LogLevel, message: string, ...args: unknown[]): void {
     if (level < this.level) return;
     const line = this.format(level, message, args);
@@ -109,12 +96,7 @@ class Logger {
   warn(message: string, ...args: unknown[]): void { this.write(LogLevel.WARN, message, ...args); }
   error(message: string, ...args: unknown[]): void { this.write(LogLevel.ERROR, message, ...args); }
 
-  /**
-   * Returns the last n lines from today's log file.
-   *
-   * @param {number} n - Number of lines to return. Defaults to LOG_RECENT_LINES.
-   * @returns {string[]}
-   */
+  // Returns the last n lines from today's log file.
   getRecentLines(n = LOG_RECENT_LINES): string[] {
     try {
       const content = fs.readFileSync(this.logFile, 'utf-8');

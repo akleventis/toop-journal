@@ -7,11 +7,7 @@ import { logger } from './logger';
 import { integrityCheck } from './db/sqlite';
 import { HealthCheck } from '../shared/types';
 
-/**
- * Runs SQLite PRAGMA integrity_check.
- *
- * @returns {Promise<boolean>} false on failure or error.
- */
+// Runs SQLite PRAGMA integrity_check. Returns false on failure or error.
 async function checkDatabaseIntegrity(): Promise<boolean> {
     try {
         return integrityCheck();
@@ -21,11 +17,7 @@ async function checkDatabaseIntegrity(): Promise<boolean> {
     }
 }
 
-/**
- * Validates that masterIndex.json exists and parses as a non-null object.
- *
- * @returns {Promise<boolean>}
- */
+// Validates that masterIndex.json exists and parses as a non-null object.
 async function checkMasterIndexIntegrity(): Promise<boolean> {
     const masterIndexPath = path.join(app.getPath('userData'), 'masterIndex.json');
     try {
@@ -37,11 +29,7 @@ async function checkMasterIndexIntegrity(): Promise<boolean> {
     }
 }
 
-/**
- * Checks S3 bucket reachability.
- *
- * @returns {Promise<boolean | null>} null if sync is disabled, true if reachable, false if not.
- */
+// Checks S3 bucket reachability. Returns null if sync is disabled.
 async function checkS3Connectivity(): Promise<boolean | null> {
     if (!state.AWSClient || !state.AWSConfig) return null;
     try {
@@ -52,11 +40,7 @@ async function checkS3Connectivity(): Promise<boolean | null> {
     }
 }
 
-/**
- * Returns available disk bytes in userData, or -1 on error.
- *
- * @returns {Promise<number>}
- */
+// Returns available disk bytes in userData, or -1 on error.
 async function checkDiskSpace(): Promise<number> {
     try {
         const userDataPath = app.getPath('userData');
@@ -68,11 +52,7 @@ async function checkDiskSpace(): Promise<number> {
     }
 }
 
-/**
- * Runs all health checks in parallel and returns the results.
- *
- * @returns {Promise<HealthCheck>}
- */
+// Runs all health checks in parallel and returns the results.
 export async function runHealthCheck(): Promise<HealthCheck> {
     const [databaseIntegrity, masterIndexIntegrity, s3Connectivity, diskSpace] = await Promise.all([
         checkDatabaseIntegrity(),

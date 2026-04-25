@@ -8,16 +8,7 @@ import { logger } from '../logger';
 
 let S3ClientInitializing = false; // prevent multiple initialization attempts
 
-/**
- * Initializes the S3 client for AWS operations.
- *
- * - Called upon initial app startup.
- * - Triggers the cloud sync pipeline in the background without blocking.
- * - Returns early if already initializing or if the client exists.
- * - Throws an error if the AWS config is invalid.
- *
- * @returns {Promise<void>} Resolves when client initialization completes (sync runs in background).
- */
+// Loads config, creates and tests the S3 client, and sets sync state. No-ops if already initialized.
 export const initS3Client = async (): Promise<void> => {
   if (S3ClientInitializing) {
     logger.debug('initS3Client: S3 client is already initializing, skipping initialization')
@@ -61,14 +52,7 @@ export const initS3Client = async (): Promise<void> => {
   syncStateMachine.setState(SyncState.READY);
 };
 
-/**
- * Validates the AWS configuration by checking if the specified S3 bucket exists.
- * If valid, sets the S3 client on `state`.
- *
- * @param {S3Config} config - The AWS configuration object.
- * @throws Will throw an error if the AWS configuration is invalid.
- * @returns {Promise<void>}
- */
+// Builds and tests an S3Client from config, then sets it on state.
 export const setAWSClient = async (config: S3Config): Promise<void> => {
   var client: S3Client;
     try {
@@ -87,13 +71,7 @@ export const setAWSClient = async (config: S3Config): Promise<void> => {
     await initS3MasterIndex(); // initialize master index file in s3
   };
 
-/**
- * Tests whether the provided AWS S3 client can list objects in the specified bucket.
- *
- * @param {S3Client} client - The initialized AWS S3 client.
- * @param {string} bucket - The S3 bucket name to test.
- * @returns {Promise<boolean>} `true` if the client can list objects, otherwise `false`.
- */
+// Returns true if the client can list objects in the bucket, false otherwise.
   export const testAWSClient = async (client: S3Client, bucket: string): Promise<boolean> => {
     try {
       await client.send(new ListObjectsV2Command({ Bucket: bucket, MaxKeys: 1 }));

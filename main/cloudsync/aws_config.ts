@@ -6,12 +6,7 @@ import { state } from './transact';
 import { syncStateMachine, SyncState } from './sync_state';
 import { logger } from '../logger';
 
-/**
- * Loads the AWS configuration from the `config.json` file.
- *
- * @returns {S3Config | null} The loaded configuration, or `null` if not found or invalid.
- * @remarks Callers are responsible for setting `state.AWSConfig` if needed.
- */
+// Loads the AWS configuration from config.json. Returns null if not found or invalid.
 export const getConfig = (): S3Config | null => {
     const configPath = path.join(state.UserDataPath, 'config.json');
     if (!fs.existsSync(configPath)) {
@@ -25,13 +20,7 @@ export const getConfig = (): S3Config | null => {
     return parsed;
 };
 
-/**
- * Creates a new `config.json` file with the provided AWS configuration.
- * Initializes the AWS client and stores the configuration both in memory and on disk.
- *
- * @param {S3Config} config - The AWS configuration object.
- * @returns {S3Config} The created AWS configuration object.
- */
+// Validates credentials, initializes the AWS client, and writes config.json.
 export const createConfig = async (config: S3Config): Promise<S3Config> => {
     logger.info('createConfig: saving new AWS config')
     if (!isValidAWSConfig(config)) {
@@ -53,13 +42,7 @@ export const createConfig = async (config: S3Config): Promise<S3Config> => {
     return config;
 };
 
-/**
- * Updates the existing `config.json` file with the provided AWS configuration.
- * Refreshes the AWS client and updates the configuration in memory and on disk.
- *
- * @param {S3Config} config - The updated AWS configuration object.
- * @returns {S3Config} The updated AWS configuration object.
- */
+// Re-validates credentials, refreshes the AWS client, and overwrites config.json.
 export const updateConfig = async (config: S3Config): Promise<S3Config> => {
     logger.info('updateConfig: updating AWS config')
     if (!isValidAWSConfig(config)) {
@@ -82,21 +65,14 @@ export const updateConfig = async (config: S3Config): Promise<S3Config> => {
     return config;
 };
 
-/**
- * Disables cloud sync without removing credentials from disk.
- * The S3 client is cleared from memory, allowing re-initialization later.
- */
+// Clears the S3 client from memory without removing credentials from disk.
 export const disableSync = (): void => {
     state.AWSClient = null;
     state.AWSConfig = null;
     syncStateMachine.setState(SyncState.DISABLED);
 };
 
-/**
- * Deletes the existing `config.json` file from disk.
- *
- * @returns {Promise<void>}
- */
+// Deletes config.json from disk and clears the client from memory.
 export const deleteConfig = async (): Promise<void> => {
     logger.info('deleteConfig: deleting AWS config')
     const configPath = path.join(state.UserDataPath, 'config.json');
@@ -109,12 +85,7 @@ export const deleteConfig = async (): Promise<void> => {
     logger.info('deleteConfig: AWS config deleted')
 };
 
-/**
- * Type guard that validates whether the given object conforms to the `S3Config` structure.
- *
- * @param {unknown} config - The object to validate.
- * @returns {config is S3Config} `true` if the object is a valid `S3Config`, otherwise `false`.
- */
+// Type guard for S3Config.
 const isValidAWSConfig = (config: unknown): config is S3Config => {
     if (typeof config !== 'object' || config === null) return false;
 

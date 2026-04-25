@@ -16,13 +16,8 @@ export const state = {
     lastSyncTime: 0, // epoch ms; read by health check
 }
 
-/**
- * Merges local and S3 master indexes, then commits atomically:
- * write to temp file → upload to S3 → rename to final (local only commits if S3 succeeds).
- *
- * @returns {Promise<boolean>} True if the sync was successful, false otherwise.
- * @throws Will throw an error if the AWS config or S3 client is not found.
- */
+// Merges local and S3 master indexes, then commits atomically:
+// write to temp file → upload to S3 → rename to final (local only commits if S3 succeeds).
 export const cloudSyncPipeline = async (): Promise<boolean> => {
     if (!state.AWSConfig) {
         throw new Error('no aws config found');

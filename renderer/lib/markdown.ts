@@ -20,22 +20,12 @@ __turndown.addRule('base64Image', {
   },
 });
 
-/**
- * Converts HTML (from the WYSIWYG editor) to Markdown for DB storage.
- *
- * @param {string} html
- * @returns {string}
- */
+// Converts WYSIWYG editor HTML to Markdown for DB storage.
 export function htmlToMarkdown(html: string): string {
   return __turndown.turndown(html);
 }
 
-/**
- * Converts stored Markdown to HTML for display in the WYSIWYG editor.
- *
- * @param {string} md
- * @returns {string}
- */
+// Converts stored Markdown to HTML for display in the WYSIWYG editor.
 export function markdownToHtml(md: string): string {
   return marked.parse(md) as string;
 }

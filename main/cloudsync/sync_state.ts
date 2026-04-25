@@ -1,20 +1,13 @@
 import { SyncState } from '../../shared/types';
 export { SyncState };
 
-/**
- * Manages sync state and notifies registered listeners on every transition.
- * State changes originate in the main process (aws_client, transact, aws_config)
- * and are pushed to the renderer via IPC (see main.ts → webContents.send).
- */
+// Manages sync state and notifies registered listeners on every transition.
+// State changes originate in aws_client/transact/aws_config and are pushed to the renderer via IPC.
 class SyncStateMachine {
   private state: SyncState = SyncState.UNINITIALIZED;
   private listeners: ((state: SyncState) => void)[] = [];
 
-  /**
-   * Updates state and synchronously notifies all registered listeners.
-   *
-   * @param {SyncState} newState - The new sync state to transition to.
-   */
+  // Updates state and synchronously notifies all registered listeners.
   setState(newState: SyncState) {
     this.state = newState;
     this.listeners.forEach(l => l(newState));
@@ -24,12 +17,7 @@ class SyncStateMachine {
     return this.state;
   }
 
-  /**
-   * Registers a state change listener.
-   *
-   * @param {(state: SyncState) => void} listener - Called with the new state on every transition.
-   * @returns {() => void} Unsubscribe function — call to remove the listener (e.g. on component unmount).
-   */
+  // Registers a listener; returns an unsubscribe function.
   onStateChange(listener: (state: SyncState) => void): () => void {
     this.listeners.push(listener);
     return () => {

@@ -1,9 +1,6 @@
 type NetworkListener = (online: boolean) => void;
 
-/**
- * Wraps window.network.* to provide a subscribable online/offline status.
- * Use this instead of window.network.* directly in components.
- */
+// Wraps window.network.* to provide a subscribable online/offline status.
 class NetworkManager {
   private listeners: Set<NetworkListener> = new Set();
 
@@ -13,19 +10,11 @@ class NetworkManager {
     });
   }
 
-  /**
-   * @returns {boolean} Current online status.
-   */
   isOnline(): boolean {
     return window.network.isOnline();
   }
 
-  /**
-   * Registers a listener for online/offline changes.
-   *
-   * @param {NetworkListener} listener
-   * @returns {() => void} Unsubscribe function.
-   */
+  // Registers a listener; returns an unsubscribe function.
   subscribe(listener: NetworkListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

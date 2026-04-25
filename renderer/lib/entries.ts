@@ -2,14 +2,7 @@ import { Entry } from '../../shared/types';
 import * as db from '../db/db';
 import { formatCurrentDate, journalDateToId } from './dates';
 
-/**
- * Saves an entry to the database (creates or updates), then navigates to /list.
- *
- * @param {string} currentHtml - Current WYSIWYG editor HTML content.
- * @param {Entry | null} entry - Existing entry to update, or null to create.
- * @param {(path: string) => void} navigate - React Router navigate function.
- * @returns {Promise<void>}
- */
+// Creates or updates an entry from the WYSIWYG editor, then navigates to /list.
 export async function saveEntry(
   currentHtml: string,
   entry: Entry | null,
@@ -40,13 +33,7 @@ export async function saveEntry(
   navigate('/list?reload=true');
 }
 
-/**
- * Deletes an entry from the database, then navigates to /list.
- *
- * @param {string} id - Entry ID to delete.
- * @param {(path: string) => void} navigate - React Router navigate function.
- * @returns {Promise<void>}
- */
+// Deletes an entry and navigates to /list.
 export async function deleteEntry(id: string, navigate: (path: string) => void): Promise<void> {
   await db.deleteEntry(id);
   navigate('/list?reload=true');

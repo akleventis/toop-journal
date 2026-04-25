@@ -16,10 +16,8 @@ function getBackupDir(): string {
   return path.join(app.getPath('userData'), 'backups');
 }
 
-/**
- * Creates a daily backup of the DB. Skips if one already exists for today.
- * Prunes backups beyond BACKUP_RETENTION days on each run.
- */
+// Creates a daily backup of the DB. Skips if one already exists for today.
+// Prunes backups beyond BACKUP_RETENTION days on each run.
 export function createBackup(): void {
   const backupDir = getBackupDir();
   if (!fs.existsSync(backupDir)) {
@@ -76,11 +74,7 @@ export interface BackupInfo {
   sizeBytes: number;
 }
 
-/**
- * Returns all backups sorted newest-first.
- *
- * @returns {BackupInfo[]}
- */
+// Returns all backups sorted newest-first.
 export function listBackups(): BackupInfo[] {
   const backupDir = getBackupDir();
   if (!fs.existsSync(backupDir)) return [];
@@ -96,12 +90,7 @@ export function listBackups(): BackupInfo[] {
     }));
 }
 
-/**
- * Copies a backup file over the live DB. Caller is responsible for relaunching the app.
- *
- * @param {string} filename - Backup filename (basename only, no path components).
- * @throws If the filename is invalid or the backup does not exist.
- */
+// Copies a backup file over the live DB. Caller is responsible for relaunching the app.
 export function restoreBackup(filename: string): void {
   // prevent path traversal
   if (filename.includes('/') || filename.includes('\\') || !filename.endsWith('.db')) {

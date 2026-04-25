@@ -49,12 +49,8 @@ let ftsWorkerReady = false;
 // at most one search is in flight at a time; a new search cancels the previous
 let pendingSearch: { resolve: (ids: string[]) => void; reject: (err: unknown) => void } | null = null;
 
-/**
- * Spawns the FTS worker thread. The worker opens the DB read-only, decrypts
- * all entries, and builds an in-memory FTS5 index entirely in the background.
- * The main process event loop is never blocked — search works via message
- * passing once the worker posts { type: 'ready' }.
- */
+// Spawns the FTS worker thread to build an in-memory FTS5 index in the background.
+// Search works via message passing once the worker posts { type: 'ready' }.
 export function buildInMemoryFts(onReady?: () => void): void {
   const workerPath = path.join(__dirname, 'fts-worker.js');
 
@@ -351,12 +347,7 @@ function deleteConflict(entryId: string): void {
     db.prepare('DELETE FROM conflicts_t WHERE entryId = ?').run(entryId);
 }
 
-/**
- * Validates an entry object before database insertion.
- *
- * @param {Entry} entry - The entry to validate.
- * @throws {Error} If validation fails.
- */
+// Throws if the entry is missing required fields or has an invalid date format.
 function validateEntry(entry: Entry): void {
     if (!entry.id || typeof entry.id !== 'string' || entry.id.trim() === '') {
         throw new Error('Invalid entry: id is required and must be a non-empty string');

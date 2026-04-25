@@ -4,11 +4,7 @@ import { SyncState } from '../../shared/types';
 import { networkManager } from './network-manager';
 import { handleError } from './error-handler';
 
-/**
- * Subscribes to sync state changes pushed from the main process.
- *
- * @returns {SyncState}
- */
+// Subscribes to sync state changes pushed from the main process.
 export const useSyncState = () => {
   const [syncState, setSyncState] = useState<SyncState>(SyncState.UNINITIALIZED)
 
@@ -20,11 +16,7 @@ export const useSyncState = () => {
   return syncState
 }
 
-/**
- * Checks for a stored password hash on mount and gates app content until verified.
- *
- * @returns {{ passwordProtected: boolean; passwordVerified: boolean; isInitializing: boolean; handlePasswordVerified: () => void; updatePasswordProtection: () => Promise<void> }}
- */
+// Checks for a stored password hash on mount and gates app content until verified.
 export const usePasswordProtection = () => {
   const [passwordProtected, setPasswordProtected] = useState(false)
   const [passwordVerified, setPasswordVerified] = useState(false)
@@ -78,11 +70,7 @@ export const usePasswordProtection = () => {
   }
 }
 
-/**
- * Monitors network status and reinitializes the S3 client when connection is restored.
- *
- * @returns {{ syncStatus: string }}
- */
+// Monitors network status and reinitializes the S3 client + pipeline when connection is restored.
 export const useNetworkSync = () => {
   const [syncStatus, setSyncStatus] = useState('initializing');
 

@@ -6,13 +6,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { logger } from '../logger';
 
-/**
- * Ensures the master index file exists in the user data directory.
- * Creates an empty master index file if it doesn't exist.
- * Called upon app startup.
- *
- * @returns {Promise<void>}
- */
+// Creates masterIndex.json in userData if it doesn't exist. Called on startup.
 export const initLocalMasterIndex = async (): Promise<void> => {
   const masterIndexPath = path.join(state.UserDataPath, state.MasterIndexFileName);
 
@@ -22,11 +16,7 @@ export const initLocalMasterIndex = async (): Promise<void> => {
   }
 };
 
-/**
- * Initializes the master index file in S3.
- *
- * @returns {Promise<void>}
- */
+// Creates masterIndex.json in S3 if it doesn't already exist.
 export const initS3MasterIndex = async (): Promise<void> => {
   if (!state.AWSClient || !state.AWSConfig) {
     throw new Error('initS3MasterIndex: no s3 client or config found');
@@ -56,12 +46,7 @@ export const initS3MasterIndex = async (): Promise<void> => {
   }
 };
 
-/**
- * Loads the master index from the local filesystem and returns it as a `MasterIndex` object.
- *
- * @returns {Promise<MasterIndex>} The master index.
- * @throws Will throw an error if the local filesystem is not found, or if the master index is not found.
- */
+// Reads and validates masterIndex.json from disk.
 export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
   const masterIndexPath = path.join(state.UserDataPath, state.MasterIndexFileName);
   if (!fs.existsSync(masterIndexPath)) {
@@ -80,12 +65,7 @@ export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
   return verifyMasterIndex(parsed);
 };
 
-/**
- * Loads the master index from S3 and returns it as a `MasterIndex` object.
- *
- * @returns {Promise<MasterIndex>} The master index.
- * @throws Will throw an error if the S3 client or config is not found, or if the master index is not found.
- */
+// Downloads and validates masterIndex.json from S3.
 export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
   logger.debug('loading s3 master index');
   if (!state.AWSConfig || !state.AWSClient) {
@@ -109,13 +89,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
 };
 
 
-/**
- * Verifies the master index and returns a valid `MasterIndex` object or an empty object if the input is invalid.
- *
- * @param {MasterIndex} masterIndex - The master index to verify.
- * @returns {MasterIndex} The verified master index.
- * @throws Will throw an error if the master index is not a valid object.
- */
+// Validates all entries in a parsed MasterIndex; throws if any entry is malformed.
 const verifyMasterIndex = (masterIndex: MasterIndex): MasterIndex => {
   if (typeof masterIndex !== 'object' || masterIndex === null) {
     throw new Error('verifyMasterIndex: masterIndex is not a valid object');
@@ -330,15 +304,7 @@ const executeSyncPlan = async (
 export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): Promise<MasterIndex> =>
   executeSyncPlan(planSync(localMasterIndex, s3MasterIndex), localMasterIndex, s3MasterIndex);
 
-/**
- * Updates the local master index for a given entry and saves it to the local filesystem ONLY.
- * Does NOT trigger S3 sync - full sync happens separately via cloudSyncPipeline on app start/close.
- *
- * @param {string} id - The id of the entry to update.
- * @param {MasterIndexEntry} entry - The entry to update.
- * @returns {Promise<void>}
- * @throws Will throw an error if the local master index is not found.
- */
+// Updates a single entry in the local masterIndex.json. Does not touch S3.
 export const updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry): Promise<void> => {
   let masterIndex: MasterIndex;
 
