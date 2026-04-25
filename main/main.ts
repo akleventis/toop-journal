@@ -354,7 +354,7 @@ ipcMain.handle('conflicts:resolveConflict', async (_, entryId: string, version: 
     if (entry) {
       entry.content = conflict.remoteVersion;
       entry.lastModified = conflict.remoteModified;
-      db.updateEntry(entryId, entry, true); // skipSync for now
+      db.updateEntryFromRemote(entryId, entry);
     }
   }
   // if version === 'local', keep local as-is

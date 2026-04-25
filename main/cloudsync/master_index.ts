@@ -215,7 +215,7 @@ const executeSyncPlan = async (
         }
         try {
           const entry = await fetchS3Entry(id);
-          db.createEntry(entry, true); // skipSync to avoid recursive loop
+          db.createEntryFromRemote(entry);
           syncedIndex[id] = s3;
           downloaded++;
         } catch (error: any) {
@@ -272,7 +272,7 @@ const executeSyncPlan = async (
 
       case 'delete-local': {
         try {
-          db.deleteEntry(id, true); // skipSync to avoid recursive loop
+          db.deleteEntryFromRemote(id);
           syncedIndex[id] = s3;
         } catch (error) {
           logger.error(`syncMasterIndex: error deleting local entry ${id}:`, error);
@@ -304,7 +304,7 @@ const executeSyncPlan = async (
           conflicts++;
         } else {
           // content identical despite timestamp diff — accept S3 index
-          db.updateEntry(id, s3Entry!, true); // skipSync to avoid recursive loop
+          db.updateEntryFromRemote(id, s3Entry!);
           syncedIndex[id] = s3;
           downloaded++;
         }

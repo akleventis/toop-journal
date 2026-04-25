@@ -124,7 +124,7 @@ function getEntriesBetweenTimestamps(startTs: number, endTs: number): Entry[] {
     return db.prepare('SELECT * FROM entries_t WHERE timestamp BETWEEN ? AND ? order by timestamp desc').all(startTs, endTs) as Entry[];
 }
 
-function createEntry(entry: Entry, skipSync = false): void {
+function createEntry(entry: Entry): void {
     try {
         validateEntry(entry);
     } catch (error) {
@@ -146,22 +146,45 @@ function createEntry(entry: Entry, skipSync = false): void {
 
     try {
         transaction();
-        // keep worker FTS in sync — entry.content is plaintext here
         if (ftsWorker) {
             ftsWorker.postMessage({ type: 'upsert', id: entry.id, content: entry.content, timestamp: entry.timestamp });
         }
-        // only update master index if db transaction succeeded
-        if (!skipSync) {
-            logger.info(`entry created: ${entry.id}`);
-            dbEvents.emit('entry:created', { id: entry.id, lastModified: Date.now() });
-        }
+        logger.info(`entry created: ${entry.id}`);
+        dbEvents.emit('entry:created', { id: entry.id, lastModified: Date.now() });
     } catch (error) {
         logger.error(`createEntry: error creating entry ${entry.id}:`, error);
         throw error;
     }
 }
 
-function updateEntry(id: string, entry: Entry, skipSync = false): void {
+// sync-sourced variant — writes without emitting dbEvents to avoid triggering the sync coordinator
+function createEntryFromRemote(entry: Entry): void {
+    try {
+        validateEntry(entry);
+    } catch (error) {
+        logger.error(`createEntryFromRemote: validation failed for entry ${entry.id}:`, error);
+        throw error;
+    }
+
+    if (!entry.timestamp) entry.timestamp = Date.now();
+    if (!entry.lastModified) entry.lastModified = Date.now();
+
+    const transaction = db.transaction(() => {
+        db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
+    });
+
+    try {
+        transaction();
+        if (ftsWorker) {
+            ftsWorker.postMessage({ type: 'upsert', id: entry.id, content: entry.content, timestamp: entry.timestamp });
+        }
+    } catch (error) {
+        logger.error(`createEntryFromRemote: error creating entry ${entry.id}:`, error);
+        throw error;
+    }
+}
+
+function updateEntry(id: string, entry: Entry): void {
     try {
         if (!entry.id) {
             entry.id = id;
@@ -194,18 +217,52 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
         if (ftsWorker) {
             ftsWorker.postMessage({ type: 'upsert', id, content: entry.content, timestamp: entry.timestamp });
         }
-        // only update master index if db transaction succeeded
-        if (!skipSync) {
-            logger.info(`entry updated: ${id}`);
-            dbEvents.emit('entry:updated', { id, lastModified: Date.now() });
-        }
+        logger.info(`entry updated: ${id}`);
+        dbEvents.emit('entry:updated', { id, lastModified: Date.now() });
     } catch (error) {
         logger.error(`updateEntry: error updating entry ${id}:`, error);
         throw error;
     }
 }
 
-function deleteEntry(id: string, skipSync = false): void {
+// sync-sourced variant — writes without emitting dbEvents to avoid triggering the sync coordinator
+function updateEntryFromRemote(id: string, entry: Entry): void {
+    try {
+        if (!entry.id) {
+            entry.id = id;
+        } else if (entry.id !== id) {
+            throw new Error(`Entry id mismatch: parameter id="${id}" but entry.id="${entry.id}"`);
+        }
+        validateEntry(entry);
+    } catch (error) {
+        logger.error(`updateEntryFromRemote: validation failed for entry ${id}:`, error);
+        throw error;
+    }
+
+    if (!entry.lastModified) entry.lastModified = Date.now();
+
+    const transaction = db.transaction(() => {
+        db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified, id);
+
+        const conflict = getConflictByEntryId(id);
+        if (conflict) {
+            db.prepare('UPDATE conflicts_t SET localVersion = ?, localModified = ? WHERE entryId = ?')
+                .run(entry.content, entry.lastModified, id);
+        }
+    });
+
+    try {
+        transaction();
+        if (ftsWorker) {
+            ftsWorker.postMessage({ type: 'upsert', id, content: entry.content, timestamp: entry.timestamp });
+        }
+    } catch (error) {
+        logger.error(`updateEntryFromRemote: error updating entry ${id}:`, error);
+        throw error;
+    }
+}
+
+function deleteEntry(id: string): void {
     const transaction = db.transaction(() => {
         db.prepare('DELETE FROM entries_t WHERE id = ?').run(id);
     });
@@ -215,13 +272,27 @@ function deleteEntry(id: string, skipSync = false): void {
         if (ftsWorker) {
             ftsWorker.postMessage({ type: 'delete', id });
         }
-        // only update master index if db transaction succeeded
-        if (!skipSync) {
-            logger.info(`entry deleted: ${id}`);
-            dbEvents.emit('entry:deleted', { id, lastModified: Date.now() });
-        }
+        logger.info(`entry deleted: ${id}`);
+        dbEvents.emit('entry:deleted', { id, lastModified: Date.now() });
     } catch (error) {
         logger.error(`deleteEntry: error deleting entry ${id}:`, error);
+        throw error;
+    }
+}
+
+// sync-sourced variant — writes without emitting dbEvents to avoid triggering the sync coordinator
+function deleteEntryFromRemote(id: string): void {
+    const transaction = db.transaction(() => {
+        db.prepare('DELETE FROM entries_t WHERE id = ?').run(id);
+    });
+
+    try {
+        transaction();
+        if (ftsWorker) {
+            ftsWorker.postMessage({ type: 'delete', id });
+        }
+    } catch (error) {
+        logger.error(`deleteEntryFromRemote: error deleting entry ${id}:`, error);
         throw error;
     }
 }
@@ -378,8 +449,11 @@ export {
     getMostRecentEntry,
     getEntriesBetweenTimestamps,
     createEntry,
+    createEntryFromRemote,
     updateEntry,
+    updateEntryFromRemote,
     deleteEntry,
+    deleteEntryFromRemote,
     getPasswordHash,
     setPasswordHash,
     getPasswordSalt,
