@@ -1,35 +1,37 @@
 import { dbEvents } from '../db/sqlite';
 import { updateLocalMasterIndex } from './master_index';
 import { cloudSyncPipeline, state } from './transact';
-import { syncStateMachine, SyncState } from './sync_state';
 import { logger } from '../logger';
 
-let pendingSync = false;
+let syncInFlight = false;
+let dirtyDuringSync = false; // at least one event arrived while a sync was running
 
 function triggerSync() {
   if (!state.AWSClient || !state.AWSConfig) return;
 
-  if (syncStateMachine.getState() === SyncState.READY) {
-    cloudSyncPipeline().catch(err =>
-      logger.error('sync_coordinator: background sync failed:', err)
-    );
-  } else {
-    // a sync is already in flight — queue one follow-up once it settles
-    if (!pendingSync) {
-      pendingSync = true;
-      const unsub = syncStateMachine.onStateChange((newState) => {
-        if (newState === SyncState.READY) {
-          unsub();
-          pendingSync = false;
-          cloudSyncPipeline().catch(err =>
-            logger.error('sync_coordinator: follow-up sync failed:', err)
-          );
-        } else if (newState === SyncState.ERROR || newState === SyncState.OFFLINE || newState === SyncState.DISABLED) {
-          // terminal state — unsubscribe to avoid listener leak
-          unsub();
-          pendingSync = false;
-        }
-      });
+  if (syncInFlight) {
+    // mark dirty so runSync schedules a follow-up when the current sync completes
+    dirtyDuringSync = true;
+    return;
+  }
+
+  runSync();
+}
+
+async function runSync() {
+  syncInFlight = true;
+  dirtyDuringSync = false;
+
+  try {
+    await cloudSyncPipeline();
+  } catch (err) {
+    logger.error('sync_coordinator: sync failed:', err);
+  } finally {
+    syncInFlight = false;
+    // if any events arrived during the sync, run one follow-up to capture them
+    if (dirtyDuringSync) {
+      dirtyDuringSync = false;
+      runSync();
     }
   }
 }
