@@ -56,16 +56,6 @@ const TextEditor: React.FC<TextEditProps> = ({
         }
     };
 
-    // Strip HTML on copy; collapse \n\n between <p> blocks (macOS selection.toString()
-    // behavior) to \n so copied text matches the visual single-line-break display.
-    const onCopy = (e: React.ClipboardEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        const selection = window.getSelection();
-        if (selection) {
-            e.clipboardData.setData('text/plain', selection.toString().replace(/\n{2,}/g, '\n'));
-        }
-    };
-
     const toggleEditMode = () => {
         setEditableState(true);
         setDisplayNavState(false);
@@ -124,7 +114,7 @@ const TextEditor: React.FC<TextEditProps> = ({
                 onNavigate={onNavigate}
             />
 
-            <div onDragOver={onDragOver} onDrop={onDrop} onCopy={onCopy}>
+            <div onDragOver={onDragOver} onDrop={onDrop}>
                 <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown} spellCheck={true}>
                     <Toolbar>
                     </Toolbar>

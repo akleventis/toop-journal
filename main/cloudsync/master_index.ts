@@ -205,21 +205,6 @@ const executeSyncPlan = async (
       }
 
       case 'upload': {
-        // skip if already in S3 (index out of date)
-        let s3Exists = false;
-        try {
-          await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
-          s3Exists = true;
-        } catch (error: any) {
-          if (error.name !== 'NoSuchKey') {
-            logger.error(`syncMasterIndex: error checking S3 entry ${id}:`, error);
-            throw error;
-          }
-        }
-        if (s3Exists) {
-          syncedIndex[id] = local;
-          break;
-        }
         try {
           const entry = db.getEntryById(id);
           if (!entry) throw new Error(`syncMasterIndex: local entry ${id} not found`);
