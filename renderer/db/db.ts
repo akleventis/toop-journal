@@ -34,6 +34,12 @@ export async function getEntriesForList(): Promise<DecodedEntry[]> {
   return rows.map(entry => ({ ...entry, decodedContent: entry.content }));
 }
 
+// no limit — calendar always needs all entry dates regardless of entryLimit setting
+export async function getEntriesForCalendar(): Promise<DecodedEntry[]> {
+  const rows = await window.sqlite.getEntriesForList();
+  return rows.map(entry => ({ ...entry, decodedContent: entry.content }));
+}
+
 export async function getEntryById(id: string): Promise<Entry | null> {
   return await window.sqlite.getEntryById(id);
 }

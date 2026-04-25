@@ -30,6 +30,7 @@ const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
 function AppContent() {
   const [entries, setEntries] = useState<DecodedEntry[]>([])
+  const [calendarEntries, setCalendarEntries] = useState<DecodedEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const location = useLocation();
@@ -70,8 +71,12 @@ function AppContent() {
 
   const loadEntries = async () => {
     setLoading(true)
-    const entries = await db.getEntriesForList()
-    setEntries(entries)
+    const [listEntries, calEntries] = await Promise.all([
+      db.getEntriesForList(),
+      db.getEntriesForCalendar(),
+    ])
+    setEntries(listEntries)
+    setCalendarEntries(calEntries)
     setLoading(false)
   }
 
@@ -100,6 +105,7 @@ function AppContent() {
     if (!passwordVerified) return;
     return window.sqlite.onEntriesChanged(() => {
       db.getEntriesForList().then(setEntries).catch(handleError);
+      db.getEntriesForCalendar().then(setCalendarEntries).catch(handleError);
     });
   }, [passwordVerified]);
 
@@ -120,7 +126,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={null} />
           <Route path="/list" element={null} />
-          <Route path="/calendar" element={<ErrorBoundary><Calendar entries={entries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} /></ErrorBoundary>} />
+          <Route path="/calendar" element={<ErrorBoundary><Calendar entries={calendarEntries} loadEntries={loadEntries} selectedYear={selectedYear} setSelectedYear={setSelectedYear} /></ErrorBoundary>} />
           <Route path="/more" element={<ErrorBoundary><More /></ErrorBoundary>} />
           <Route path="/conflicts" element={<ErrorBoundary><Conflicts /></ErrorBoundary>} />
           <Route path="/logs" element={<ErrorBoundary><Logs /></ErrorBoundary>} />
@@ -128,8 +134,8 @@ function AppContent() {
           <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
           <Route path="/edit" element={<ErrorBoundary><Edit entries={entries} /></ErrorBoundary>} />
         </Routes>
+        {loading && <div className="absolute inset-0 flex justify-center items-center bg-[color:var(--color-app-bg)] z-[1000]"><LoadingSpinner size={32} /></div>}
       </div>
-      {loading && <div className="absolute top-[40px] left-0 w-full h-full flex justify-center items-center bg-[color:var(--color-app-bg)] z-[1000]"><LoadingSpinner size={32} /></div>}
     </div>
   );
 }
