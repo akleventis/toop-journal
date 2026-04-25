@@ -45,6 +45,14 @@ export interface DecodedEntry extends Entry {
   decodedContent: string; // content converted from markdown to HTML for display
 }
 
+export type SyncAction =
+  | { action: 'download';       id: string }
+  | { action: 'upload';         id: string }
+  | { action: 'delete-remote';  id: string }
+  | { action: 'delete-local';   id: string }
+  | { action: 'check-conflict'; id: string }
+  | { action: 'skip';           id: string }
+
 export type HealthCheck = {
   databaseIntegrity: boolean;
   masterIndexIntegrity: boolean;
