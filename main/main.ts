@@ -6,6 +6,7 @@ import { Entry, S3Config } from '../shared/types';
 import { cloudSyncPipeline, state } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
+import { resolveConflict } from './cloudsync/conflict_resolver';
 import { createBackup, listBackups, restoreBackup } from './backup';
 import { runHealthCheck } from './health';
 import { hashPassword, verifyPassword } from './security/password';
@@ -336,30 +337,6 @@ ipcMain.handle('backup:restore', async (_, filename: string) => {
 
 // conflict resolution
 ipcMain.handle('conflicts:resolveConflict', async (_, entryId: string, version: 'local' | 'remote') => {
-  const conflict = db.getConflictByEntryId(entryId);
-  if (!conflict) {
-    throw new Error(`Conflict not found for entry ${entryId}`);
-  }
-
-  if (version === 'remote') {
-    // update local entry with remote version
-    const entry = db.getEntryById(entryId);
-    if (entry) {
-      entry.content = conflict.remoteVersion;
-      entry.lastModified = conflict.remoteModified;
-      db.updateEntryFromRemote(entryId, entry);
-    }
-  }
-  // if version === 'local', keep local as-is
-  // delete the conflict
-  db.deleteConflict(entryId);
-  // trigger sync to resolve the entry
-  if (state.AWSClient && state.AWSConfig) {
-    try {
-      await cloudSyncPipeline();
-      mainWindow?.webContents.send('sqlite:entries-changed');
-    } catch (error) {
-      logger.error('Error syncing after conflict resolution:', error);
-    }
-  }
+  await resolveConflict(entryId, version);
+  mainWindow?.webContents.send('sqlite:entries-changed');
 });
