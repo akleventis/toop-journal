@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { networkManager } from '../../lib/network-manager'
+import { checkNavGuard } from '../../lib/nav-guard'
 
 interface NavBarProps {
   activeTab: string
@@ -28,6 +29,7 @@ export default function NavBar({ activeTab }: NavBarProps) {
           <Link
             key={tab.path}
             to={tab.path}
+            onClick={(e) => { if (!checkNavGuard()) e.preventDefault(); }}
             className={clsx(
               'w-[68px] py-[5px] rounded-sm text-center text-[12px] font-medium transition-all duration-150',
               activeTab === tab.path

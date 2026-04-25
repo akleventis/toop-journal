@@ -6,6 +6,7 @@ import type { DecodedEntry } from '../../shared/types';
 import { NavDirection } from '../lib/constants';
 import { saveEntry } from '../lib/entries';
 import { handleError } from '../lib/error-handler';
+import { setNavGuard, clearNavGuard } from '../lib/nav-guard';
 
 interface EditProps {
   entries: DecodedEntry[];
@@ -52,6 +53,14 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
       navigate(`/edit?id=${newEntry.id}`);
     }
   };
+
+  const hasUnsavedChanges = isEditing && !isSaving && currentHtml !== (entry?.content ?? '');
+  useEffect(() => {
+    hasUnsavedChanges
+      ? setNavGuard(() => window.confirm('You have unsaved changes. Leave anyway?'))
+      : clearNavGuard();
+    return () => clearNavGuard();
+  }, [hasUnsavedChanges]);
 
   const handleSave = async () => {
     setIsSaving(true);

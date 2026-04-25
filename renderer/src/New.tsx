@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { formatCurrentDate, calendarToJournal, journalToCalendar, getCurrentCalendarDate } from '../lib/dates';
 import { saveEntry } from '../lib/entries';
+import { setNavGuard, clearNavGuard } from '../lib/nav-guard';
 import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
 
@@ -25,6 +26,14 @@ const New: React.FC = () => {
   // get date from url param (in instances when we want create a new entry for a specific date) or use current date
   const dateParam = searchParams.get('date');
   const dateRef = useRef(dateParam ? calendarToJournal(dateParam) : formatCurrentDate());
+
+  const isEmpty = !currentHtml || currentHtml === '<br>' || currentHtml === '<p><br></p>';
+  useEffect(() => {
+    isEmpty
+      ? clearNavGuard()
+      : setNavGuard(() => window.confirm('You have unsaved changes. Leave anyway?'));
+    return () => clearNavGuard();
+  }, [isEmpty]);
 
   const handleSave = async () => {
     await saveEntry(currentHtml, null, navigate, dateParam ? dateRef.current : undefined);
