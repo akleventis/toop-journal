@@ -30,6 +30,7 @@ export interface SQLiteAPI {
   batchUpdateContent: (updates: { id: string; content: string }[]) => Promise<void>,
   isFtsReady: () => Promise<boolean>,
   onFtsReady: (callback: () => void) => void,
+  onEntriesChanged: (callback: () => void) => () => void,
 }
 
 export interface SecurityAPI {

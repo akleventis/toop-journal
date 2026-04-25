@@ -43,6 +43,11 @@ contextBridge.exposeInMainWorld('sqlite', {
   batchUpdateContent: (updates: { id: string; content: string }[]) => ipcRenderer.invoke('sqlite:batchUpdateContent', updates),
   isFtsReady: (): Promise<boolean> => ipcRenderer.invoke('sqlite:isFtsReady'),
   onFtsReady: (callback: () => void) => ipcRenderer.once('fts:ready', () => callback()),
+  onEntriesChanged: (callback: () => void): (() => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('sqlite:entries-changed', handler);
+    return () => ipcRenderer.removeListener('sqlite:entries-changed', handler);
+  },
 })
 
 contextBridge.exposeInMainWorld('security', {

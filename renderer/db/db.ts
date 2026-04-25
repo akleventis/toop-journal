@@ -8,6 +8,9 @@ export function clearDecodedCache() {
   __decodedEntriesMemo = null;
 }
 
+// auto-clear when the sync pipeline writes remote entries — no manual calls needed
+window.sqlite.onEntriesChanged(() => clearDecodedCache());
+
 function getEntryLimitFromStorage(): number | undefined {
   const stored = localStorage.getItem('entryLimit');
   if (!stored) return undefined;

@@ -199,6 +199,7 @@ ipcMain.handle('cloud-sync:initS3Client', async () => {
   if (state.AWSClient && state.AWSConfig) {
     try {
       await cloudSyncPipeline();
+      mainWindow?.webContents.send('sqlite:entries-changed');
     } catch (error) {
       logger.error('Error during initial sync:', error);
       throw error;
@@ -208,7 +209,9 @@ ipcMain.handle('cloud-sync:initS3Client', async () => {
 
 // aws cloud sync pipeline: syncs master indexes & entries between local and S3
 ipcMain.handle('cloud-sync:cloudSyncPipeline', async () => {
-  return await cloudSyncPipeline();
+  const result = await cloudSyncPipeline();
+  mainWindow?.webContents.send('sqlite:entries-changed');
+  return result;
 });
 
 // sqlite operations called from main process; errors bubble up to the renderer process
@@ -364,6 +367,7 @@ ipcMain.handle('conflicts:resolveConflict', async (_, entryId: string, version: 
   if (state.AWSClient && state.AWSConfig) {
     try {
       await cloudSyncPipeline();
+      mainWindow?.webContents.send('sqlite:entries-changed');
     } catch (error) {
       logger.error('Error syncing after conflict resolution:', error);
     }

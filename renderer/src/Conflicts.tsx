@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { Conflict } from '../../shared/types';
 import { useNavigate } from 'react-router-dom';
-import { clearDecodedCache } from '../db/db';
 import { handleError } from '../lib/error-handler';
 
 export default function Conflicts() {
@@ -27,7 +26,6 @@ export default function Conflicts() {
         setLoading(true);
         try {
             await window.conflicts.resolveConflict(selected.entryId, version);
-            clearDecodedCache();
             navigate('/list?reload=true');
         } catch (error) {
             handleError(error, 'Failed to resolve conflict');
