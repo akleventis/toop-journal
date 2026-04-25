@@ -195,16 +195,6 @@ ipcMain.handle('cloud-sync:getConfig', async () => {
 // aws client functions
 ipcMain.handle('cloud-sync:initS3Client', async () => {
   await initS3Client();
-  // trigger initial sync after S3 client is initialized
-  if (state.AWSClient && state.AWSConfig) {
-    try {
-      await cloudSyncPipeline();
-      mainWindow?.webContents.send('sqlite:entries-changed');
-    } catch (error) {
-      logger.error('Error during initial sync:', error);
-      throw error;
-    }
-  }
 });
 
 // aws cloud sync pipeline: syncs master indexes & entries between local and S3

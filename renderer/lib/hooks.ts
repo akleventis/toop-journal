@@ -95,6 +95,7 @@ export const useNetworkSync = () => {
 
       try {
         await window.cloudSync.initS3Client();
+        await window.cloudSync.cloudSyncPipeline();
         setSyncStatus('cloud sync success');
       } catch (err) {
         setSyncStatus('cloud sync failed');

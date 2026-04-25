@@ -580,6 +580,7 @@ export function AWSConfig() {
         try {
             if (wasDisabled) {
                 await window.cloudSync.initS3Client()
+                await window.cloudSync.cloudSyncPipeline()
             } else {
                 await window.cloudSync.cloudSyncPipeline()
             }
