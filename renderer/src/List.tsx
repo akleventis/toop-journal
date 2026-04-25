@@ -39,6 +39,12 @@ function EntryRow({ entry, onClick }: { entry: DecodedEntry; onClick: () => void
   );
 }
 
+function getPageSizeFromStorage(): number {
+  const stored = localStorage.getItem('entryLimit');
+  const parsed = parseInt(stored ?? '', 10);
+  return isNaN(parsed) || parsed <= 0 ? 50 : parsed;
+}
+
 export default function ListView({ entries, style }: ListViewProps) {
   const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState('');
@@ -48,6 +54,9 @@ export default function ListView({ entries, style }: ListViewProps) {
   const [activeQuery, setActiveQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [ftsReady, setFtsReady] = useState(false);
+  const [extraEntries, setExtraEntries] = useState<DecodedEntry[]>([]);
+  const [totalEntryCount, setTotalEntryCount] = useState<number | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     // The worker may have already finished before this component mounted (e.g.
@@ -60,6 +69,7 @@ export default function ListView({ entries, style }: ListViewProps) {
         window.sqlite.onFtsReady(() => setFtsReady(true));
       }
     });
+    db.getEntryCount().then(setTotalEntryCount).catch(handleError);
   }, []);
 
   const handleLoadMoreSearchResults = async () => {
@@ -114,7 +124,26 @@ export default function ListView({ entries, style }: ListViewProps) {
     setHasMoreSearchResults(false);
   };
 
-  const displayEntries = searchResults ?? entries;
+  const handleLoadMore = async () => {
+    const offset = entries.length + extraEntries.length;
+    const pageSize = getPageSizeFromStorage();
+    setIsLoadingMore(true);
+    try {
+      const page = await db.getEntriesPage(offset, pageSize);
+      setExtraEntries(prev => [...prev, ...page]);
+      // update total in case DB changed since mount
+      const count = await db.getEntryCount();
+      setTotalEntryCount(count);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const allEntries = extraEntries.length > 0 ? [...entries, ...extraEntries] : entries;
+  const displayEntries = searchResults ?? allEntries;
+  const hasMoreEntries = totalEntryCount !== null && allEntries.length < totalEntryCount;
 
   // memoize the rendered rows — component stays mounted, so this avoids re-renders on route changes
   const mappedEntries = useMemo(() => {
@@ -124,11 +153,12 @@ export default function ListView({ entries, style }: ListViewProps) {
   }, [displayEntries]);
 
   return (
-    <div style={{ overflowY: 'auto', height: '100%', ...style }}>
+    <div style={{ overflowY: 'auto', overflowX: 'hidden', height: '100%', ...style }}>
       <div className="min-h-[calc(100%-30px)]">
         {mappedEntries}
       </div>
-      <div className="sticky bottom-0 p-[2px] flex items-center justify-start gap-[6px] w-full h-[30px] bg-[color:var(--color-app-bg)]">
+      <div className="sticky bottom-0 p-[2px] flex items-center justify-between gap-[6px] w-full h-[30px] bg-[color:var(--color-app-bg)]">
+        <div className="flex items-center gap-[6px]">
           <form onSubmit={handleSearchSubmit}>
             <input
               type="text"
@@ -149,6 +179,13 @@ export default function ListView({ entries, style }: ListViewProps) {
           {searchValue.length > 0 && (
             <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleClearSearch}>Clear</button>
           )}
+        </div>
+        {searchResults === null && hasMoreEntries && !isLoadingMore && (
+          <button type="button" className="text-[10px] h-[20px] flex items-center mr-[4px]" onClick={handleLoadMore}>Load more</button>
+        )}
+        {searchResults === null && isLoadingMore && (
+          <span className="text-[10px] text-gray-400 mr-[4px]">...</span>
+        )}
       </div>
     </div>
   )

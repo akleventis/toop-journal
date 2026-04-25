@@ -223,15 +223,15 @@ markdownToHtml(entry.content)         ← marked (on display, not stored)
 
 ## File Locations (macOS)
 
-| File | Path |
-|---|---|
-| Database (prod) | `~/Library/Application Support/toop-journal/journal.db` |
-| Database (dev) | `~/Library/Application Support/toop-journal/journal-dev.db` |
-| Master index | `~/Library/Application Support/toop-journal/masterIndex.json` |
-| AWS config | `~/Library/Application Support/toop-journal/config.json` |
-| Backups | `~/Library/Application Support/toop-journal/backups/` |
-| Logs | `~/Library/Application Support/toop-journal/logs/app-YYYY-MM-DD.log` |
-| Encryption key | `~/Library/Application Support/toop-journal/enc.key` |
+| File | Dev (`Electron/`) | Prod (`toop-journal/`) |
+|---|---|---|
+| Database | `journal-dev.db` | `journal.db` |
+| Master index | `masterIndex.json` | `masterIndex.json` |
+| AWS config | `config.json` | `config.json` |
+| Backups | `backups/` | `backups/` |
+| Logs | `logs/app-YYYY-MM-DD.log` | `logs/app-YYYY-MM-DD.log` |
+
+Both paths are under `~/Library/Application Support/`. Dev uses the `Electron/` directory (Electron's default when `app.isPackaged === false`); prod uses `toop-journal/`.
 
 ---
 

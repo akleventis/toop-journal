@@ -102,5 +102,5 @@ app.getPath('userData')
 | HTML          | `http://localhost:5173`                   | `file://.../app.asar/dist/renderer/index.html`         |
 | Preload       | `../preload/preload.js`                   | `../preload/preload.js` (same relative path!)          |
 | Icon          | `../assets/icon.png`                      | `../../assets/icon.png`                                |
-| User Data     | `~/Library/Application Support/toop-journal` | Same in both environments                           |
+| User Data     | `~/Library/Application Support/Electron` | `~/Library/Application Support/toop-journal` |
 

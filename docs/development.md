@@ -34,7 +34,7 @@ In dev mode, the app uses a **separate database** so you never touch your real j
 
 | Mode | Database file |
 |---|---|
-| Dev (`!app.isPackaged`) | `~/Library/Application Support/toop-journal/journal-dev.db` |
+| Dev (`!app.isPackaged`) | `~/Library/Application Support/Electron/journal-dev.db` |
 | Production | `~/Library/Application Support/toop-journal/journal.db` |
 
 The switch is automatic — no config needed. `app.isPackaged` is `false` when launched via `npm run dev`.
@@ -42,13 +42,13 @@ The switch is automatic — no config needed. `app.isPackaged` is `false` when l
 ### Resetting the dev database
 
 ```bash
-rm ~/Library/Application\ Support/toop-journal/journal-dev.db
+rm ~/Library/Application\ Support/Electron/journal-dev.db
 ```
 
 Relaunch the app — the DB is recreated from scratch with all tables. The master index is also recreated:
 
 ```bash
-rm ~/Library/Application\ Support/toop-journal/masterIndex.json
+rm ~/Library/Application\ Support/Electron/masterIndex.json
 ```
 
 ### Seeding the dev database
@@ -57,7 +57,7 @@ To copy production data into dev for testing:
 
 ```bash
 cp ~/Library/Application\ Support/toop-journal/journal.db \
-   ~/Library/Application\ Support/toop-journal/journal-dev.db
+   ~/Library/Application\ Support/Electron/journal-dev.db
 ```
 
 Then relaunch.
@@ -148,7 +148,7 @@ Use `handleError` from `renderer/lib/error-handler.ts` — never `console.error`
 
 ```bash
 # Open with sqlite3 CLI
-sqlite3 ~/Library/Application\ Support/toop-journal/journal-dev.db
+sqlite3 ~/Library/Application\ Support/Electron/journal-dev.db
 
 # Useful queries
 .tables

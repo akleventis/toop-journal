@@ -210,6 +210,8 @@ ipcMain.handle('sqlite:getEntries', (event, limit?: number) => {
   return db.getEntries(limit);
 });
 
+ipcMain.handle('sqlite:getEntriesPage', (_, offset: number, limit: number) => db.getEntriesPage(offset, limit));
+
 ipcMain.handle('sqlite:getEntryById', (event, id: string) => {
   return db.getEntryById(id);
 });
