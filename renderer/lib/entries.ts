@@ -1,6 +1,5 @@
 import { Entry } from '../../shared/types';
 import * as db from '../db/db';
-import { htmlToMarkdown } from './markdown';
 import { formatCurrentDate, journalDateToId } from './dates';
 
 /**
@@ -22,21 +21,19 @@ export async function saveEntry(
     return;
   }
 
-  const markdown = htmlToMarkdown(currentHtml);
-
   let exists = false;
   if (entry) {
     exists = await db.getEntryById(entry.id) !== null;
   }
 
   if (exists && entry) {
-    await db.updateEntry(entry.id, { content: markdown });
+    await db.updateEntry(entry.id, { content: currentHtml });
   } else {
     const entryDate = date ?? formatCurrentDate();
     const newEntry = {
       id: journalDateToId(entryDate),
       date: entryDate,
-      content: markdown
+      content: currentHtml
     };
     await db.createEntry(newEntry);
   }

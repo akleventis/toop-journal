@@ -27,6 +27,7 @@ export interface SQLiteAPI {
   clearPasswordCredentials: () => Promise<void>,
   getSetting: (key: string) => Promise<string | null>,
   setSetting: (key: string, value: string) => Promise<void>,
+  batchUpdateContent: (updates: { id: string; content: string }[]) => Promise<void>,
   isFtsReady: () => Promise<boolean>,
   onFtsReady: (callback: () => void) => void,
 }

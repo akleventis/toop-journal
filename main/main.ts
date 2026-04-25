@@ -9,7 +9,6 @@ import { initLocalMasterIndex } from './cloudsync/master_index';
 import { createBackup, listBackups, restoreBackup } from './backup';
 import { runHealthCheck } from './health';
 import { hashPassword, verifyPassword } from './security/password';
-import { loadOrCreateEncKey } from './security/enc-key';
 import './cloudsync/sync_coordinator';
 import { syncStateMachine, SyncState } from './cloudsync/sync_state';
 import { logger, LOG_RECENT_LINES } from './logger';
@@ -36,7 +35,6 @@ function logStartupPaths(): void {
     logFile:     logger.currentLogFile,
     backupDir:   path.join(userData, 'backups'),
     masterIndex: path.join(userData, 'masterIndex.json'),
-    encKey:      path.join(userData, 'enc.key'),
     awsConfig:   path.join(userData, 'config.json'),
   }, null, 2));
 }
@@ -46,10 +44,6 @@ app.whenReady().then(async () => {
   logStartupPaths();
   createBackup();
   await initLocalMasterIndex();
-
-  // load or create AES-256 key; stored as plain hex (0o600) in userData on first launch
-  const encKey = loadOrCreateEncKey();
-  db.setEncryptionKey(encKey);
 
   createWindow();
 
@@ -307,6 +301,10 @@ ipcMain.handle('sqlite:getSetting', (event, key: string) => {
 
 ipcMain.handle('sqlite:setSetting', (event, key: string, value: string) => {
   return db.setSetting(key, value);
+});
+
+ipcMain.handle('sqlite:batchUpdateContent', (_e, updates: { id: string; content: string }[]) => {
+  return db.batchUpdateContent(updates);
 });
 
 // dialog

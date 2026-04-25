@@ -5,12 +5,8 @@
 
 import { workerData, parentPort } from 'worker_threads';
 import Database from 'better-sqlite3';
-import { ENC_PREFIX, decrypt } from '../security/encryption';
-
-type WorkerData = { dbPath: string; encKeyHex: string | null };
-const { dbPath, encKeyHex } = workerData as WorkerData;
-
-const encKey = encKeyHex ? Buffer.from(encKeyHex, 'hex') : null;
+type WorkerData = { dbPath: string };
+const { dbPath } = workerData as WorkerData;
 
 // short-lived readonly connection — avoids interfering with the main thread's write connection
 const sourceDb = new Database(dbPath, { readonly: true });
@@ -24,17 +20,7 @@ ftsDb.exec(`CREATE VIRTUAL TABLE entries_fts_mem USING fts5(id UNINDEXED, conten
 const insertStmt = ftsDb.prepare('INSERT INTO entries_fts_mem(id, content, timestamp) VALUES (?, ?, ?)');
 ftsDb.transaction(() => {
   for (const row of rows) {
-    let plaintext = row.content;
-    if (encKey && row.content.startsWith(ENC_PREFIX)) {
-      try {
-        plaintext = decrypt(row.content, encKey);
-      } catch (err) {
-        // index as empty so one bad row doesn't crash the whole worker
-        plaintext = '';
-        parentPort!.postMessage({ type: 'warn', message: `fts-worker: failed to decrypt entry ${row.id} — indexing as empty. ${err}` });
-      }
-    }
-    insertStmt.run(row.id, plaintext, row.timestamp);
+    insertStmt.run(row.id, row.content, row.timestamp);
   }
 })();
 

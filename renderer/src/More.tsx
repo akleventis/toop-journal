@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { jsPDF } from 'jspdf'
-import { markdownToHtml } from '../lib/markdown'
 import { usePasswordProtection, useSyncState } from '../lib/hooks'
 import { S3Config, SyncState, HealthCheck } from '../../shared/types'
 import { networkManager } from '../lib/network-manager'
@@ -294,7 +293,7 @@ export function ExportEntries() {
                     }
 
                     const div = document.createElement('div')
-                    div.innerHTML = markdownToHtml(entry.content)
+                    div.innerHTML = entry.content
                     const plainText = (div.textContent || '').trim()
 
                     doc.setFontSize(10)
@@ -324,7 +323,7 @@ export function ExportEntries() {
             switch (format) {
                 case 'html':
                     content = entries.map(entry =>
-                        `<div><h3>${entry.date}</h3>${markdownToHtml(entry.content)}</div><hr>`
+                        `<div><h3>${entry.date}</h3>${entry.content}</div><hr>`
                     ).join('')
                     content = `<html><body>${content}</body></html>`
                     break

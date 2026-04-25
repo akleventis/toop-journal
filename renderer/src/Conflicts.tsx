@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { Conflict } from '../../shared/types';
 import { useNavigate } from 'react-router-dom';
-import { markdownToHtml } from '../lib/markdown';
 import { clearDecodedCache } from '../db/db';
 import { handleError } from '../lib/error-handler';
 
@@ -88,7 +87,7 @@ export default function Conflicts() {
                         </div>
                         <div
                             className="flex-1 overflow-auto text-[11px] p-2 rounded bg-[color:var(--color-app-bg)]"
-                            dangerouslySetInnerHTML={{ __html: markdownToHtml(v === 'local' ? selected.localVersion : selected.remoteVersion) }}
+                            dangerouslySetInnerHTML={{ __html: v === 'local' ? selected.localVersion : selected.remoteVersion }}
                         />
                     </div>
                 ))}

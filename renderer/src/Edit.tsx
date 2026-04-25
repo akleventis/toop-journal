@@ -4,7 +4,6 @@ import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
 import type { DecodedEntry } from '../../shared/types';
 import { NavDirection } from '../lib/constants';
-import { markdownToHtml } from '../lib/markdown';
 import { saveEntry } from '../lib/entries';
 import { handleError } from '../lib/error-handler';
 
@@ -27,7 +26,7 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
         try {
           const entry = await db.getEntryById(entryId);
           if (entry) {
-            const decoded = { ...entry, decodedContent: markdownToHtml(entry.content) };
+            const decoded = { ...entry, decodedContent: entry.content };
             setEntry(decoded);
           }
         } catch (error) {

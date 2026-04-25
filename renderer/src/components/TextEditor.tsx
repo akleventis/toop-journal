@@ -4,7 +4,6 @@ import type { ContentEditableEvent } from 'react-simple-wysiwyg';
 import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
 import type { Entry } from '../../../shared/types';
-import { markdownToHtml } from '../../lib/markdown';
 import { deleteEntry } from '../../lib/entries';
 import { NavDirection } from '../../lib/constants';
 
@@ -57,12 +56,13 @@ const TextEditor: React.FC<TextEditProps> = ({
         }
     };
 
-    // Strip HTML/styles on copy — paste as plain text only
+    // Strip HTML on copy; collapse \n\n between <p> blocks (macOS selection.toString()
+    // behavior) to \n so copied text matches the visual single-line-break display.
     const onCopy = (e: React.ClipboardEvent<HTMLDivElement>) => {
         e.preventDefault();
         const selection = window.getSelection();
         if (selection) {
-            e.clipboardData.setData('text/plain', selection.toString());
+            e.clipboardData.setData('text/plain', selection.toString().replace(/\n{2,}/g, '\n'));
         }
     };
 
@@ -104,10 +104,9 @@ const TextEditor: React.FC<TextEditProps> = ({
 
     useEffect(() => {
         if (entry?.content) {
-            const decodedHtml = markdownToHtml(entry.content);
-            setHtml(decodedHtml);
+            setHtml(entry.content);
             setDisplayNavState(displayNav);
-            onContentChange?.(decodedHtml);
+            onContentChange?.(entry.content);
         } else {
             setHtml('');
             onContentChange?.('');

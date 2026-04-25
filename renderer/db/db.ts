@@ -1,5 +1,4 @@
 import { parseJournalDate } from '../lib/dates';
-import { markdownToHtml } from '../lib/markdown';
 import type { Entry, DecodedEntry } from '../../shared/types';
 
 // memoized entries per renderer session
@@ -16,17 +15,13 @@ function getEntryLimitFromStorage(): number | undefined {
   return isNaN(parsed) ? undefined : parsed;
 }
 
-// returns memoized entries with content converted from markdown to HTML
 export async function getDecodedEntries(): Promise<DecodedEntry[]> {
   if (__decodedEntriesMemo) return __decodedEntriesMemo;
 
   const limit = getEntryLimitFromStorage();
   const rows = await window.sqlite.getEntries(limit);
 
-  __decodedEntriesMemo = rows.map(entry => ({
-    ...entry,
-    decodedContent: markdownToHtml(entry.content)
-  }));
+  __decodedEntriesMemo = rows.map(entry => ({ ...entry, decodedContent: entry.content }));
   return __decodedEntriesMemo;
 }
 

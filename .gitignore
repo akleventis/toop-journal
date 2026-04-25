@@ -30,3 +30,4 @@ scripts/cleanup.sh
 scripts/import_pdf.py
 scripts/__pycache__/
 .claude/
+encrypt.md

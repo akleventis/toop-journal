@@ -5,7 +5,6 @@ import { Worker } from 'worker_threads';
 import { EventEmitter } from 'node:events';
 import { Entry, Conflict } from "../../shared/types";
 import { logger } from '../logger';
-import { isEncryptedContent, encrypt, decrypt } from '../security/encryption';
 
 // fires on entry create/update/delete — consumed by sync_coordinator to update local master index
 export const dbEvents = new EventEmitter();
@@ -44,29 +43,11 @@ db.exec(`
   );
 `);
 
-// Encryption key set at startup via setEncryptionKey(). Encrypt/decrypt
-// primitives live in main/security/encryption.ts.
-let encKey: Buffer | null = null;
-
 // fts worker — runs in a separate thread so search never blocks the main loop
 let ftsWorker: Worker | null = null;
 let ftsWorkerReady = false;
 // at most one search is in flight at a time; a new search cancels the previous
 let pendingSearch: { resolve: (ids: string[]) => void; reject: (err: unknown) => void } | null = null;
-
-function decryptEntry(entry: Entry): Entry {
-  if (!encKey || !isEncryptedContent(entry.content)) return entry;
-  try {
-    return { ...entry, content: decrypt(entry.content, encKey) };
-  } catch (error) {
-    logger.warn(`decryptEntry: failed to decrypt entry ${entry.id}:`, error);
-    return entry;
-  }
-}
-
-export function setEncryptionKey(key: Buffer): void {
-  encKey = key;
-}
 
 /**
  * Spawns the FTS worker thread. The worker opens the DB read-only, decrypts
@@ -78,10 +59,7 @@ export function buildInMemoryFts(onReady?: () => void): void {
   const workerPath = path.join(__dirname, 'fts-worker.js');
 
   ftsWorker = new Worker(workerPath, {
-    workerData: {
-      dbPath,
-      encKeyHex: encKey ? encKey.toString('hex') : null,
-    },
+    workerData: { dbPath },
   });
 
   ftsWorker.on('message', (msg: { type: string; count?: number; ids?: string[]; message?: string }) => {
@@ -117,28 +95,33 @@ export function buildInMemoryFts(onReady?: () => void): void {
   });
 }
 
+function batchUpdateContent(updates: { id: string; content: string }[]): void {
+  const stmt = db.prepare('UPDATE entries_t SET content = ? WHERE id = ?');
+  db.transaction(() => {
+    for (const { id, content } of updates) {
+      stmt.run(content, id);
+    }
+  })();
+}
+
 function getEntries(limit?: number): Entry[] {
     let query = 'SELECT * FROM entries_t order by timestamp DESC';
     if (limit && limit > 0) {
         query += ` LIMIT ${limit}`;
     }
-    const rows = db.prepare(query).all() as Entry[];
-    return rows.map(decryptEntry);
+    return db.prepare(query).all() as Entry[];
 }
 
 function getEntryById(id: string): Entry | null {
-    const row = db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null;
-    return row ? decryptEntry(row) : null;
+    return db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null;
 }
 
 function getMostRecentEntry(): Entry | null {
-    const row = db.prepare('SELECT * FROM entries_t ORDER BY timestamp DESC LIMIT 1').get() as Entry | null;
-    return row ? decryptEntry(row) : null;
+    return db.prepare('SELECT * FROM entries_t ORDER BY timestamp DESC LIMIT 1').get() as Entry | null;
 }
 
 function getEntriesBetweenTimestamps(startTs: number, endTs: number): Entry[] {
-    const rows = db.prepare('SELECT * FROM entries_t WHERE timestamp BETWEEN ? AND ? order by timestamp desc').all(startTs, endTs) as Entry[];
-    return rows.map(decryptEntry);
+    return db.prepare('SELECT * FROM entries_t WHERE timestamp BETWEEN ? AND ? order by timestamp desc').all(startTs, endTs) as Entry[];
 }
 
 function createEntry(entry: Entry, skipSync = false): void {
@@ -157,10 +140,8 @@ function createEntry(entry: Entry, skipSync = false): void {
         entry.lastModified = Date.now();
     }
 
-    const storedContent = encKey ? encrypt(entry.content, encKey) : entry.content;
-
     const transaction = db.transaction(() => {
-        db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, storedContent, entry.location, entry.timestamp, entry.lastModified);
+        db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
     });
 
     try {
@@ -198,12 +179,9 @@ function updateEntry(id: string, entry: Entry, skipSync = false): void {
         entry.lastModified = Date.now();
     }
 
-    const storedContent = encKey ? encrypt(entry.content, encKey) : entry.content;
-
     const transaction = db.transaction(() => {
-        db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, storedContent, entry.location, entry.timestamp, entry.lastModified, id);
+        db.prepare('UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?').run(entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified, id);
 
-        // update conflict if one exists — conflicts_t stores plaintext (S3 is unencrypted)
         const conflict = getConflictByEntryId(id);
         if (conflict) {
             db.prepare('UPDATE conflicts_t SET localVersion = ?, localModified = ? WHERE entryId = ?')
@@ -356,34 +334,17 @@ function isFtsReady(): boolean {
 }
 
 async function searchEntries(query: string, limit = 50): Promise<Entry[]> {
-  if (encKey) {
-    // hold off until the FTS worker has finished building the index
-    if (!ftsWorker || !ftsWorkerReady) return [];
+  if (!ftsWorker || !ftsWorkerReady) return [];
 
-    const ids = await new Promise<string[]>((resolve, reject) => {
-      // cancel any in-flight search — only the latest result is relevant
-      if (pendingSearch) pendingSearch.resolve([]);
-      pendingSearch = { resolve, reject };
-      ftsWorker!.postMessage({ type: 'search', query, limit });
-    });
-    return ids
-      .map(id => db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null)
-      .filter((e): e is Entry => e !== null)
-      .map(decryptEntry);
-  }
-
-  // no encryption — on-disk FTS path (not normally reached in production)
-  try {
-    return db.prepare(`
-      SELECT e.* FROM entries_t e
-      JOIN entries_fts f ON e.rowid = f.rowid
-      WHERE entries_fts MATCH ?
-      ORDER BY e.timestamp DESC
-      LIMIT ?
-    `).all(query, limit) as Entry[];
-  } catch {
-    return [];
-  }
+  const ids = await new Promise<string[]>((resolve, reject) => {
+    // cancel any in-flight search — only the latest result is relevant
+    if (pendingSearch) pendingSearch.resolve([]);
+    pendingSearch = { resolve, reject };
+    ftsWorker!.postMessage({ type: 'search', query, limit });
+  });
+  return ids
+    .map(id => db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null)
+    .filter((e): e is Entry => e !== null);
 }
 
 function getSetting(key: string): string | null {
@@ -407,6 +368,7 @@ function integrityCheck(): boolean {
 }
 
 export {
+    batchUpdateContent,
     getEntries,
     getEntryCount,
     hasEntriesModifiedSince,
