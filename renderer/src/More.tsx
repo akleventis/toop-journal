@@ -26,8 +26,6 @@ export default function More() {
                     <EntryLimit />
                     <hr className="setting-divider" />
                     <SearchLimit />
-                    <hr className="setting-divider" />
-                    <ImageWidthSetting />
                 </div>
 
                 <div className="card">
@@ -149,48 +147,6 @@ export function HealthCheckWidget() {
     );
 }
 
-export function ImageWidthSetting() {
-    const [width, setWidth] = useState('250');
-    const [saved, setSaved] = useState(false);
-
-    useEffect(() => {
-        window.sqlite.getSetting('imageWidth').then(v => {
-            if (v) setWidth(v);
-        });
-    }, []);
-
-    const handleSave = async () => {
-        const parsed = parseInt(width, 10);
-        if (isNaN(parsed) || parsed <= 0 || parsed > 1000) {
-            alert('Please enter a width between 1 and 1000');
-            return;
-        }
-        try {
-            await window.sqlite.setSetting('imageWidth', String(parsed));
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-        } catch (error) {
-            handleError(error, 'Failed to save image width');
-        }
-    };
-
-    return (
-        <div>
-            <p className="section-label">Image Pixel Width</p>
-            <div className="flex gap-2 items-center">
-                <input
-                    type="number"
-                    value={width}
-                    onChange={(e) => setWidth(e.target.value)}
-                    className="flex-1"
-                    min="1"
-                    max="1000"
-                />
-                <button onClick={handleSave}>{saved ? 'Saved ✓' : 'Save'}</button>
-            </div>
-        </div>
-    );
-}
 
 export function EntryLimit() {
     const navigate = useNavigate()

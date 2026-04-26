@@ -26,6 +26,8 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
         return acc
     }, {} as Record<string, DecodedEntry>)
 
+    const yearsWithEntries = new Set(entries.map(e => parseInt(journalToCalendar(e.date).slice(0, 4), 10)))
+
     const getDaysInMonth = (year: number, month: number) => {
         return new Date(year, month + 1, 0).getDate()
     }
@@ -93,6 +95,7 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
             <YearSelector
                 currentYear={selectedYear}
                 onYearChange={setSelectedYear}
+                yearsWithEntries={yearsWithEntries}
             />
             <div className="flex flex-wrap justify-evenly gap-[10px]">
                 {Array.from({ length: 12 }, (_, month) => generateMonthCalendar(selectedYear, month))}

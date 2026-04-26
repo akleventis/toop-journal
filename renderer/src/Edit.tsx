@@ -48,9 +48,7 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
     const newIndex = direction === NavDirection.PREV ? currentIndex + 1 : currentIndex - 1;
 
     if (newIndex >= 0 && newIndex < entries.length) {
-      const newEntry = entries[newIndex];
-      setEntry(newEntry);
-      navigate(`/edit?id=${newEntry.id}`);
+      navigate(`/edit?id=${entries[newIndex].id}`);
     }
   };
 

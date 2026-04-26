@@ -6,13 +6,15 @@ interface YearSelectorProps {
     onYearChange: (year: number) => void;
     minYear?: number;
     maxYear?: number;
+    yearsWithEntries?: Set<number>;
 }
 
 export default function YearSelector({
     currentYear,
     onYearChange,
     minYear = 1000,
-    maxYear = 3000
+    maxYear = 3000,
+    yearsWithEntries,
 }: YearSelectorProps) {
     const [displayYear, setDisplayYear] = useState(currentYear)
     const [gridYear, setGridYear] = useState(currentYear)
@@ -88,7 +90,11 @@ export default function YearSelector({
                             <button
                                 key={year}
                                 onClick={() => handleYearSelect(year)}
-                                className={clsx('py-1 rounded cursor-pointer', year === displayYear ? 'bg-[color:var(--color-third-bg)]' : 'bg-[color:var(--color-app-bg)]')}
+                                className={clsx(
+                                'py-1 rounded cursor-pointer',
+                                year === displayYear ? '!bg-[color:var(--color-third-bg)]' : '!bg-[color:var(--color-app-bg)]',
+                                yearsWithEntries?.has(year) ? '!font-bold' : '!font-normal'
+                            )}
                             >
                                 {year}
                             </button>

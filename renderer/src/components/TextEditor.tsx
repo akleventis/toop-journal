@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Editor, { Toolbar } from 'react-simple-wysiwyg';
 import type { ContentEditableEvent } from 'react-simple-wysiwyg';
 import { useNavigate } from 'react-router-dom';
 import TextEditNav from './TextEditNav';
+import ImageResizeOverlay from './ImageResizeOverlay';
 import type { Entry } from '../../../shared/types';
 import { deleteEntry } from '../../lib/entries';
 import { NavDirection } from '../../lib/constants';
@@ -29,14 +30,9 @@ const TextEditor: React.FC<TextEditProps> = ({
     const [html, setHtml] = useState('');
     const [displayNavState, setDisplayNavState] = useState(displayNav);
     const [editableState, setEditableState] = useState(editable);
-    const [imageWidth, setImageWidth] = useState(DEFAULT_IMAGE_WIDTH);
+    const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        window.sqlite.getSetting('imageWidth').then(v => {
-            if (v) setImageWidth(parseInt(v, 10));
-        });
-    }, []);
 
     const handleDelete = async () => {
         if (!entry) return;
@@ -62,34 +58,35 @@ const TextEditor: React.FC<TextEditProps> = ({
         onEditModeChange?.(true);
     };
 
-    const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-    };
+    const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
 
     const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         if (!editableState) return;
         e.preventDefault();
         e.stopPropagation();
-
         const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
         if (files.length === 0) return;
-
         // Capture caret position at drop point before FileReader async
-        const range = document.caretRangeFromPoint(e.clientX, e.clientY); 
+        const range = document.caretRangeFromPoint(e.clientX, e.clientY);
         if (range) {
             const sel = window.getSelection();
             sel?.removeAllRanges();
             sel?.addRange(range);
         }
-
         files.forEach(file => {
             const reader = new FileReader();
             reader.onload = () => {
-                const src = reader.result as string;
-                document.execCommand('insertHTML', false, `<img src="${src}" width="${imageWidth}" />`);
+                document.execCommand('insertHTML', false, `<img src="${reader.result as string}" width="${DEFAULT_IMAGE_WIDTH}" />`);
             };
             reader.readAsDataURL(file);
         });
+    };
+
+    const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!editableState) return;
+        const target = e.target as HTMLElement;
+        if (target.dataset.resizeHandle) return;
+        setSelectedImg(target.tagName === 'IMG' ? target as HTMLImageElement : null);
     };
 
     useEffect(() => {
@@ -103,6 +100,7 @@ const TextEditor: React.FC<TextEditProps> = ({
         }
         setEditableState(editable);
         onEditModeChange?.(editable);
+        setSelectedImg(null);
     }, [entry?.id, displayNav, editable]);
 
     return (
@@ -114,11 +112,18 @@ const TextEditor: React.FC<TextEditProps> = ({
                 onNavigate={onNavigate}
             />
 
-            <div onDragOver={onDragOver} onDrop={onDrop}>
+            <div ref={containerRef} style={{ position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop} onClick={handleClick}>
                 <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown} spellCheck={true}>
-                    <Toolbar>
-                    </Toolbar>
+                    <Toolbar />
                 </Editor>
+
+                {editableState && selectedImg && containerRef.current && (
+                    <ImageResizeOverlay
+                        img={selectedImg}
+                        container={containerRef.current}
+                        onResize={html => { setHtml(html); onContentChange?.(html); }}
+                    />
+                )}
             </div>
         </div>
     );

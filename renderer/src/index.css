@@ -167,3 +167,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   min-height: 100vh;
   cursor: text;
 }
+/* Suppress native browser image drag so resize handles work cleanly */
+.rsw-ce img {
+  -webkit-user-drag: none;
+}
