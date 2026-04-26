@@ -1,8 +1,6 @@
 # Node
 node_modules/
-package-lock.json
 renderer/node_modules/
-renderer/package-lock.json
 dist/
 *.log
 
