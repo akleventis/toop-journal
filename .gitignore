@@ -21,6 +21,8 @@ renderer/.vite/
 *.tsbuildinfo
 
 notes.txt
+launchplan.md
+admin/
 release/
 aws_config.json
 masterIndex.json
