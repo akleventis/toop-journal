@@ -36,6 +36,7 @@
 /* Base reset */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
+#root { background: var(--color-app-bg); }
 html {
   scroll-behavior: smooth;
   font-size: 13px;
@@ -47,7 +48,6 @@ html {
 a { text-decoration: none; color: inherit; }
 
 body {
-  background: var(--color-app-bg);
   color: var(--text-primary);
 }
 

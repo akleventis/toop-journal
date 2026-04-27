@@ -58,6 +58,17 @@ const TextEditor: React.FC<TextEditProps> = ({
         onEditModeChange?.(true);
     };
 
+    // Prevent Chromium from injecting the app background into clipboard HTML
+    const onCopy = (e: React.ClipboardEvent<HTMLDivElement>) => {
+        const sel = window.getSelection();
+        if (!sel?.rangeCount) return;
+        const tmp = document.createElement('div');
+        tmp.append(sel.getRangeAt(0).cloneContents());
+        e.clipboardData.setData('text/html', tmp.innerHTML);
+        e.clipboardData.setData('text/plain', sel.toString());
+        e.preventDefault();
+    };
+
     const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
 
     const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -112,7 +123,7 @@ const TextEditor: React.FC<TextEditProps> = ({
                 onNavigate={onNavigate}
             />
 
-            <div ref={containerRef} style={{ position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop} onClick={handleClick}>
+            <div ref={containerRef} style={{ position: 'relative' }} onCopy={onCopy} onDragOver={onDragOver} onDrop={onDrop} onClick={handleClick}>
                 <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown} spellCheck={true}>
                     <Toolbar />
                 </Editor>
