@@ -2,18 +2,13 @@
 
 I've been writing to a journal every day since 2018. Over the past year, the app I've been using has become increasingly buggy. Since it wasn't quite built for scale, I decided to create an alternative with cloud sync to persist data with the intention of migrating off my current journal app.
 
-## Features
+## Functionality
 
-- **Local-first storage** — SQLite database, all data owned by you
-- **Full-text search** — FTS5-powered, runs in a background worker thread
-- **Calendar & List views** — browse entries by calendar or chronological list
-- **Rich text editing** — WYSIWYG editor with Markdown storage
-- **Password protection** — optional app-level password
-- **Cloud sync** — optional AWS S3 sync for cross-device access
-- **Conflict resolution** — per-entry conflict detection and resolution UI
-- **Automatic backups** — daily local snapshots, 30-day retention (More → Backups)
-- **Health checks** — DB integrity, S3 connectivity, disk space (More → Health)
-- **Offline-first** — full functionality without internet
+Built to last. The app is designed to handle 30+ years of daily entries without degrading — fast search, reliable storage, and no dependency on a third-party service that might disappear. All data lives locally in a SQLite database you own.
+
+Cross-device sync is handled via AWS S3. You'll need an AWS account and an S3 bucket — see [docs/aws_setup.md](docs/aws_setup.md) for setup instructions. Once configured, the app syncs automatically on startup and shutdown, and handles conflicts when the same entry is edited on two machines.
+
+Full-text search (FTS5) makes it easy to find anything across thousands of entries instantly.
 
 ## Tech Stack
 
