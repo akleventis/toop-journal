@@ -18,6 +18,7 @@ const isDev = !app.isPackaged;
 
 let mainWindow: BrowserWindow | null = null;
 let skipSyncOnQuit = false;
+let isDirty = false;
 
 const iconPath = isDev
   ? path.join(__dirname, '../../../assets/icon.png')
@@ -28,6 +29,18 @@ const indexHtmlPath = isDev
   : path.join(__dirname, '../../renderer/index.html');
 
 const preloadPath = path.join(__dirname, '../preload/preload.js');
+
+async function confirmDiscardChanges(detail: string, confirmLabel: string): Promise<boolean> {
+  const { response } = await dialog.showMessageBox(mainWindow!, {
+    type: 'question',
+    buttons: [confirmLabel, 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    message: 'You have unsaved changes',
+    detail,
+  });
+  return response === 0;
+}
 
 function logStartupPaths(): void {
   const userData = app.getPath('userData');
@@ -117,6 +130,17 @@ function createWindow() {
     mainWindow?.webContents.setZoomLevel(0);
   });
 
+  // guard red-X close when there are unsaved editor changes
+  mainWindow.on('close', async (event) => {
+    if (isDirty) {
+      event.preventDefault();
+      if (await confirmDiscardChanges('Your changes will be lost if you close now.', 'Discard')) {
+        isDirty = false;
+        mainWindow?.close();
+      }
+    }
+  });
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
@@ -135,8 +159,20 @@ app.on('activate', () => {
 
 const QUIT_SYNC_TIMEOUT_MS = 5000;
 
+ipcMain.on('app-state:set-dirty', (_event, dirty: boolean) => {
+  isDirty = dirty;
+});
+
 // sync before app quits (including reloads)
 app.on('before-quit', async (event) => {
+  if (isDirty) {
+    event.preventDefault();
+    if (await confirmDiscardChanges('Your changes will be lost if you quit now.', 'Discard & Quit')) {
+      isDirty = false;
+      app.quit();
+    }
+    return;
+  }
   if (state.AWSClient && state.AWSConfig && !skipSyncOnQuit) {
     // real-time sync already pushed changes — nothing to do
     if (state.lastSyncTime > 0 && !db.hasEntriesModifiedSince(state.lastSyncTime)) {

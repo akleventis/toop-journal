@@ -83,6 +83,10 @@ export interface HealthAPI {
   run: () => Promise<HealthCheck>;
 }
 
+export interface AppStateAPI {
+  setDirty: (dirty: boolean) => void;
+}
+
 declare global {
   interface Window {
     cloudSync: CloudSyncAPI
@@ -95,5 +99,6 @@ declare global {
     backup: BackupAPI
     logs: LogsAPI
     health: HealthAPI
+    appState: AppStateAPI
   }
 }

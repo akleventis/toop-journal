@@ -94,3 +94,7 @@ contextBridge.exposeInMainWorld('logs', {
 contextBridge.exposeInMainWorld('health', {
   run: () => ipcRenderer.invoke('health:run'),
 })
+
+contextBridge.exposeInMainWorld('appState', {
+  setDirty: (dirty: boolean) => ipcRenderer.send('app-state:set-dirty', dirty),
+})

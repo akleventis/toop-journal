@@ -3,6 +3,6 @@
 type GuardFn = () => boolean;
 let guard: GuardFn | null = null;
 
-export const setNavGuard = (fn: GuardFn) => { guard = fn; };
-export const clearNavGuard = () => { guard = null; };
+export const setNavGuard = (fn: GuardFn) => { guard = fn; window.appState?.setDirty(true); };
+export const clearNavGuard = () => { guard = null; window.appState?.setDirty(false); };
 export const checkNavGuard = (): boolean => guard ? guard() : true;
