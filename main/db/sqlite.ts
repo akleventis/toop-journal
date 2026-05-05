@@ -119,6 +119,16 @@ function getEntriesPage(offset: number, limit: number): Entry[] {
     return db.prepare('SELECT * FROM entries_t ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(limit, offset) as Entry[];
 }
 
+// prev = next older entry, next = next newer — ignores entryLimit so arrow nav always works
+function getAdjacentEntry(id: string, direction: 'prev' | 'next'): Entry | null {
+    const current = db.prepare('SELECT timestamp FROM entries_t WHERE id = ?').get(id) as { timestamp: number } | undefined;
+    if (!current) return null;
+    if (direction === 'prev') {
+        return db.prepare('SELECT * FROM entries_t WHERE timestamp < ? ORDER BY timestamp DESC LIMIT 1').get(current.timestamp) as Entry | null;
+    }
+    return db.prepare('SELECT * FROM entries_t WHERE timestamp > ? ORDER BY timestamp ASC LIMIT 1').get(current.timestamp) as Entry | null;
+}
+
 function getEntryById(id: string): Entry | null {
     return db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null;
 }
@@ -446,6 +456,7 @@ export {
     getEntries,
     getEntriesForList,
     getEntriesPage,
+    getAdjacentEntry,
     getEntryCount,
     hasEntriesModifiedSince,
     isFtsReady,

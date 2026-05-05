@@ -8,11 +8,7 @@ import { saveEntry } from '../lib/entries';
 import { handleError } from '../lib/error-handler';
 import { setNavGuard, clearNavGuard } from '../lib/nav-guard';
 
-interface EditProps {
-  entries: DecodedEntry[];
-}
-
-const Edit: React.FC<EditProps> = ({ entries }) => {
+const Edit: React.FC = () => {
   const [entry, setEntry] = useState<DecodedEntry | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,16 +35,13 @@ const Edit: React.FC<EditProps> = ({ entries }) => {
     loadEntry();
   }, [entryId]);
 
-  const handleNavigate = (direction: NavDirection) => {
-    if (!entry || entries.length === 0) return;
-
-    const currentIndex = entries.findIndex(e => e.id === entry.id);
-    if (currentIndex === -1) return;
-
-    const newIndex = direction === NavDirection.PREV ? currentIndex + 1 : currentIndex - 1;
-
-    if (newIndex >= 0 && newIndex < entries.length) {
-      navigate(`/edit?id=${entries[newIndex].id}`);
+  const handleNavigate = async (direction: NavDirection) => {
+    if (!entry) return;
+    try {
+      const adjacent = await db.getAdjacentEntry(entry.id, direction === NavDirection.PREV ? 'prev' : 'next');
+      if (adjacent) navigate(`/edit?id=${adjacent.id}`);
+    } catch (error) {
+      handleError(error);
     }
   };
 

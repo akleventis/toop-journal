@@ -14,6 +14,7 @@ export interface SQLiteAPI {
   getEntries: (limit?: number) => Promise<Entry[]>,
   getEntriesForList: (limit?: number) => Promise<Entry[]>,
   getEntriesPage: (offset: number, limit: number) => Promise<Entry[]>,
+  getAdjacentEntry: (id: string, direction: 'prev' | 'next') => Promise<Entry | null>,
   getEntryById: (id: string) => Promise<Entry | null>,
   getMostRecentEntry: () => Promise<Entry | null>,
   getEntryCount: () => Promise<number>,

@@ -95,6 +95,10 @@ export async function getEntriesPage(offset: number, limit: number): Promise<Dec
   return rows.map(entry => ({ ...entry, decodedContent: entry.content }));
 }
 
+export async function getAdjacentEntry(id: string, direction: 'prev' | 'next'): Promise<Entry | null> {
+  return await window.sqlite.getAdjacentEntry(id, direction);
+}
+
 export async function getEntriesBetweenTimestamps(startTs: number, endTs: number): Promise<Entry[]> {
   return await window.sqlite.getEntriesBetweenTimestamps(startTs, endTs);
 }
