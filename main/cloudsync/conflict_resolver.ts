@@ -14,7 +14,7 @@ export async function resolveConflict(entryId: string, version: 'local' | 'remot
     if (entry) {
       entry.content = conflict.remoteVersion;
       entry.lastModified = conflict.remoteModified;
-      db.updateEntryFromRemote(entryId, entry);
+      db.updateEntry(entryId, entry, false);
     }
   }
   // if version === 'local', local entry is already correct — just delete the record

@@ -39,29 +39,13 @@ async function runSync() {
 // await updateLocalMasterIndex before triggerSync — ensures the master index file
 // is fully written before the pipeline reads it, preventing a race where the
 // pipeline overwrites the update and orphans the entry in the master index
-dbEvents.on('entry:created', async (event: { id: string; lastModified: number }) => {
-  try {
-    await updateLocalMasterIndex(event.id, { lastModified: event.lastModified, deleted: false });
-    triggerSync();
-  } catch (err) {
-    logger.error('sync_coordinator: entry:created handler failed:', err);
-  }
-});
-
-dbEvents.on('entry:updated', async (event: { id: string; lastModified: number }) => {
-  try {
-    await updateLocalMasterIndex(event.id, { lastModified: event.lastModified, deleted: false });
-    triggerSync();
-  } catch (err) {
-    logger.error('sync_coordinator: entry:updated handler failed:', err);
-  }
-});
-
-dbEvents.on('entry:deleted', async (event: { id: string; lastModified: number }) => {
-  try {
-    await updateLocalMasterIndex(event.id, { lastModified: event.lastModified, deleted: true });
-    triggerSync();
-  } catch (err) {
-    logger.error('sync_coordinator: entry:deleted handler failed:', err);
-  }
-});
+for (const event of ['entry:created', 'entry:updated', 'entry:deleted'] as const) {
+  dbEvents.on(event, async (e: { id: string; lastModified: number }) => {
+    try {
+      await updateLocalMasterIndex(e.id, { lastModified: e.lastModified, deleted: event === 'entry:deleted' });
+      triggerSync();
+    } catch (err) {
+      logger.error(`sync_coordinator: ${event} handler failed:`, err);
+    }
+  });
+}

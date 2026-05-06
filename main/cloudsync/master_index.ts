@@ -189,7 +189,7 @@ const executeSyncPlan = async (
         }
         try {
           const entry = await fetchS3Entry(id);
-          db.createEntryFromRemote(entry);
+          db.createEntry(entry, false);
           syncedIndex[id] = s3;
           downloaded++;
         } catch (error: any) {
@@ -231,7 +231,7 @@ const executeSyncPlan = async (
 
       case 'delete-local': {
         try {
-          db.deleteEntryFromRemote(id);
+          db.deleteEntry(id, false);
           syncedIndex[id] = s3;
         } catch (error) {
           logger.error(`syncMasterIndex: error deleting local entry ${id}:`, error);
@@ -263,7 +263,7 @@ const executeSyncPlan = async (
           conflicts++;
         } else {
           // content identical despite timestamp diff — accept S3 index
-          db.updateEntryFromRemote(id, s3Entry!);
+          db.updateEntry(id, s3Entry!, false);
           syncedIndex[id] = s3;
           downloaded++;
         }
