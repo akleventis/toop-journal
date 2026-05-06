@@ -72,36 +72,23 @@ export const usePasswordProtection = () => {
 
 // Monitors network status and reinitializes the S3 client + pipeline when connection is restored.
 export const useNetworkSync = () => {
-  const [syncStatus, setSyncStatus] = useState('initializing');
-
   useEffect(() => {
     const tryInitS3Client = async () => {
-      if (!networkManager.isOnline()) {
-        setSyncStatus('network offline');
-        return;
-      }
-
+      if (!networkManager.isOnline()) return;
       try {
         await window.cloudSync.initS3Client();
         await window.cloudSync.cloudSyncPipeline();
-        setSyncStatus('cloud sync success');
       } catch (err) {
-        setSyncStatus('cloud sync failed');
+        handleError(err);
       }
     };
 
     const unsubscribe = networkManager.subscribe((online) => {
-      if (!online) {
-        setSyncStatus('network offline');
-        return;
-      }
-      tryInitS3Client();
+      if (online) tryInitS3Client();
     });
 
     tryInitS3Client();
 
     return unsubscribe;
   }, []);
-
-  return { syncStatus };
 };

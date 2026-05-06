@@ -12,22 +12,19 @@ contextBridge.exposeInMainWorld('network', {
 })
 
 contextBridge.exposeInMainWorld('cloudSync', {
-  initS3Client: (forceRefresh: boolean = false) => ipcRenderer.invoke('cloud-sync:initS3Client', forceRefresh),
+  initS3Client: () => ipcRenderer.invoke('cloud-sync:initS3Client'),
   cloudSyncPipeline: (): Promise<boolean> => ipcRenderer.invoke('cloud-sync:cloudSyncPipeline'),
   createConfig: (config: S3Config) => ipcRenderer.invoke('cloud-sync:createConfig', config),
   updateConfig: (config: S3Config) => ipcRenderer.invoke('cloud-sync:updateConfig', config),
   deleteConfig: () => ipcRenderer.invoke('cloud-sync:deleteConfig'),
   disableSync: () => ipcRenderer.invoke('cloud-sync:disableSync'),
   getConfig: () => ipcRenderer.invoke('cloud-sync:getConfig'),
-  putEntryCloudSync: (entry: Entry) => ipcRenderer.invoke('cloud-sync:putEntryCloudSync', entry),
-  deleteEntryCloudSync: (id: string) => ipcRenderer.invoke('cloud-sync:deleteEntryCloudSync', id),
 })
 
 contextBridge.exposeInMainWorld('sqlite', {
   getEntries: (limit?: number) => ipcRenderer.invoke('sqlite:getEntries', limit),
   getEntriesForList: (limit?: number) => ipcRenderer.invoke('sqlite:getEntriesForList', limit),
-  getEntriesPage: (offset: number, limit: number) => ipcRenderer.invoke('sqlite:getEntriesPage', offset, limit),
-  getAdjacentEntry: (id: string, direction: 'prev' | 'next') => ipcRenderer.invoke('sqlite:getAdjacentEntry', id, direction),
+getAdjacentEntry: (id: string, direction: 'prev' | 'next') => ipcRenderer.invoke('sqlite:getAdjacentEntry', id, direction),
   getEntryById: (id: string) => ipcRenderer.invoke('sqlite:getEntryById', id),
   getMostRecentEntry: () => ipcRenderer.invoke('sqlite:getMostRecentEntry'),
   getEntryCount: () => ipcRenderer.invoke('sqlite:getEntryCount'),

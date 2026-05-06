@@ -248,8 +248,6 @@ ipcMain.handle('sqlite:getEntries', (event, limit?: number) => {
 
 ipcMain.handle('sqlite:getEntriesForList', (_, limit?: number) => db.getEntriesForList(limit));
 
-ipcMain.handle('sqlite:getEntriesPage', (_, offset: number, limit: number) => db.getEntriesPage(offset, limit));
-
 ipcMain.handle('sqlite:getAdjacentEntry', (_, id: string, direction: 'prev' | 'next') => db.getAdjacentEntry(id, direction));
 
 ipcMain.handle('sqlite:getEntryById', (event, id: string) => {

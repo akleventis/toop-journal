@@ -115,10 +115,6 @@ function getEntriesForList(limit?: number): Entry[] {
     return db.prepare(query).all() as Entry[];
 }
 
-function getEntriesPage(offset: number, limit: number): Entry[] {
-    return db.prepare('SELECT * FROM entries_t ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(limit, offset) as Entry[];
-}
-
 // prev = next older entry, next = next newer — ignores entryLimit so arrow nav always works
 function getAdjacentEntry(id: string, direction: 'prev' | 'next'): Entry | null {
     const current = db.prepare('SELECT timestamp FROM entries_t WHERE id = ?').get(id) as { timestamp: number } | undefined;
@@ -455,7 +451,6 @@ export {
     batchUpdateContent,
     getEntries,
     getEntriesForList,
-    getEntriesPage,
     getAdjacentEntry,
     getEntryCount,
     hasEntriesModifiedSince,
