@@ -11,7 +11,7 @@ export function clearDecodedCache() {
 // auto-clear when the sync pipeline writes remote entries — no manual calls needed
 window.sqlite.onEntriesChanged(() => clearDecodedCache());
 
-function getEntryLimitFromStorage(): number | undefined {
+export function getEntryLimitFromStorage(): number | undefined {
   const stored = localStorage.getItem('entryLimit');
   if (!stored) return undefined;
   const parsed = parseInt(stored, 10);
@@ -29,8 +29,9 @@ export async function getDecodedEntries(): Promise<DecodedEntry[]> {
 }
 
 // truncated content (500 chars) — sufficient for list preview, much smaller IPC payload
-export async function getEntriesForList(): Promise<DecodedEntry[]> {
-  const rows = await window.sqlite.getEntriesForList(getEntryLimitFromStorage());
+export async function getEntriesForList(limitOverride?: number): Promise<DecodedEntry[]> {
+  const limit = limitOverride ?? getEntryLimitFromStorage();
+  const rows = await window.sqlite.getEntriesForList(limit);
   return rows.map(entry => ({ ...entry, decodedContent: entry.content }));
 }
 

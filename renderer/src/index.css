@@ -28,7 +28,6 @@
   }
 }
 
-/* Base reset */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
 #root { background: var(--color-app-bg); }
@@ -45,7 +44,6 @@ body {
   color: var(--text-primary);
 }
 
-/* Inputs and selects */
 input, select {
   padding: 6px 10px;
   font-family: inherit;
@@ -58,7 +56,6 @@ input, select {
 }
 input:focus, select:focus { border-color: var(--color-accent); }
 
-/* Buttons */
 button {
   cursor: pointer;
   font-family: inherit;
@@ -74,19 +71,16 @@ button:hover:not(:disabled) { background: var(--color-third-bg); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 @layer components {
-  /* Shared surface treatment */
   .card, .surface {
     background: var(--color-secondary-bg);
     border: 1px solid var(--border);
   }
 
-  /* .card adds shape + padding on top */
   .card {
     border-radius: var(--radius);
     padding: 16px 20px;
   }
 
-  /* Section heading inside a card */
   .section-label {
     font-size: 10px;
     font-weight: 600;
@@ -96,14 +90,12 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
     margin: 0 0 10px 0;
   }
 
-  /* Hairline divider between card sections */
   .setting-divider {
     border: none;
     border-top: 1px solid var(--border);
     margin: 12px 0;
   }
 
-  /* Tappable row used for navigation links */
   .nav-row {
     display: flex;
     align-items: center;
@@ -117,7 +109,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   .nav-row:hover { opacity: 0.6; }
 }
 
-/* Toggle switch */
 .toggle {
   width: 34px;
   height: 19px;
@@ -135,7 +126,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   transition: left 0.25s ease;
 }
 
-/* Named utilities for design-system colors */
 @layer utilities {
   .bg-app     { background: var(--color-app-bg); }
   .bg-surface { background: var(--color-secondary-bg); }
@@ -158,7 +148,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   min-height: 100vh;
   cursor: text;
 }
-/* Suppress native browser image drag so resize handles work cleanly */
 .rsw-ce img {
   -webkit-user-drag: none;
 }

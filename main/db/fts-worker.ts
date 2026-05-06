@@ -45,7 +45,6 @@ parentPort!.on('message', (msg: {
       break;
     }
     case 'upsert': {
-      // content is plaintext — main thread decrypts before sending
       try {
         ftsDb.prepare('DELETE FROM entries_fts_mem WHERE id = ?').run(msg.id);
         ftsDb.prepare('INSERT INTO entries_fts_mem(id, content, timestamp) VALUES (?, ?, ?)').run(msg.id, msg.content, msg.timestamp);

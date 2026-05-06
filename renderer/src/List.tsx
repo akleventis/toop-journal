@@ -11,6 +11,10 @@ const ROW_HEIGHT = 96;
 
 interface ListViewProps {
   entries: DecodedEntry[];
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loadMoreCount?: number;
+  loadingMore?: boolean;
 }
 
 function toDecodedEntry(entry: Entry): DecodedEntry {
@@ -40,7 +44,7 @@ function EntryRow({ entry, onClick }: { entry: DecodedEntry; onClick: () => void
   );
 }
 
-export default function ListView({ entries }: ListViewProps) {
+export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, loadingMore }: ListViewProps) {
   const navigate = useNavigate()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [searchValue, setSearchValue] = useState('');
@@ -50,6 +54,15 @@ export default function ListView({ entries }: ListViewProps) {
   const [activeQuery, setActiveQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [ftsReady, setFtsReady] = useState(false);
+  const [atBottom, setAtBottom] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 40);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     window.sqlite.isFtsReady().then(ready => {
@@ -169,6 +182,11 @@ export default function ListView({ entries }: ListViewProps) {
         )}
         {searchValue.length > 0 && (
           <button type="button" className="text-[10px] h-[20px] flex items-center" onClick={handleClearSearch}>Clear</button>
+        )}
+        {hasMore && !searchResults && atBottom && (
+          <button type="button" className="text-[10px] h-[20px] flex items-center ml-auto mr-[4px] text-muted" onClick={() => { setAtBottom(false); onLoadMore?.(); }} disabled={loadingMore}>
+            {loadingMore ? 'Loading...' : `Load ${loadMoreCount} more`}
+          </button>
         )}
       </div>
     </div>

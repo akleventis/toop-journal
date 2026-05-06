@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { DecodedEntry } from '../../shared/types'
 import * as db from '../db/db'
 import { HashRouter, BrowserRouter, Routes, Route, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -31,7 +31,10 @@ const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 function AppContent() {
   const [entries, setEntries] = useState<DecodedEntry[]>([])
   const [calendarEntries, setCalendarEntries] = useState<DecodedEntry[]>([])
+  const [loadedLimit, setLoadedLimit] = useState<number | undefined>(undefined)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const loadedLimitRef = useRef<number | undefined>(undefined)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const location = useLocation();
   const navigate = useNavigate();
@@ -71,14 +74,31 @@ function AppContent() {
 
   const loadEntries = async () => {
     setLoading(true)
+    const limit = db.getEntryLimitFromStorage()
     const [listEntries, calEntries] = await Promise.all([
-      db.getEntriesForList(),
+      db.getEntriesForList(limit),
       db.getEntriesForCalendar(),
     ])
     setEntries(listEntries)
+    setLoadedLimit(limit)
+    loadedLimitRef.current = limit
     setCalendarEntries(calEntries)
     setLoading(false)
   }
+
+  const handleLoadMore = async () => {
+    const perPage = db.getEntryLimitFromStorage()
+    if (perPage == null) return
+    const nextLimit = (loadedLimit ?? perPage) * 2
+    setLoadingMore(true)
+    const listEntries = await db.getEntriesForList(nextLimit)
+    setEntries(listEntries)
+    setLoadedLimit(nextLimit)
+    loadedLimitRef.current = nextLimit
+    setLoadingMore(false)
+  }
+
+  const hasMore = loadedLimit != null && entries.length >= loadedLimit
 
   // handle reload and initial load when on /list
   useEffect(() => {
@@ -100,11 +120,11 @@ function AppContent() {
   // monitor network status and reinitialize S3 client when connection is restored
   useNetworkSync();
 
-  // silent reload when sync pipeline writes remote entries — cache cleared automatically by db.ts
+  // silent reload when sync pipeline writes remote entries — ref keeps limit current without re-registering
   useEffect(() => {
     if (!passwordVerified) return;
     return window.sqlite.onEntriesChanged(() => {
-      db.getEntriesForList().then(setEntries).catch(handleError);
+      db.getEntriesForList(loadedLimitRef.current).then(setEntries).catch(handleError);
       db.getEntriesForCalendar().then(setCalendarEntries).catch(handleError);
     });
   }, [passwordVerified]);
@@ -121,7 +141,7 @@ function AppContent() {
       <NavBar activeTab={location.pathname} />
       <div className="flex-1 min-h-0 relative overflow-y-auto">
         <div style={{ display: location.pathname === '/list' && !reload && !loading ? undefined : 'none', height: '100%' }}>
-          <ListView entries={entries} />
+          <ListView entries={entries} onLoadMore={handleLoadMore} hasMore={hasMore} loadMoreCount={loadedLimit} loadingMore={loadingMore} />
         </div>
         <Routes>
           <Route path="/" element={null} />
