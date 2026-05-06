@@ -20,13 +20,11 @@ let mainWindow: BrowserWindow | null = null;
 let skipSyncOnQuit = false;
 let isDirty = false;
 
-const iconPath = isDev
-  ? path.join(__dirname, '../../../assets/icon.png')
-  : path.join(__dirname, '../../assets/icon.png');
+const iconPath = path.join(__dirname, '../../assets/icon.png');
 
 const indexHtmlPath = isDev
   ? 'http://localhost:5173'
-  : path.join(__dirname, '../../renderer/index.html');
+  : path.join(__dirname, '../renderer/index.html');
 
 const preloadPath = path.join(__dirname, '../preload/preload.js');
 
@@ -79,7 +77,6 @@ function createWindow() {
     backgroundColor: '#333',
     webPreferences: {
       preload: preloadPath,
-      webSecurity: false,
       contextIsolation: true,
       spellcheck: true,
     },
@@ -335,10 +332,6 @@ ipcMain.handle('sqlite:getSetting', (event, key: string) => {
 
 ipcMain.handle('sqlite:setSetting', (event, key: string, value: string) => {
   return db.setSetting(key, value);
-});
-
-ipcMain.handle('sqlite:batchUpdateContent', (_e, updates: { id: string; content: string }[]) => {
-  return db.batchUpdateContent(updates);
 });
 
 // dialog

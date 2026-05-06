@@ -36,21 +36,19 @@ app.asar/
 ├── assets/
 │   └── icon.png                             # Window icon
 ├── dist/
-│   ├── main/
-│   │   ├── main/                            # Main process (entry point)
-│   │   │   ├── main.js                      # __dirname points here in production
-│   │   │   ├── cloudsync/
-│   │   │   │   ├── aws_client.js
-│   │   │   │   ├── aws_config.js
-│   │   │   │   ├── master_index.js
-│   │   │   │   └── transact.js
-│   │   │   └── db/
-│   │   │       └── sqlite.js
-│   │   ├── preload/                         # Preload scripts
-│   │   │   └── preload.js
-│   │   └── shared/                          # Compiled shared types
-│   │       ├── types.js
-│   │       └── api.js
+│   ├── main/                                # Main process (entry point)
+│   │   ├── main.js                          # __dirname points here in production
+│   │   ├── cloudsync/
+│   │   │   ├── aws_client.js
+│   │   │   ├── aws_config.js
+│   │   │   ├── master_index.js
+│   │   │   └── transact.js
+│   │   └── db/
+│   │       └── sqlite.js
+│   ├── preload/                             # Preload scripts
+│   │   └── preload.js
+│   ├── shared/                              # Compiled shared types
+│   │   └── types.js
 │   └── renderer/                            # Renderer process (UI)
 │       ├── index.html                       # Main HTML file
 │       └── assets/
@@ -64,7 +62,7 @@ app.asar/
 When the app runs in production:
 
 ```javascript
-__dirname = "/path/to/app.asar/dist/main/main"
+__dirname = "/path/to/app.asar/dist/main"
 process.resourcesPath = "/path/to/toop journal.app/Contents/Resources"
 ```
 
@@ -72,8 +70,8 @@ process.resourcesPath = "/path/to/toop journal.app/Contents/Resources"
 - Icon: `path.join(__dirname, '../../assets/icon.png')`
   - Resolves to: `app.asar/assets/icon.png`
 - Preload: `path.join(__dirname, '../preload/preload.js')`
-  - Resolves to: `app.asar/dist/main/preload/preload.js`
-- Renderer: `path.join(__dirname, '../../renderer/index.html')`
+  - Resolves to: `app.asar/dist/preload/preload.js`
+- Renderer: `path.join(__dirname, '../renderer/index.html')`
   - Resolves to: `app.asar/dist/renderer/index.html`
 
 ## User Data Location
@@ -98,9 +96,9 @@ app.getPath('userData')
 
 | Resource      | Development                               | Production                                              |
 |---------------|-------------------------------------------|---------------------------------------------------------|
-| `__dirname`   | `/path/to/toop-journal/main`             | `.../app.asar/dist/main/main`                          |
+| `__dirname`   | `.../toop-journal/dist/main`             | `.../app.asar/dist/main`                                |
 | HTML          | `http://localhost:5173`                   | `file://.../app.asar/dist/renderer/index.html`         |
-| Preload       | `../preload/preload.js`                   | `../preload/preload.js` (same relative path!)          |
-| Icon          | `../assets/icon.png`                      | `../../assets/icon.png`                                |
+| Preload       | `../preload/preload.js`                   | `../preload/preload.js`                                |
+| Icon          | `../../assets/icon.png`                   | `../../assets/icon.png`                                |
 | User Data     | `~/Library/Application Support/Electron` | `~/Library/Application Support/toop-journal` |
 

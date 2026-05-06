@@ -91,15 +91,6 @@ export function buildInMemoryFts(onReady?: () => void): void {
   });
 }
 
-function batchUpdateContent(updates: { id: string; content: string }[]): void {
-  const stmt = db.prepare('UPDATE entries_t SET content = ? WHERE id = ?');
-  db.transaction(() => {
-    for (const { id, content } of updates) {
-      stmt.run(content, id);
-    }
-  })();
-}
-
 function getEntries(limit?: number): Entry[] {
     let query = 'SELECT * FROM entries_t order by timestamp DESC';
     if (limit && limit > 0) {
@@ -366,7 +357,6 @@ function integrityCheck(): boolean {
 }
 
 export {
-    batchUpdateContent,
     getEntries,
     getEntriesForList,
     getAdjacentEntry,

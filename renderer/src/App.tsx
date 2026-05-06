@@ -16,7 +16,6 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
 import { handleError } from '../lib/error-handler'
 import { journalToCalendar, getCurrentCalendarDate } from '../lib/dates'
-import { markdownToHtml } from '../lib/markdown'
 import LoadingSpinner from './components/LoadingSpinner'
 
 // type declaration for the global variable defined in vite.config.ts
@@ -48,18 +47,6 @@ function AppContent() {
     if (location.pathname !== '/') return
 
     const decide = async () => {
-      // one-time migration: convert stored markdown to HTML
-      const fmt = await window.sqlite.getSetting('contentFormat');
-      if (fmt !== 'html') {
-        const entries = await window.sqlite.getEntries();
-        if (entries.length > 0) {
-          await window.sqlite.batchUpdateContent(
-            entries.map(e => ({ id: e.id, content: markdownToHtml(e.content) }))
-          );
-        }
-        await window.sqlite.setSetting('contentFormat', 'html');
-      }
-
       const hasToday = await isTodayFilled()
       navigate(hasToday ? '/list' : '/new', { replace: true })
     }
