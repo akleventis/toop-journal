@@ -22,7 +22,7 @@ function EntryRow({ entry, onClick }: { entry: DecodedEntry; onClick: () => void
   return (
     <div
       onClick={onClick}
-      className="flex border-b border-[color:var(--color-secondary-bg)] py-[10px] pr-5 flex-nowrap"
+      className="flex border-b border-surface py-[10px] pr-5 flex-nowrap"
     >
       <div className="flex flex-row flex-1 justify-between">
         <div className="w-[100px] text-center shrink-0 flex flex-col items-center justify-evenly py-[10px]">
@@ -149,7 +149,7 @@ export default function ListView({ entries }: ListViewProps) {
           })}
         </div>
       </div>
-      <div className="p-[2px] flex items-center justify-start gap-[6px] w-full h-[30px] bg-[color:var(--color-app-bg)]">
+      <div className="p-[2px] flex items-center justify-start gap-[6px] w-full h-[30px] bg-app">
         <form onSubmit={handleSearchSubmit}>
           <input
             type="text"

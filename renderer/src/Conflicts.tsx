@@ -45,7 +45,7 @@ export default function Conflicts() {
                     <div
                         key={c.entryId}
                         onClick={() => setSelected(c)}
-                        className="p-[10px] mb-2 bg-[color:var(--color-secondary-bg)] rounded cursor-pointer"
+                        className="p-[10px] mb-2 bg-surface rounded cursor-pointer"
                     >
                         <div>{c.entryDate}</div>
                         <div className="text-[10px] text-gray-400 mt-1">
@@ -61,7 +61,7 @@ export default function Conflicts() {
     // Detail view
     return (
         <div className="p-5 h-full flex flex-col">
-            <h3 className="text-[14px] text-[#e74c3c] m-0 mb-[10px]">
+            <h3 className="text-[14px] text-error m-0 mb-[10px]">
                 {selected.entryDate}
             </h3>
 
@@ -73,8 +73,8 @@ export default function Conflicts() {
                         className={clsx(
                             'flex-1 rounded p-[10px] cursor-pointer overflow-hidden flex flex-col',
                             version === v
-                                ? 'border-2 border-current bg-[color:var(--color-third-bg)]'
-                                : 'border border-[color:var(--color-third-bg)] bg-[color:var(--color-secondary-bg)]'
+                                ? 'border-2 border-current bg-raised'
+                                : 'border border-raised bg-surface'
                         )}
                     >
                         <div className="text-[12px] font-bold mb-1">
@@ -84,7 +84,7 @@ export default function Conflicts() {
                             {new Date(v === 'local' ? selected.localModified : selected.remoteModified).toLocaleString()}
                         </div>
                         <div
-                            className="flex-1 overflow-auto text-[11px] p-2 rounded bg-[color:var(--color-app-bg)]"
+                            className="flex-1 overflow-auto text-[11px] p-2 rounded bg-app"
                             dangerouslySetInnerHTML={{ __html: v === 'local' ? selected.localVersion : selected.remoteVersion }}
                         />
                     </div>

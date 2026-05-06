@@ -134,7 +134,7 @@ function AppContent() {
           <Route path="/new" element={<ErrorBoundary><New /></ErrorBoundary>} />
           <Route path="/edit" element={<ErrorBoundary><Edit /></ErrorBoundary>} />
         </Routes>
-        {loading && <div className="absolute inset-0 flex justify-center items-center bg-[color:var(--color-app-bg)] z-[1000]"><LoadingSpinner size={32} /></div>}
+        {loading && <div className="absolute inset-0 flex justify-center items-center bg-app z-[1000]"><LoadingSpinner size={32} /></div>}
       </div>
     </div>
   );

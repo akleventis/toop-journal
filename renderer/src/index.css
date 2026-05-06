@@ -1,20 +1,17 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --color-app-bg: #d5d5d5;
-  --color-secondary-bg: rgba(255, 255, 255, 0.55);
-  --color-third-bg: rgba(255, 255, 255, 0.85);
+  --color-secondary-bg: #e8e8e8;
+  --color-third-bg: #f0f0f0;
   --color-accent: #555;
+  --color-error: #e74c3c;
+  --color-success: #2ecc71;
+  --color-warning: #f1c40f;
   --radius: 14px;
   --radius-sm: 8px;
   --radius-lg: 20px;
-}
-
-:root {
-  --glass-bg: rgba(255, 255, 255, 0.45);
-  --glass-border: rgba(255, 255, 255, 0.7);
-  --glass-shadow: 0 2px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-  --glass-blur: 16px;
+  --border: rgba(0, 0, 0, 0.12);
   --text-primary: #111;
   --text-muted: #888;
 }
@@ -22,12 +19,10 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --color-app-bg: #1a1a1a;
-    --color-secondary-bg: rgba(255, 255, 255, 0.05);
-    --color-third-bg: rgba(255, 255, 255, 0.12);
+    --color-secondary-bg: #222222;
+    --color-third-bg: #2a2a2a;
     --color-accent: #aaa;
-    --glass-bg: rgba(255, 255, 255, 0.07);
-    --glass-border: rgba(255, 255, 255, 0.11);
-    --glass-shadow: 0 2px 20px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
+    --border: rgba(255, 255, 255, 0.1);
     --text-primary: #f0f0f0;
     --text-muted: #666;
   }
@@ -38,7 +33,6 @@
 html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
 #root { background: var(--color-app-bg); }
 html {
-  scroll-behavior: smooth;
   font-size: 13px;
   font-family: 'Avenir Next', Avenir, system-ui, sans-serif;
   color-scheme: light dark;
@@ -56,13 +50,10 @@ input, select {
   padding: 6px 10px;
   font-family: inherit;
   font-size: 12px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--glass-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--color-secondary-bg);
   outline: none;
-  transition: border-color 0.15s ease;
   color: inherit;
 }
 input:focus, select:focus { border-color: var(--color-accent); }
@@ -75,27 +66,18 @@ button {
   font-weight: 500;
   border-radius: var(--radius-sm);
   padding: 5px 13px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  background: var(--color-secondary-bg);
   color: inherit;
-  transition: background 0.15s ease, transform 0.1s ease;
 }
-button:hover:not(:disabled) {
-  background: var(--color-third-bg);
-  transform: translateY(-0.5px);
-}
+button:hover:not(:disabled) { background: var(--color-third-bg); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 @layer components {
-  /* Shared glass treatment */
-  .card, .glass-surface {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
+  /* Shared surface treatment */
+  .card, .surface {
+    background: var(--color-secondary-bg);
+    border: 1px solid var(--border);
   }
 
   /* .card adds shape + padding on top */
@@ -117,7 +99,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   /* Hairline divider between card sections */
   .setting-divider {
     border: none;
-    border-top: 1px solid var(--glass-border);
+    border-top: 1px solid var(--border);
     margin: 12px 0;
   }
 
@@ -128,8 +110,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
     justify-content: space-between;
     padding: 10px 0;
     cursor: pointer;
-    border-bottom: 1px solid var(--glass-border);
-    transition: opacity 0.15s ease;
+    border-bottom: 1px solid var(--border);
     font-size: 13px;
   }
   .nav-row:last-child { border-bottom: none; }
@@ -143,7 +124,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   border-radius: 19px;
   cursor: pointer;
   position: relative;
-  transition: background 0.25s ease;
 }
 .toggle-slider {
   width: 14px;
@@ -153,7 +133,18 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   position: absolute;
   top: 2px;
   transition: left 0.25s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Named utilities for design-system colors */
+@layer utilities {
+  .bg-app     { background: var(--color-app-bg); }
+  .bg-surface { background: var(--color-secondary-bg); }
+  .bg-raised  { background: var(--color-third-bg); }
+  .bg-error   { background: var(--color-error); }
+  .text-muted { color: var(--text-muted); }
+  .text-error { color: var(--color-error); }
+  .border-surface { border-color: var(--color-secondary-bg); }
+  .border-raised  { border-color: var(--color-third-bg); }
 }
 
 /* react-simple-wysiwyg overrides */

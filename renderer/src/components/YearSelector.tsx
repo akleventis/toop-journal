@@ -84,7 +84,7 @@ export default function YearSelector({
             </button>
 
             {isOpen && (
-                <div className="year-selector-dropdown absolute top-full left-1/2 -translate-x-1/2 bg-[color:var(--color-app-bg)] border border-[color:var(--color-third-bg)] rounded p-[10px] z-[1000] mt-[5px]">
+                <div className="year-selector-dropdown absolute top-full left-1/2 -translate-x-1/2 bg-app border border-raised rounded p-[10px] z-[1000] mt-[5px]">
                     <div className="grid grid-cols-3 gap-[5px] w-[200px] mb-[10px]">
                         {yearGrid.map(year => (
                             <button
@@ -92,7 +92,7 @@ export default function YearSelector({
                                 onClick={() => handleYearSelect(year)}
                                 className={clsx(
                                 'py-1 rounded cursor-pointer',
-                                year === displayYear ? '!bg-[color:var(--color-third-bg)]' : '!bg-[color:var(--color-app-bg)]',
+                                year === displayYear ? '!bg-raised' : '!bg-app',
                                 yearsWithEntries?.has(year) ? '!font-bold' : '!font-normal'
                             )}
                             >

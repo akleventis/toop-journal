@@ -51,7 +51,7 @@ export function LogsNav() {
     return (
         <div className="nav-row" onClick={() => navigate('/logs')}>
             <span>Logs</span>
-            <span style={{ color: 'var(--text-muted)' }}>›</span>
+            <span className="text-muted">›</span>
         </div>
     );
 }
@@ -61,7 +61,7 @@ export function BackupsNav() {
     return (
         <div className="nav-row" onClick={() => navigate('/backups')}>
             <span>Backups</span>
-            <span style={{ color: 'var(--text-muted)' }}>›</span>
+            <span className="text-muted">›</span>
         </div>
     );
 }
@@ -86,11 +86,11 @@ export function ConflictsNav() {
             <div className="flex items-center gap-2">
                 <span
                     className="text-[10px] font-semibold px-2 py-[2px] rounded-full text-white"
-                    style={{ backgroundColor: '#e74c3c' }}
+                    style={{ backgroundColor: 'var(--color-error)' }}
                 >
                     {conflictCount}
                 </span>
-                <span style={{ color: 'var(--text-muted)' }}>›</span>
+                <span className="text-muted">›</span>
             </div>
         </div>
     );
@@ -113,8 +113,8 @@ export function HealthCheckWidget() {
     };
 
     const statusIcon = (ok: boolean | null) => {
-        if (ok === null) return <span style={{ color: 'var(--text-muted)' }} className="text-[11px]">N/A</span>;
-        return <span style={{ color: ok ? '#2ecc71' : '#e74c3c' }}>{ok ? '✓' : '✗'}</span>;
+        if (ok === null) return <span className="text-[11px] text-muted">N/A</span>;
+        return <span style={{ color: ok ? 'var(--color-success)' : 'var(--color-error)' }}>{ok ? '✓' : '✗'}</span>;
     };
 
     const rows: [string, React.ReactNode][] = health ? [
@@ -122,7 +122,7 @@ export function HealthCheckWidget() {
         ['Master Index', statusIcon(health.masterIndexIntegrity)],
         ['S3 Connectivity', statusIcon(health.s3Connectivity)],
         ['Disk Free', <span key="disk">{formatBytes(health.diskSpace)}</span>],
-        ['Last Sync', <span key="sync" style={{ color: 'var(--text-muted)' }}>{formatRelativeTime(health.lastSyncTime)}</span>],
+        ['Last Sync', <span key="sync" className="text-muted">{formatRelativeTime(health.lastSyncTime)}</span>],
     ] : [];
 
     return (
@@ -137,7 +137,7 @@ export function HealthCheckWidget() {
                 <div className="flex flex-col gap-2">
                     {rows.map(([label, value]) => (
                         <div key={label} className="flex justify-between items-center text-[12px]">
-                            <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+                            <span className="text-muted">{label}</span>
                             {value}
                         </div>
                     ))}
@@ -372,15 +372,15 @@ export function ExportEntries() {
             <p className="section-label">Export</p>
             <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                    <label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Start</label>
+                    <label className="text-[10px] text-muted">Start</label>
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>End</label>
+                    <label className="text-[10px] text-muted">End</label>
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Format</label>
+                    <label className="text-[10px] text-muted">Format</label>
                     <select value={format} onChange={(e) => setFormat(e.target.value)}>
                         <option value="html">HTML</option>
                         <option value="json">JSON</option>
@@ -486,7 +486,7 @@ function AWSConfigModal({ formData, setFormData, syncState, onSave, onCancel }: 
     return (
         <Modal isOpen={true} title="AWS Config" onClose={onCancel}>
             {syncState === SyncState.ERROR && (
-                <p className="text-[11px] text-center m-0" style={{ color: '#e74c3c' }}>
+                <p className="text-[11px] text-center m-0 text-error">
                     Failed — verify credentials and try again
                 </p>
             )}
@@ -517,9 +517,9 @@ export function AWSConfig() {
     const isActive = syncState === SyncState.READY || syncState === SyncState.SYNCING
     const isBusy = syncState === SyncState.SYNCING || syncState === SyncState.INITIALIZING
     const dotColor =
-        syncState === SyncState.READY ? '#2ecc71' :
-        syncState === SyncState.SYNCING || syncState === SyncState.INITIALIZING ? '#f1c40f' :
-        syncState === SyncState.ERROR ? '#e74c3c' :
+        syncState === SyncState.READY ? 'var(--color-success)' :
+        syncState === SyncState.SYNCING || syncState === SyncState.INITIALIZING ? 'var(--color-warning)' :
+        syncState === SyncState.ERROR ? 'var(--color-error)' :
         'rgba(128,128,128,0.5)'
 
     useEffect(() => {
@@ -617,7 +617,7 @@ export function AWSConfig() {
             </div>
 
             {syncState === SyncState.ERROR && (
-                <p className="text-[11px] mt-2 m-0" style={{ color: '#e74c3c' }}>
+                <p className="text-[11px] mt-2 m-0 text-error">
                     Sync error — check connection or credentials
                 </p>
             )}

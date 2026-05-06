@@ -30,7 +30,7 @@ export default function Backups() {
       ) : (
         <div className="flex flex-col gap-[6px]">
           {backups.map(b => (
-            <div key={b.filename} className="flex items-center justify-between px-3 py-2 rounded bg-[color:var(--color-secondary-bg)]">
+            <div key={b.filename} className="flex items-center justify-between px-3 py-2 rounded bg-surface">
               <div>
                 <div className="text-[12px]">{b.date}</div>
                 <div className="text-[10px] text-gray-400">{formatBytes(b.sizeBytes)}</div>
@@ -43,14 +43,14 @@ export default function Backups() {
 
       <Modal isOpen={confirming !== null} title="Restore Backup" onClose={() => setConfirming(null)}>
         <div className="text-center">
-          <p className="text-[11px] text-[#e74c3c] mb-[10px]">
+          <p className="text-[11px] text-error mb-[10px]">
             This will replace your entire database with the backup from <strong>{confirming?.date}</strong> and restart the app.
           </p>
           <p className="text-[11px] text-gray-400 mb-[15px]">Any entries made after this date will be lost.</p>
           <div className="flex gap-[10px] justify-center">
             <button className="text-[11px]" onClick={() => setConfirming(null)}>Cancel</button>
             <button
-              className="text-[11px] bg-[#e74c3c] text-white hover:bg-[#c0392b]"
+              className="text-[11px] bg-error text-white"
               onClick={handleRestore}
             >
               Yes, restore and restart

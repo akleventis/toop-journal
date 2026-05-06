@@ -14,7 +14,7 @@ export default function Modal({ isOpen, title, onClose, children }: ModalProps) 
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+      style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={onClose}
     >
       <div

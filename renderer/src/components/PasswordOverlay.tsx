@@ -50,7 +50,7 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
                 <div className="mt-[15px]">
                     <input
                         type="password"
-                        className="w-[200px] border border-[color:var(--color-third-bg)] rounded bg-[color:var(--color-secondary-bg)]"
+                        className="w-[200px] border border-raised rounded bg-surface"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={handlePasswordKeyPress}

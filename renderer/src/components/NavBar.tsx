@@ -24,16 +24,16 @@ export default function NavBar({ activeTab }: NavBarProps) {
 
   return (
     <div className="relative flex justify-center py-2 px-4">
-      <nav className="glass-surface flex items-center gap-1 py-1.5 px-1 rounded-sm">
+      <nav className="surface flex items-center gap-1 py-1.5 px-1 rounded-sm">
         {tabs.map(tab => (
           <Link
             key={tab.path}
             to={tab.path}
             onClick={(e) => { if (!checkNavGuard()) e.preventDefault(); }}
             className={clsx(
-              'w-[68px] py-[5px] rounded-sm text-center text-[12px] font-medium transition-all duration-150',
+              'w-[68px] py-[5px] rounded-sm text-center text-[12px] font-medium',
               activeTab === tab.path
-                ? 'bg-[color:var(--color-third-bg)]'
+                ? 'bg-raised'
                 : 'opacity-50'
             )}
           >
@@ -44,14 +44,13 @@ export default function NavBar({ activeTab }: NavBarProps) {
 
       <div className="absolute right-6 top-1/2 -translate-y-1/2 group flex items-center gap-1">
         <span
-          className="text-[9px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ color: 'var(--text-muted)' }}
+          className="text-[9px] text-muted opacity-0 group-hover:opacity-100 pointer-events-none"
         >
           {online ? 'online' : 'offline'}
         </span>
         <div
           className="w-[5px] h-[5px] rounded-full"
-          style={{ backgroundColor: online ? '#2ecc71' : '#e74c3c' }}
+          style={{ backgroundColor: online ? 'var(--color-success)' : 'var(--color-error)' }}
         />
       </div>
     </div>

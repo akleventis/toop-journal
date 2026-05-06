@@ -69,7 +69,7 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
                     onClick={() => handleDateClick(date)}
                     className={clsx(
                         'rounded text-center w-[28px] h-[28px] cursor-pointer text-[12px] flex items-center justify-center',
-                        hasEntry ? 'bg-[color:var(--color-third-bg)]' : 'bg-transparent'
+                        hasEntry ? 'bg-raised' : 'bg-transparent'
                     )}
                 >
                     {day}
