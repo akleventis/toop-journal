@@ -64,10 +64,9 @@ export async function searchEntries(query: string, limit?: number): Promise<Entr
   return await window.sqlite.searchEntries(query, limit ?? getSearchLimit());
 }
 
-// auto-sets timestamp and lastModified
+// timestamp derives from the entry's date so list ordering matches journal date, not creation time
 export async function createEntry(entry: Entry): Promise<Entry> {
-  const now = Date.now();
-  entry = { ...entry, timestamp: now, lastModified: now };
+  entry = { ...entry, timestamp: parseJournalDate(entry.date), lastModified: Date.now() };
   await window.sqlite.createEntry(entry);
   clearDecodedCache();
   return entry;
