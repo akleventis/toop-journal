@@ -1,9 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import path from 'node:path';
-import { updateConfig, getConfig, createConfig, deleteConfig, disableSync } from './cloudsync/aws_config';
-import { initS3Client } from './cloudsync/aws_client';
+import { updateConfig, getConfig, createConfig, deleteConfig, disableSync, initS3Client } from './cloudsync/aws-connection';
 import { Entry, S3Config } from '../shared/types';
-import { cloudSyncPipeline, state } from './cloudsync/transact';
+import { cloudSyncPipeline, isSyncConfigured, getLastSyncTime } from './cloudsync/transact';
 import * as db from './db/sqlite';
 import { initLocalMasterIndex } from './cloudsync/master_index';
 import { resolveConflict } from './cloudsync/conflict_resolver';
@@ -170,9 +169,9 @@ app.on('before-quit', async (event) => {
     }
     return;
   }
-  if (state.AWSClient && state.AWSConfig && !skipSyncOnQuit) {
+  if (isSyncConfigured() && !skipSyncOnQuit) {
     // real-time sync already pushed changes — nothing to do
-    if (state.lastSyncTime > 0 && !db.hasEntriesModifiedSince(state.lastSyncTime)) {
+    if (getLastSyncTime() > 0 && !db.hasEntriesModifiedSince(getLastSyncTime())) {
       logger.info('before-quit: no changes since last sync, skipping');
       return;
     }

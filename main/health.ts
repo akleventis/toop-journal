@@ -2,7 +2,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
 import { HeadBucketCommand } from '@aws-sdk/client-s3';
-import { state } from './cloudsync/transact';
+import { getAWSClient, getAWSConfig } from './cloudsync/aws-connection';
+import { getLastSyncTime } from './cloudsync/transact';
 import { logger } from './logger';
 import { integrityCheck } from './db/sqlite';
 import { HealthCheck } from '../shared/types';
@@ -31,9 +32,11 @@ async function checkMasterIndexIntegrity(): Promise<boolean> {
 
 // Checks S3 bucket reachability. Returns null if sync is disabled.
 async function checkS3Connectivity(): Promise<boolean | null> {
-    if (!state.AWSClient || !state.AWSConfig) return null;
+    const awsClient = getAWSClient();
+    const awsConfig = getAWSConfig();
+    if (!awsClient || !awsConfig) return null;
     try {
-        await state.AWSClient.send(new HeadBucketCommand({ Bucket: state.AWSConfig.aws_bucket }));
+        await awsClient.send(new HeadBucketCommand({ Bucket: awsConfig.aws_bucket }));
         return true;
     } catch {
         return false;
@@ -66,6 +69,6 @@ export async function runHealthCheck(): Promise<HealthCheck> {
         masterIndexIntegrity,
         s3Connectivity,
         diskSpace,
-        lastSyncTime: state.lastSyncTime,
+        lastSyncTime: getLastSyncTime(),
     };
 }

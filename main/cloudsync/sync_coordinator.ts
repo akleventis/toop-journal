@@ -1,13 +1,13 @@
 import { dbEvents } from '../db/sqlite';
 import { updateLocalMasterIndex } from './master_index';
-import { cloudSyncPipeline, state } from './transact';
+import { cloudSyncPipeline, isSyncConfigured } from './transact';
 import { logger } from '../logger';
 
 let syncInFlight = false;
 let dirtyDuringSync = false; // at least one event arrived while a sync was running
 
 function triggerSync() {
-  if (!state.AWSClient || !state.AWSConfig) return;
+  if (!isSyncConfigured()) return;
 
   if (syncInFlight) {
     // mark dirty so runSync schedules a follow-up when the current sync completes

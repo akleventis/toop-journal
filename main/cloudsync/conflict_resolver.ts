@@ -1,5 +1,5 @@
 import * as db from '../db/sqlite';
-import { cloudSyncPipeline, state } from './transact';
+import { cloudSyncPipeline, isSyncConfigured } from './transact';
 import { logger } from '../logger';
 
 // resolves a conflict by applying the chosen version, deleting the conflict record, and syncing
@@ -21,7 +21,7 @@ export async function resolveConflict(entryId: string, version: 'local' | 'remot
 
   db.deleteConflict(entryId);
 
-  if (state.AWSClient && state.AWSConfig) {
+  if (isSyncConfigured()) {
     try {
       await cloudSyncPipeline();
     } catch (error) {

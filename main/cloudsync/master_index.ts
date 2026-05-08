@@ -1,6 +1,7 @@
 import { MasterIndex, Entry, MasterIndexEntry, SyncAction } from '../../shared/types';
 import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { state } from './transact';
+import { getAWSClient, getAWSConfig } from './aws-connection';
+import { USER_DATA_PATH, MASTER_INDEX_FILE } from './paths';
 import * as db from '../db/sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -8,7 +9,7 @@ import { logger } from '../logger';
 
 // Creates masterIndex.json in userData if it doesn't exist. Called on startup.
 export const initLocalMasterIndex = async (): Promise<void> => {
-  const masterIndexPath = path.join(state.UserDataPath, state.MasterIndexFileName);
+  const masterIndexPath = path.join(USER_DATA_PATH, MASTER_INDEX_FILE);
 
   if (!fs.existsSync(masterIndexPath)) {
     logger.debug('initLocalMasterIndex: creating new master index file at', masterIndexPath);
@@ -18,13 +19,15 @@ export const initLocalMasterIndex = async (): Promise<void> => {
 
 // Creates masterIndex.json in S3 if it doesn't already exist.
 export const initS3MasterIndex = async (): Promise<void> => {
-  if (!state.AWSClient || !state.AWSConfig) {
+  const awsClient = getAWSClient();
+  const awsConfig = getAWSConfig();
+  if (!awsClient || !awsConfig) {
     throw new Error('initS3MasterIndex: no s3 client or config found');
   }
   // first check if master index file exists in s3
   let exists = false;
   try {
-    await state.AWSClient.send(new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName }));
+    await awsClient.send(new GetObjectCommand({ Bucket: awsConfig.aws_bucket, Key: MASTER_INDEX_FILE }));
     exists = true;
   } catch (error: any) {
     if (error.name === 'NoSuchKey') {
@@ -38,7 +41,7 @@ export const initS3MasterIndex = async (): Promise<void> => {
   // if it doesn't exist, create it
   if (!exists) {
     try {
-      await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName, Body: '{}' }));
+      await awsClient.send(new PutObjectCommand({ Bucket: awsConfig.aws_bucket, Key: MASTER_INDEX_FILE, Body: '{}' }));
     } catch (error) {
       logger.error('initS3MasterIndex: failed to create s3 master index');
       throw error;
@@ -48,7 +51,7 @@ export const initS3MasterIndex = async (): Promise<void> => {
 
 // Reads and validates masterIndex.json from disk.
 export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
-  const masterIndexPath = path.join(state.UserDataPath, state.MasterIndexFileName);
+  const masterIndexPath = path.join(USER_DATA_PATH, MASTER_INDEX_FILE);
   if (!fs.existsSync(masterIndexPath)) {
     throw new Error('loadLocalMasterIndex: local master index file does not exist');
   }
@@ -68,13 +71,15 @@ export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
 // Downloads and validates masterIndex.json from S3.
 export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
   logger.debug('loading s3 master index');
-  if (!state.AWSConfig || !state.AWSClient) {
+  const awsClient = getAWSClient();
+  const awsConfig = getAWSConfig();
+  if (!awsConfig || !awsClient) {
     throw new Error('loadS3MasterIndex: no s3 client or config found');
   }
   let parsed: MasterIndex;
   try {
-    const response = await state.AWSClient.send(
-      new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName })
+    const response = await awsClient.send(
+      new GetObjectCommand({ Bucket: awsConfig.aws_bucket, Key: MASTER_INDEX_FILE })
     );
     const body = await response.Body?.transformToByteArray();
     const bodyString = body ? new TextDecoder().decode(body) : '{}';
@@ -157,8 +162,10 @@ const executeSyncPlan = async (
   localMasterIndex: MasterIndex,
   s3MasterIndex: MasterIndex
 ): Promise<MasterIndex> => {
-  if (!state.AWSClient) throw new Error('executeSyncPlan: no s3 client found');
-  if (!state.AWSConfig) throw new Error('executeSyncPlan: no aws config found');
+  const awsClient = getAWSClient();
+  const awsConfig = getAWSConfig();
+  if (!awsClient) throw new Error('executeSyncPlan: no s3 client found');
+  if (!awsConfig) throw new Error('executeSyncPlan: no aws config found');
 
   const syncedIndex: MasterIndex = {};
   const total = plan.length;
@@ -170,7 +177,7 @@ const executeSyncPlan = async (
   let conflicts = 0;
 
   const fetchS3Entry = async (id: string): Promise<Entry> => {
-    const response = await state.AWSClient!.send(new GetObjectCommand({ Bucket: state.AWSConfig!.aws_bucket, Key: `entries/${id}.json` }));
+    const response = await awsClient.send(new GetObjectCommand({ Bucket: awsConfig.aws_bucket, Key: `entries/${id}.json` }));
     const body = await response.Body?.transformToByteArray();
     return JSON.parse(body ? new TextDecoder().decode(body) : '{}') as Entry;
   };
@@ -208,7 +215,7 @@ const executeSyncPlan = async (
         try {
           const entry = db.getEntryById(id);
           if (!entry) throw new Error(`syncMasterIndex: local entry ${id} not found`);
-          await state.AWSClient.send(new PutObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
+          await awsClient.send(new PutObjectCommand({ Bucket: awsConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
           syncedIndex[id] = local;
           uploaded++;
         } catch (error) {
@@ -220,7 +227,7 @@ const executeSyncPlan = async (
 
       case 'delete-remote': {
         try {
-          await state.AWSClient.send(new DeleteObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: `entries/${id}.json` }));
+          await awsClient.send(new DeleteObjectCommand({ Bucket: awsConfig.aws_bucket, Key: `entries/${id}.json` }));
           syncedIndex[id] = local;
         } catch (error) {
           logger.error(`syncMasterIndex: error deleting S3 entry ${id}:`, error);
@@ -304,7 +311,7 @@ export const updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry
 
   // save index to local filesystem only (no S3 sync to avoid recursive loop)
   try {
-    fs.writeFileSync(path.join(state.UserDataPath, state.MasterIndexFileName), JSON.stringify(masterIndex, null, 2));
+    fs.writeFileSync(path.join(USER_DATA_PATH, MASTER_INDEX_FILE), JSON.stringify(masterIndex, null, 2));
   } catch (error) {
     logger.error(`updateLocalMasterIndex: error saving local master index ${id}:`, error);
     throw error;
