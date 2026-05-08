@@ -10,21 +10,21 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.2",
-    "@tanstack/react-virtual": "^3.13.24",
-    "clsx": "^2.1.1",
-    "jspdf": "^4.2.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.9.4",
-    "react-simple-wysiwyg": "^3.4.1",
-    "tailwindcss": "^4.2.2"
+    "@tailwindcss/vite": "4.2.2",
+    "@tanstack/react-virtual": "3.13.24",
+    "clsx": "2.1.1",
+    "jspdf": "4.2.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-router-dom": "7.9.4",
+    "react-simple-wysiwyg": "3.4.1",
+    "tailwindcss": "4.2.2"
   },
   "devDependencies": {
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react-swc": "^3.10.2",
-    "typescript": "~5.8.3",
-    "vite": "^7.0.0"
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
+    "@vitejs/plugin-react-swc": "3.10.2",
+    "typescript": "5.8.3",
+    "vite": "7.0.0"
   }
 }

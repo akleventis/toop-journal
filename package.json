@@ -22,15 +22,15 @@
   },
   "license": "ISC",
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
-    "concurrently": "^9.2.0",
+    "@types/better-sqlite3": "7.6.13",
+    "concurrently": "9.2.0",
     "electron": "^37.1.0",
-    "electron-builder": "^26.0.12",
-    "typescript": "^5.8.3"
+    "electron-builder": "26.0.12",
+    "typescript": "5.8.3"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.850.0",
-    "better-sqlite3": "^12.6.0"
+    "@aws-sdk/client-s3": "3.850.0",
+    "better-sqlite3": "12.6.0"
   },
   "build": {
     "appId": "com.toopjournal.app",

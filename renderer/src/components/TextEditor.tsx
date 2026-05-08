@@ -35,11 +35,12 @@ const TextEditor: React.FC<TextEditProps> = ({
     onContentChange
 }) => {
     const [html, setHtml] = useState('');
-    const [displayNavState, setDisplayNavState] = useState(displayNav);
-    const [editableState, setEditableState] = useState(editable);
+    const [isEditing, setIsEditing] = useState(editable);
     const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+
+    const showNav = displayNav && !isEditing;
 
     const handleDelete = async () => {
         if (!entry) return;
@@ -56,13 +57,12 @@ const TextEditor: React.FC<TextEditProps> = ({
     const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Tab') {
             e.preventDefault();
-            document.execCommand('insertText', false, '    ');
+            document.execCommand('insertText', false, ' ');
         }
     };
 
     const toggleEditMode = () => {
-        setEditableState(true);
-        setDisplayNavState(false);
+        setIsEditing(true);
         onEditModeChange?.(true);
     };
 
@@ -82,7 +82,7 @@ const TextEditor: React.FC<TextEditProps> = ({
     const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
 
     const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        if (!editableState) return;
+        if (!isEditing) return;
         e.preventDefault();
         e.stopPropagation();
         const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
@@ -104,41 +104,36 @@ const TextEditor: React.FC<TextEditProps> = ({
     };
 
     const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!editableState) return;
+        if (!isEditing) return;
         const target = e.target as HTMLElement;
         if (target.dataset.resizeHandle) return;
         setSelectedImg(target.tagName === 'IMG' ? target as HTMLImageElement : null);
     };
 
     useEffect(() => {
-        if (entry?.content) {
-            setHtml(entry.content);
-            setDisplayNavState(displayNav);
-            onContentChange?.(entry.content);
-        } else {
-            setHtml('');
-            onContentChange?.('');
-        }
-        setEditableState(editable);
+        const content = entry?.content ?? '';
+        setHtml(content);
+        onContentChange?.(content);
+        setIsEditing(editable);
         onEditModeChange?.(editable);
         setSelectedImg(null);
-    }, [entry?.id, displayNav, editable]);
+    }, [entry?.id, editable]);
 
     return (
         <div className="flex flex-col">
             <TextEditNav
-                displayNav={displayNavState}
+                displayNav={showNav}
                 onToggleEditMode={toggleEditMode}
                 onDelete={handleDelete}
                 onNavigate={onNavigate}
             />
 
             <div ref={containerRef} style={{ position: 'relative' }} onCopy={onCopy} onPaste={onPaste} onDragOver={onDragOver} onDrop={onDrop} onClick={handleClick}>
-                <Editor value={html} onChange={onChange} disabled={!editableState} onKeyDown={onKeyDown} spellCheck={true}>
+                <Editor value={html} onChange={onChange} disabled={!isEditing} onKeyDown={onKeyDown} spellCheck={true}>
                     <Toolbar />
                 </Editor>
 
-                {editableState && selectedImg && containerRef.current && (
+                {isEditing && selectedImg && containerRef.current && (
                     <ImageResizeOverlay
                         img={selectedImg}
                         container={containerRef.current}
