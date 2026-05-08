@@ -2,8 +2,7 @@ import { MasterIndex } from '../../shared/types';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { loadLocalMasterIndex, loadS3MasterIndex, syncMasterIndex } from './master_index';
 import { getAWSClient, getAWSConfig } from './aws-connection';
-import { USER_DATA_PATH, MASTER_INDEX_FILE } from './paths';
-import path from 'node:path';
+import { MASTER_INDEX_FILE, MASTER_INDEX_PATH } from './paths';
 import fs from 'node:fs';
 import { syncStateMachine, SyncState } from './sync_state';
 import { logger } from '../logger';
@@ -53,8 +52,8 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         merged = await syncMasterIndex(localMasterIndex, s3MasterIndex);
 
         // write to temporary file first
-        const tempPath = path.join(USER_DATA_PATH, `${MASTER_INDEX_FILE}.tmp`);
-        const finalPath = path.join(USER_DATA_PATH, MASTER_INDEX_FILE);
+        const tempPath = `${MASTER_INDEX_PATH}.tmp`;
+        const finalPath = MASTER_INDEX_PATH;
         const mergedJSON = JSON.stringify(merged, null, 2);
 
         logger.debug('writing to temporary master index file');
@@ -76,7 +75,7 @@ export const cloudSyncPipeline = async (): Promise<boolean> => {
         logger.error('failed to sync master index:', error);
 
         // clean up temporary file if it exists
-        const tempPath = path.join(USER_DATA_PATH, `${MASTER_INDEX_FILE}.tmp`);
+        const tempPath = `${MASTER_INDEX_PATH}.tmp`;
         if (fs.existsSync(tempPath)) {
             fs.unlinkSync(tempPath);
         }

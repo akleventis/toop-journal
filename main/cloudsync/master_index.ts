@@ -1,19 +1,16 @@
 import { MasterIndex, Entry, MasterIndexEntry, SyncAction } from '../../shared/types';
 import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getAWSClient, getAWSConfig } from './aws-connection';
-import { USER_DATA_PATH, MASTER_INDEX_FILE } from './paths';
+import { MASTER_INDEX_PATH, MASTER_INDEX_FILE } from './paths';
 import * as db from '../db/sqlite';
-import path from 'node:path';
 import fs from 'node:fs';
 import { logger } from '../logger';
 
 // Creates masterIndex.json in userData if it doesn't exist. Called on startup.
 export const initLocalMasterIndex = async (): Promise<void> => {
-  const masterIndexPath = path.join(USER_DATA_PATH, MASTER_INDEX_FILE);
-
-  if (!fs.existsSync(masterIndexPath)) {
-    logger.debug('initLocalMasterIndex: creating new master index file at', masterIndexPath);
-    fs.writeFileSync(masterIndexPath, '{}');
+  if (!fs.existsSync(MASTER_INDEX_PATH)) {
+    logger.debug('initLocalMasterIndex: creating new master index file at', MASTER_INDEX_PATH);
+    fs.writeFileSync(MASTER_INDEX_PATH, '{}');
   }
 };
 
@@ -51,14 +48,13 @@ export const initS3MasterIndex = async (): Promise<void> => {
 
 // Reads and validates masterIndex.json from disk.
 export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
-  const masterIndexPath = path.join(USER_DATA_PATH, MASTER_INDEX_FILE);
-  if (!fs.existsSync(masterIndexPath)) {
+  if (!fs.existsSync(MASTER_INDEX_PATH)) {
     throw new Error('loadLocalMasterIndex: local master index file does not exist');
   }
   let raw: string;
   let parsed: MasterIndex;
   try {
-    raw = fs.readFileSync(masterIndexPath, 'utf-8');
+    raw = fs.readFileSync(MASTER_INDEX_PATH, 'utf-8');
     parsed = JSON.parse(raw) as MasterIndex;
   } catch (error) {
     logger.error('loadLocalMasterIndex: failed to load local master index');
@@ -296,7 +292,7 @@ const executeSyncPlan = async (
 export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): Promise<MasterIndex> =>
   executeSyncPlan(planSync(localMasterIndex, s3MasterIndex), localMasterIndex, s3MasterIndex);
 
-// Updates a single entry in the local masterIndex.json. Does not touch S3.
+// Full read-write cycle: reads the whole file, patches one entry, writes it back. Does not touch S3.
 export const updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry): Promise<void> => {
   let masterIndex: MasterIndex;
 
@@ -311,7 +307,7 @@ export const updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry
 
   // save index to local filesystem only (no S3 sync to avoid recursive loop)
   try {
-    fs.writeFileSync(path.join(USER_DATA_PATH, MASTER_INDEX_FILE), JSON.stringify(masterIndex, null, 2));
+    fs.writeFileSync(MASTER_INDEX_PATH, JSON.stringify(masterIndex, null, 2));
   } catch (error) {
     logger.error(`updateLocalMasterIndex: error saving local master index ${id}:`, error);
     throw error;
