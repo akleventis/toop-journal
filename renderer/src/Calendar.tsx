@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
-import type { DecodedEntry } from '../../shared/types'
-import { journalToCalendar, createCalendarDate } from '../lib/dates'
+import type { Entry } from '../../shared/types'
+import { journalToCalendar, createCalendarDate, getDaysInMonth, getFirstDayOfMonth } from '../lib/dates'
 import YearSelector from './components/YearSelector'
 
 interface CalendarProps {
-    entries: DecodedEntry[];
+    entries: Entry[];
     loadEntries: () => void;
     selectedYear: number;
     setSelectedYear: (year: number) => void;
@@ -24,19 +24,11 @@ export default function Calendar({ entries, loadEntries, selectedYear, setSelect
         const calendarDate = journalToCalendar(entry.date)
         acc[calendarDate] = entry
         return acc
-    }, {} as Record<string, DecodedEntry>)
+    }, {} as Record<string, Entry>)
 
     const yearsWithEntries = new Set(entries.map(e => parseInt(journalToCalendar(e.date).slice(0, 4), 10)))
 
-    const getDaysInMonth = (year: number, month: number) => {
-        return new Date(year, month + 1, 0).getDate()
-    }
-
-    const getFirstDayOfMonth = (year: number, month: number) => {
-        return new Date(year, month, 1).getDay()
-    }
-
-    const handleDateClick = (date: string) => {
+const handleDateClick = (date: string) => {
         const entry = entriesByDate[date]
         if (entry) {
             navigate(`/edit?id=${entry.id}`)

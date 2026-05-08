@@ -8,6 +8,7 @@
   --color-error: #e74c3c;
   --color-success: #2ecc71;
   --color-warning: #f1c40f;
+  --color-modal-overlay: rgba(0,0,0,0.6);
   --radius: 14px;
   --radius-sm: 8px;
   --radius-lg: 20px;

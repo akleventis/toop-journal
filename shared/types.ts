@@ -18,7 +18,7 @@ export type S3Config = {
 export type Entry = {
   id: string;           // format: "jun.14.2025"
   date: string;         // format: "Jun 14, 2025 at 12:35"
-  content: string;      // markdown; stored encrypted in DB
+  content: string;      // HTML — WYSIWYG editor native format
   location?: string;
   timestamp?: number;   // ms
   lastModified?: number; // ms
@@ -41,10 +41,6 @@ export type Conflict = {
   remoteModified: number;
 };
 
-export interface DecodedEntry extends Entry {
-  decodedContent: string; // content converted from markdown to HTML for display
-}
-
 export type SyncAction =
   | { action: 'download';       id: string }
   | { action: 'upload';         id: string }
@@ -52,6 +48,12 @@ export type SyncAction =
   | { action: 'delete-local';   id: string }
   | { action: 'check-conflict'; id: string }
   | { action: 'skip';           id: string }
+
+export type BackupInfo = {
+  filename: string;
+  date: string;
+  sizeBytes: number;
+};
 
 export type HealthCheck = {
   databaseIntegrity: boolean;

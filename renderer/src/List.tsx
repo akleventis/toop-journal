@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { DecodedEntry, Entry } from '../../shared/types'
+import type { Entry } from '../../shared/types'
 import { getDateParts } from '../lib/dates'
 import { handleError } from '../lib/error-handler'
 import * as db from '../db/db'
@@ -10,18 +10,14 @@ import * as db from '../db/db'
 const ROW_HEIGHT = 96;
 
 interface ListViewProps {
-  entries: DecodedEntry[];
+  entries: Entry[];
   onLoadMore?: () => void;
   hasMore?: boolean;
   loadMoreCount?: number;
   loadingMore?: boolean;
 }
 
-function toDecodedEntry(entry: Entry): DecodedEntry {
-  return { ...entry, decodedContent: entry.content };
-}
-
-function EntryRow({ entry, onClick }: { entry: DecodedEntry; onClick: () => void }) {
+function EntryRow({ entry, onClick }: { entry: Entry; onClick: () => void }) {
   const { year, month, day, weekday } = getDateParts(entry.date);
   return (
     <div
@@ -36,7 +32,7 @@ function EntryRow({ entry, onClick }: { entry: DecodedEntry; onClick: () => void
         <div className="flex-1 min-w-0 overflow-hidden">
           <div
             className="max-h-[75px] overflow-hidden break-words cursor-default"
-            dangerouslySetInnerHTML={{ __html: entry.decodedContent }}
+            dangerouslySetInnerHTML={{ __html: entry.content }}
           />
         </div>
       </div>
@@ -48,7 +44,7 @@ export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, 
   const navigate = useNavigate()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [searchValue, setSearchValue] = useState('');
-  const [searchResults, setSearchResults] = useState<DecodedEntry[] | null>(null);
+  const [searchResults, setSearchResults] = useState<Entry[] | null>(null);
   const [hasMoreSearchResults, setHasMoreSearchResults] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
   const [activeQuery, setActiveQuery] = useState('');
@@ -102,7 +98,7 @@ export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, 
     const limit = db.getSearchLimit();
     try {
       const results = await db.searchEntries(query, limit);
-      setSearchResults(results.map(toDecodedEntry));
+      setSearchResults(results);
       setActiveQuery(query);
       setHasMoreSearchResults(limit != null && results.length === limit);
     } catch (error) {
@@ -121,7 +117,7 @@ export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, 
     setIsSearching(true);
     try {
       const results = await db.searchEntries(activeQuery, limit * nextPage);
-      setSearchResults(results.map(toDecodedEntry));
+      setSearchResults(results);
       setSearchPage(nextPage);
       setHasMoreSearchResults(results.length === limit * nextPage);
     } catch (error) {
@@ -140,8 +136,8 @@ export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, 
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="h-full flex flex-col overflow-x-hidden">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {virtualizer.getVirtualItems().map(virtualRow => {
             const entry = displayEntries[virtualRow.index];

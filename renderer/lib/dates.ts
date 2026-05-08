@@ -49,6 +49,16 @@ export function journalDateToId(date: string): string {
   return `${month.toLowerCase()}.${day}.${year}`;
 }
 
+// Returns the number of days in a given month. Month is 0-indexed.
+export function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+// Returns the weekday index (0=Sun) of the first day of a given month. Month is 0-indexed.
+export function getFirstDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 1).getDay();
+}
+
 // date format conversions
 
 // `Jun 14, 2025 at 12:35` → `2025-06-14`

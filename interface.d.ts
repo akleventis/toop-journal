@@ -1,4 +1,4 @@
-import type { Entry, S3Config, Conflict, SyncState, HealthCheck } from './shared/types';
+import type { Entry, S3Config, Conflict, SyncState, HealthCheck, BackupInfo } from './shared/types';
 
 export interface CloudSyncAPI {
   initS3Client: () => Promise<void>,
@@ -58,12 +58,6 @@ export interface SyncStateAPI {
 
 export interface DialogAPI {
   showError: (message: string) => Promise<void>;
-}
-
-export interface BackupInfo {
-  filename: string;
-  date: string;
-  sizeBytes: number;
 }
 
 export interface BackupAPI {

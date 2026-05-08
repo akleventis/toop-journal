@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld('cloudSync', {
 contextBridge.exposeInMainWorld('sqlite', {
   getEntries: (limit?: number) => ipcRenderer.invoke('sqlite:getEntries', limit),
   getEntriesForList: (limit?: number) => ipcRenderer.invoke('sqlite:getEntriesForList', limit),
-getAdjacentEntry: (id: string, direction: 'prev' | 'next') => ipcRenderer.invoke('sqlite:getAdjacentEntry', id, direction),
+  getAdjacentEntry: (id: string, direction: 'prev' | 'next') => ipcRenderer.invoke('sqlite:getAdjacentEntry', id, direction),
   getEntryById: (id: string) => ipcRenderer.invoke('sqlite:getEntryById', id),
   getMostRecentEntry: () => ipcRenderer.invoke('sqlite:getMostRecentEntry'),
   getEntryCount: () => ipcRenderer.invoke('sqlite:getEntryCount'),

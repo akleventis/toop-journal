@@ -52,8 +52,8 @@ export const loadLocalMasterIndex = async (): Promise<MasterIndex> => {
   if (!fs.existsSync(masterIndexPath)) {
     throw new Error('loadLocalMasterIndex: local master index file does not exist');
   }
-  var raw: string;
-  var parsed: MasterIndex;
+  let raw: string;
+  let parsed: MasterIndex;
   try {
     raw = fs.readFileSync(masterIndexPath, 'utf-8');
     parsed = JSON.parse(raw) as MasterIndex;
@@ -71,7 +71,7 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
   if (!state.AWSConfig || !state.AWSClient) {
     throw new Error('loadS3MasterIndex: no s3 client or config found');
   }
-  var parsed: MasterIndex;
+  let parsed: MasterIndex;
   try {
     const response = await state.AWSClient.send(
       new GetObjectCommand({ Bucket: state.AWSConfig.aws_bucket, Key: state.MasterIndexFileName })

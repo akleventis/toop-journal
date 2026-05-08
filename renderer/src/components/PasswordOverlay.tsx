@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { handleError } from '../../lib/error-handler'
+import * as db from '../../db/db'
 
 interface PasswordOverlayProps {
     onPasswordVerified: () => void
@@ -15,8 +16,8 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
         }
 
         try {
-            const storedHash = await window.sqlite.getPasswordHash()
-            const storedSalt = await window.sqlite.getPasswordSalt()
+            const storedHash = await db.getPasswordHash()
+            const storedSalt = await db.getPasswordSalt()
 
             if (!storedHash || !storedSalt) {
                 alert('Password not configured')

@@ -14,12 +14,7 @@ export async function saveEntry(
     return;
   }
 
-  let exists = false;
   if (entry) {
-    exists = await db.getEntryById(entry.id) !== null;
-  }
-
-  if (exists && entry) {
     await db.updateEntry(entry.id, { content: currentHtml });
   } else {
     const entryDate = date ?? formatCurrentDate();

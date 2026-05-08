@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import TextEditor from './components/TextEditor';
 import * as db from '../db/db';
-import type { DecodedEntry } from '../../shared/types';
+import type { Entry } from '../../shared/types';
 import { NavDirection } from '../lib/constants';
 import { saveEntry } from '../lib/entries';
 import { handleError } from '../lib/error-handler';
 import { setNavGuard, clearNavGuard } from '../lib/nav-guard';
 
 const Edit: React.FC = () => {
-  const [entry, setEntry] = useState<DecodedEntry | null>(null);
+  const [entry, setEntry] = useState<Entry | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentHtml, setCurrentHtml] = useState('');
@@ -23,8 +23,7 @@ const Edit: React.FC = () => {
         try {
           const entry = await db.getEntryById(entryId);
           if (entry) {
-            const decoded = { ...entry, decodedContent: entry.content };
-            setEntry(decoded);
+            setEntry(entry);
           }
         } catch (error) {
           handleError(error);

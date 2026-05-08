@@ -8,7 +8,7 @@ import { integrityCheck } from './db/sqlite';
 import { HealthCheck } from '../shared/types';
 
 // Runs SQLite PRAGMA integrity_check. Returns false on failure or error.
-async function checkDatabaseIntegrity(): Promise<boolean> {
+function checkDatabaseIntegrity(): boolean {
     try {
         return integrityCheck();
     } catch (error) {

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { logger } from './logger';
 import { getEntryCount, getSetting, setSetting, hasEntriesModifiedSince } from './db/sqlite';
+import type { BackupInfo } from '../shared/types';
 
 const isDev = !app.isPackaged;
 const dbFilename = isDev ? 'journal-dev.db' : 'journal.db';
@@ -66,12 +67,6 @@ export function createBackup(): void {
       logger.info(`backup: pruned old backup ${file}`);
     }
   }
-}
-
-export interface BackupInfo {
-  filename: string;
-  date: string;
-  sizeBytes: number;
 }
 
 // Returns all backups sorted newest-first.

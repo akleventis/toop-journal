@@ -239,7 +239,7 @@ ipcMain.handle('cloud-sync:cloudSyncPipeline', async () => {
 });
 
 // sqlite operations called from main process; errors bubble up to the renderer process
-ipcMain.handle('sqlite:getEntries', (event, limit?: number) => {
+ipcMain.handle('sqlite:getEntries', (_, limit?: number) => {
   return db.getEntries(limit);
 });
 
@@ -247,7 +247,7 @@ ipcMain.handle('sqlite:getEntriesForList', (_, limit?: number) => db.getEntriesF
 
 ipcMain.handle('sqlite:getAdjacentEntry', (_, id: string, direction: 'prev' | 'next') => db.getAdjacentEntry(id, direction));
 
-ipcMain.handle('sqlite:getEntryById', (event, id: string) => {
+ipcMain.handle('sqlite:getEntryById', (_, id: string) => {
   return db.getEntryById(id);
 });
 
@@ -262,19 +262,19 @@ ipcMain.handle('sqlite:searchEntries', async (_, query: string, limit?: number) 
   return db.searchEntries(query, limit);
 });
 
-ipcMain.handle('sqlite:getEntriesBetweenTimestamps', (event, startTs: number, endTs: number) => {
+ipcMain.handle('sqlite:getEntriesBetweenTimestamps', (_, startTs: number, endTs: number) => {
   return db.getEntriesBetweenTimestamps(startTs, endTs);
 });
 
-ipcMain.handle('sqlite:createEntry', (event, entry: Entry) => {
+ipcMain.handle('sqlite:createEntry', (_, entry: Entry) => {
   return db.createEntry(entry);
 });
 
-ipcMain.handle('sqlite:updateEntry', (event, id: string, entry: Entry) => {
+ipcMain.handle('sqlite:updateEntry', (_, id: string, entry: Entry) => {
   return db.updateEntry(id, entry);
 });
 
-ipcMain.handle('sqlite:deleteEntry', (event, id: string) => {
+ipcMain.handle('sqlite:deleteEntry', (_, id: string) => {
   return db.deleteEntry(id);
 });
 
@@ -282,7 +282,7 @@ ipcMain.handle('sqlite:getPasswordHash', () => {
   return db.getPasswordHash();
 });
 
-ipcMain.handle('sqlite:setPasswordHash', (event, passwordHash: string) => {
+ipcMain.handle('sqlite:setPasswordHash', (_, passwordHash: string) => {
   return db.setPasswordHash(passwordHash);
 });
 
@@ -290,7 +290,7 @@ ipcMain.handle('sqlite:getPasswordSalt', () => {
   return db.getPasswordSalt();
 });
 
-ipcMain.handle('sqlite:setPasswordSalt', (event, passwordSalt: string) => {
+ipcMain.handle('sqlite:setPasswordSalt', (_, passwordSalt: string) => {
   return db.setPasswordSalt(passwordSalt);
 });
 
@@ -299,11 +299,11 @@ ipcMain.handle('sqlite:clearPasswordCredentials', () => {
 });
 
 // security
-ipcMain.handle('security:hashPassword', (event, password: string) => {
+ipcMain.handle('security:hashPassword', (_, password: string) => {
   return hashPassword(password);
 });
 
-ipcMain.handle('security:verifyPassword', (event, password: string, hash: string, salt: string) => {
+ipcMain.handle('security:verifyPassword', (_, password: string, hash: string, salt: string) => {
   return verifyPassword(password, hash, salt);
 });
 
@@ -316,7 +316,7 @@ ipcMain.handle('conflicts:getConflictCount', () => {
   return db.getConflictCount();
 });
 
-ipcMain.handle('conflicts:getConflictByEntryId', (event, entryId: string) => {
+ipcMain.handle('conflicts:getConflictByEntryId', (_, entryId: string) => {
   return db.getConflictByEntryId(entryId);
 });
 
@@ -326,11 +326,11 @@ ipcMain.handle('sync-state:getState', () => {
 });
 
 // settings
-ipcMain.handle('sqlite:getSetting', (event, key: string) => {
+ipcMain.handle('sqlite:getSetting', (_, key: string) => {
   return db.getSetting(key);
 });
 
-ipcMain.handle('sqlite:setSetting', (event, key: string, value: string) => {
+ipcMain.handle('sqlite:setSetting', (_, key: string, value: string) => {
   return db.setSetting(key, value);
 });
 

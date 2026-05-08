@@ -54,16 +54,11 @@ export const initS3Client = async (): Promise<void> => {
 
 // Builds and tests an S3Client from config, then sets it on state.
 export const setAWSClient = async (config: S3Config): Promise<void> => {
-  var client: S3Client;
-    try {
-      client = new S3Client({
-        region: config.aws_region,
-        credentials: { accessKeyId: config.aws_access, secretAccessKey: config.aws_secret },
-      });
-    } catch (error) {
-      throw error;
-    }
-    if (!await testAWSClient(client, config.aws_bucket)) {
+  const client = new S3Client({
+    region: config.aws_region,
+    credentials: { accessKeyId: config.aws_access, secretAccessKey: config.aws_secret },
+  });
+  if (!await testAWSClient(client, config.aws_bucket)) {
       throw new Error('getAWSClient: testAWSClient failed');
     }
     state.AWSClient = client;

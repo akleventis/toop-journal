@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { clsx } from 'clsx'
 
 interface YearSelectorProps {
@@ -19,6 +19,8 @@ export default function YearSelector({
     const [displayYear, setDisplayYear] = useState(currentYear)
     const [gridYear, setGridYear] = useState(currentYear)
     const [isOpen, setIsOpen] = useState(false)
+    const buttonRef = useRef<HTMLButtonElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         setDisplayYear(currentYear)
@@ -27,8 +29,10 @@ export default function YearSelector({
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as Element
-            if (isOpen && !target.closest('.year-selector-button') && !target.closest('.year-selector-dropdown')) {
+            if (isOpen &&
+                !buttonRef.current?.contains(event.target as Node) &&
+                !dropdownRef.current?.contains(event.target as Node)
+            ) {
                 setIsOpen(false)
             }
         }
@@ -77,14 +81,15 @@ export default function YearSelector({
     return (
         <div className="text-center mb-[10px] relative">
             <button
-                className="year-selector-button px-[10px] py-[5px] rounded cursor-pointer"
+                ref={buttonRef}
+                className="px-[10px] py-[5px] rounded cursor-pointer"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {displayYear} ▼
             </button>
 
             {isOpen && (
-                <div className="year-selector-dropdown absolute top-full left-1/2 -translate-x-1/2 bg-app border border-raised rounded p-[10px] z-[1000] mt-[5px]">
+                <div ref={dropdownRef} className="absolute top-full left-1/2 -translate-x-1/2 bg-app border border-raised rounded p-[10px] z-[1000] mt-[5px]">
                     <div className="grid grid-cols-3 gap-[5px] w-[200px] mb-[10px]">
                         {yearGrid.map(year => (
                             <button

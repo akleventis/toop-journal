@@ -6,7 +6,6 @@ import { networkManager } from '../lib/network-manager'
 import { handleError } from '../lib/error-handler'
 import { formatBytes, formatRelativeTime } from '../lib/format'
 import * as db from '../db/db'
-import { clearDecodedCache } from '../db/db'
 import { useNavigate } from 'react-router-dom'
 import Modal from './components/Modal'
 
@@ -171,7 +170,7 @@ export function EntryLimit() {
             localStorage.setItem('entryLimit', trimmed)
         }
         setSaved(true)
-        clearDecodedCache()
+        db.clearDecodedCache()
         setTimeout(() => navigate('/list?reload=true'), 500)
     }
 
@@ -332,7 +331,7 @@ export function ExportEntries() {
                 case 'csv':
                     content = 'Date,Location,Content\n'
                     content += entries.map(entry =>
-                        `"${entry.date}","${entry.location || ""},"${entry.content.replace(/"/g, '""')}""`
+                        `"${entry.date}","${(entry.location || '').replace(/"/g, '""')}","${entry.content.replace(/"/g, '""')}"` 
                     ).join('\n')
                     break
                 case 'txt':
@@ -340,7 +339,7 @@ export function ExportEntries() {
                         `${entry.date}\n${entry.content}\n${entry.location || ''}\n---\n`
                     ).join('\n')
                     break
-                case 'encoded_html':
+                case 'encoded_html': {
                     const encodedEntries = entries.map(entry => ({
                         id: entry.id,
                         date: entry.date,
@@ -350,6 +349,7 @@ export function ExportEntries() {
                     }))
                     content = JSON.stringify(encodedEntries, null, 2)
                     break
+                }
             }
 
             const ext: Record<string, string> = { html: '.html', json: '.json', csv: '.csv', txt: '.txt', encoded_html: '.json' }
@@ -407,7 +407,7 @@ export function Password() {
 
     const handleTogglePassword = async () => {
         if (passwordProtected) {
-            await window.sqlite.clearPasswordCredentials()
+            await db.clearPasswordCredentials()
             setShowPasswordInput(false)
             setPassword('')
             await updatePasswordProtection()
@@ -421,8 +421,8 @@ export function Password() {
         if (!passwordProtected) {
             try {
                 const { hash, salt } = await window.security.hashPassword(password)
-                await window.sqlite.setPasswordHash(hash)
-                await window.sqlite.setPasswordSalt(salt)
+                await db.setPasswordHash(hash)
+                await db.setPasswordSalt(salt)
                 setShowPasswordInput(false)
                 setPassword('')
                 await updatePasswordProtection()
@@ -516,11 +516,16 @@ export function AWSConfig() {
     const hasCredentials = awsConfig !== null
     const isActive = syncState === SyncState.READY || syncState === SyncState.SYNCING
     const isBusy = syncState === SyncState.SYNCING || syncState === SyncState.INITIALIZING
-    const dotColor =
-        syncState === SyncState.READY ? 'var(--color-success)' :
-        syncState === SyncState.SYNCING || syncState === SyncState.INITIALIZING ? 'var(--color-warning)' :
-        syncState === SyncState.ERROR ? 'var(--color-error)' :
-        'rgba(128,128,128,0.5)'
+    const DOT_COLOR: Record<SyncState, string> = {
+        [SyncState.READY]:         'var(--color-success)',
+        [SyncState.SYNCING]:       'var(--color-warning)',
+        [SyncState.INITIALIZING]:  'var(--color-warning)',
+        [SyncState.ERROR]:         'var(--color-error)',
+        [SyncState.OFFLINE]:       'var(--color-accent)',
+        [SyncState.DISABLED]:      'var(--color-accent)',
+        [SyncState.UNINITIALIZED]: 'var(--color-accent)',
+    }
+    const dotColor = DOT_COLOR[syncState]
 
     useEffect(() => {
         const getConfig = async () => {
@@ -577,12 +582,8 @@ export function AWSConfig() {
         const wasDisabled = !isActive
         let succeeded = false
         try {
-            if (wasDisabled) {
-                await window.cloudSync.initS3Client()
-                await window.cloudSync.cloudSyncPipeline()
-            } else {
-                await window.cloudSync.cloudSyncPipeline()
-            }
+            if (wasDisabled) await window.cloudSync.initS3Client()
+            await window.cloudSync.cloudSyncPipeline()
             succeeded = true
         } catch (_) {
             // syncState transitions to 'error', shown inline

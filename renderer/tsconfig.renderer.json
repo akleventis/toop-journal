@@ -30,5 +30,5 @@
       "@/shared/*": ["../shared/*"]
     }
   },
-  "include": ["src"] // only compile files in the src directory
+  "include": ["src", "lib", "db"]
 }

@@ -21,10 +21,9 @@ export const getConfig = (): S3Config | null => {
 };
 
 // Validates credentials, initializes the AWS client, and writes config.json.
-export const createConfig = async (config: S3Config): Promise<S3Config> => {
-    logger.info('createConfig: saving new AWS config')
+async function saveConfig(config: S3Config, label: string): Promise<S3Config> {
     if (!isValidAWSConfig(config)) {
-        throw new Error('createConfig: invalid aws config');
+        throw new Error(`${label}: invalid aws config`);
     }
 
     syncStateMachine.setState(SyncState.INITIALIZING);
@@ -32,37 +31,23 @@ export const createConfig = async (config: S3Config): Promise<S3Config> => {
         await setAWSClient(config);
     } catch (error) {
         syncStateMachine.setState(SyncState.ERROR);
-        logger.error('createConfig: failed to create aws config:', error);
+        logger.error(`${label}: failed to save aws config:`, error);
         throw error;
     }
 
-    const configPath = path.join(state.UserDataPath, 'config.json');
-    fs.writeFileSync(configPath, JSON.stringify(config));
+    fs.writeFileSync(path.join(state.UserDataPath, 'config.json'), JSON.stringify(config));
     syncStateMachine.setState(SyncState.READY);
     return config;
+}
+
+export const createConfig = async (config: S3Config): Promise<S3Config> => {
+    logger.info('createConfig: saving new AWS config');
+    return saveConfig(config, 'createConfig');
 };
 
-// Re-validates credentials, refreshes the AWS client, and overwrites config.json.
 export const updateConfig = async (config: S3Config): Promise<S3Config> => {
-    logger.info('updateConfig: updating AWS config')
-    if (!isValidAWSConfig(config)) {
-        throw new Error('updateConfig: invalid aws config');
-    }
-
-    syncStateMachine.setState(SyncState.INITIALIZING);
-    try {
-        await setAWSClient(config);
-    } catch (error) {
-        syncStateMachine.setState(SyncState.ERROR);
-        logger.error('updateConfig: failed to update aws config:', error);
-        throw error;
-    }
-
-    const configPath = path.join(state.UserDataPath, 'config.json');
-    fs.writeFileSync(configPath, JSON.stringify(config));
-    state.AWSConfig = config;
-    syncStateMachine.setState(SyncState.READY);
-    return config;
+    logger.info('updateConfig: updating AWS config');
+    return saveConfig(config, 'updateConfig');
 };
 
 // Clears the S3 client from memory without removing credentials from disk.

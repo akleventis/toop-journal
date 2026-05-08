@@ -1,8 +1,8 @@
 import { parseJournalDate } from '../lib/dates';
-import type { Entry, DecodedEntry } from '../../shared/types';
+import type { Entry } from '../../shared/types';
 
 // memoized entries per renderer session
-let __decodedEntriesMemo: DecodedEntry[] | null = null;
+let __decodedEntriesMemo: Entry[] | null = null;
 
 export function clearDecodedCache() {
   __decodedEntriesMemo = null;
@@ -18,27 +18,23 @@ export function getEntryLimitFromStorage(): number | undefined {
   return isNaN(parsed) ? undefined : parsed;
 }
 
-export async function getDecodedEntries(): Promise<DecodedEntry[]> {
+export async function getDecodedEntries(): Promise<Entry[]> {
   if (__decodedEntriesMemo) return __decodedEntriesMemo;
 
   const limit = getEntryLimitFromStorage();
-  const rows = await window.sqlite.getEntries(limit);
-
-  __decodedEntriesMemo = rows.map(entry => ({ ...entry, decodedContent: entry.content }));
+  __decodedEntriesMemo = await window.sqlite.getEntries(limit);
   return __decodedEntriesMemo;
 }
 
 // truncated content (500 chars) — sufficient for list preview, much smaller IPC payload
-export async function getEntriesForList(limitOverride?: number): Promise<DecodedEntry[]> {
+export async function getEntriesForList(limitOverride?: number): Promise<Entry[]> {
   const limit = limitOverride ?? getEntryLimitFromStorage();
-  const rows = await window.sqlite.getEntriesForList(limit);
-  return rows.map(entry => ({ ...entry, decodedContent: entry.content }));
+  return await window.sqlite.getEntriesForList(limit);
 }
 
 // no limit — calendar always needs all entry dates regardless of entryLimit setting
-export async function getEntriesForCalendar(): Promise<DecodedEntry[]> {
-  const rows = await window.sqlite.getEntriesForList();
-  return rows.map(entry => ({ ...entry, decodedContent: entry.content }));
+export async function getEntriesForCalendar(): Promise<Entry[]> {
+  return await window.sqlite.getEntriesForList();
 }
 
 export async function getEntryById(id: string): Promise<Entry | null> {

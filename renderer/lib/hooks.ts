@@ -29,7 +29,7 @@ export const usePasswordProtection = () => {
   const initializeApp = async () => {
     try {
       const hash = await db.getPasswordHash()
-      if (hash && hash !== '') {
+      if (hash) {
         setPasswordProtected(true)
       } else {
         setPasswordVerified(true)
@@ -49,7 +49,7 @@ export const usePasswordProtection = () => {
   const updatePasswordProtection = async () => {
     try {
       const hash = await db.getPasswordHash()
-      if (hash && hash !== '') {
+      if (hash) {
         setPasswordProtected(true)
         setPasswordVerified(false)
       } else {

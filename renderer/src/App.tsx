@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import type { DecodedEntry } from '../../shared/types'
+import type { Entry } from '../../shared/types'
 import * as db from '../db/db'
 import { HashRouter, BrowserRouter, Routes, Route, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ListView from './List'
@@ -28,8 +28,8 @@ declare global {
 const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
 function AppContent() {
-  const [entries, setEntries] = useState<DecodedEntry[]>([])
-  const [calendarEntries, setCalendarEntries] = useState<DecodedEntry[]>([])
+  const [entries, setEntries] = useState<Entry[]>([])
+  const [calendarEntries, setCalendarEntries] = useState<Entry[]>([])
   const [loadedLimit, setLoadedLimit] = useState<number | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
