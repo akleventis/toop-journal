@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
-import type { Entry } from '../../shared/types'
+import React, { useEffect, useState } from 'react'
 import * as db from '../db/db'
 import { HashRouter, BrowserRouter, Routes, Route, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ListView from './List'
@@ -13,8 +12,7 @@ import Backups from './Backups'
 import PasswordOverlay from './components/PasswordOverlay'
 import NavBar from './components/NavBar'
 import ErrorBoundary from './components/ErrorBoundary'
-import { usePasswordProtection, useNetworkSync } from '../lib/hooks'
-import { handleError } from '../lib/error-handler'
+import { usePasswordProtection, useNetworkSync, useEntryList } from '../lib/hooks'
 import { journalToCalendar, getCurrentCalendarDate } from '../lib/dates'
 import LoadingSpinner from './components/LoadingSpinner'
 
@@ -28,20 +26,14 @@ declare global {
 const Router = __IS_DEV__ ? BrowserRouter : HashRouter;
 
 function AppContent() {
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [calendarEntries, setCalendarEntries] = useState<Entry[]>([])
-  const [loadedLimit, setLoadedLimit] = useState<number | undefined>(undefined)
-  const [loading, setLoading] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const loadedLimitRef = useRef<number | undefined>(undefined)
+  const { passwordProtected, passwordVerified, isInitializing, handlePasswordVerified } = usePasswordProtection()
+  const { entries, calendarEntries, loading, loadingMore, hasMore, loadedLimit, loadEntries, handleLoadMore } = useEntryList(passwordVerified)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // initialize app and checks if password is protected
-  const { passwordProtected, passwordVerified, isInitializing, handlePasswordVerified } = usePasswordProtection()
-  // decide initial route from root after entries are loaded
+  // decide initial route from root after password gate clears
   useEffect(() => {
     if (!passwordVerified) return
     if (location.pathname !== '/') return
@@ -58,34 +50,6 @@ function AppContent() {
     if (!latest) return false
     return journalToCalendar(latest.date) === getCurrentCalendarDate()
   }
-
-  const loadEntries = async () => {
-    setLoading(true)
-    const limit = db.getEntryLimitFromStorage()
-    const [listEntries, calEntries] = await Promise.all([
-      db.getEntriesForList(limit),
-      db.getEntriesForCalendar(),
-    ])
-    setEntries(listEntries)
-    setLoadedLimit(limit)
-    loadedLimitRef.current = limit
-    setCalendarEntries(calEntries)
-    setLoading(false)
-  }
-
-  const handleLoadMore = async () => {
-    const perPage = db.getEntryLimitFromStorage()
-    if (perPage == null) return
-    const nextLimit = (loadedLimit ?? perPage) * 2
-    setLoadingMore(true)
-    const listEntries = await db.getEntriesForList(nextLimit)
-    setEntries(listEntries)
-    setLoadedLimit(nextLimit)
-    loadedLimitRef.current = nextLimit
-    setLoadingMore(false)
-  }
-
-  const hasMore = loadedLimit != null && entries.length >= loadedLimit
 
   // handle reload and initial load when on /list
   useEffect(() => {
@@ -106,15 +70,6 @@ function AppContent() {
 
   // monitor network status and reinitialize S3 client when connection is restored
   useNetworkSync();
-
-  // silent reload when sync pipeline writes remote entries — ref keeps limit current without re-registering
-  useEffect(() => {
-    if (!passwordVerified) return;
-    return window.sqlite.onEntriesChanged(() => {
-      db.getEntriesForList(loadedLimitRef.current).then(setEntries).catch(handleError);
-      db.getEntriesForCalendar().then(setCalendarEntries).catch(handleError);
-    });
-  }, [passwordVerified]);
 
   const reload = searchParams.get('reload') === 'true'
 

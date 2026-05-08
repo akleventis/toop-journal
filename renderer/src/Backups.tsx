@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { handleError } from '../lib/error-handler';
 import { formatBytes } from '../lib/format';
-import type { BackupInfo } from '../../interface';
+import type { BackupInfo } from '../../shared/types';
 import Modal from './components/Modal';
 
 export default function Backups() {
