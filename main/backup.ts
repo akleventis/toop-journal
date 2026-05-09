@@ -113,6 +113,10 @@ export function restoreBackup(filename: string): void {
     backupDb?.close();
   }
 
-  fs.copyFileSync(backupPath, getDbPath());
+  // atomic swap: copy to temp then rename so the live DB is never partially overwritten
+  const dbPath = getDbPath();
+  const tempPath = `${dbPath}.restore-tmp`;
+  fs.copyFileSync(backupPath, tempPath);
+  fs.renameSync(tempPath, dbPath);
   logger.info(`backup: restored ${filename}`);
 }
