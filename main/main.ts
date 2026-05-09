@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, session } from 'electron';
 import path from 'node:path';
 import { updateConfig, getConfig, createConfig, deleteConfig, disableSync, initS3Client } from './cloudsync/aws-connection';
 import { Entry, S3Config } from '../shared/types';
@@ -52,6 +52,19 @@ function logStartupPaths(): void {
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+
+  // CSP: allow only local resources; data: URIs needed for base64 images in the WYSIWYG editor
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'"
+        ],
+      },
+    });
+  });
+
   logStartupPaths();
   createBackup();
   await initLocalMasterIndex();
@@ -80,6 +93,21 @@ function createWindow() {
       spellcheck: true,
     },
     icon: iconPath,
+  });
+
+  // block navigation away from the app — clicked links in HTML content must not load external URLs
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const allowed = isDev ? 'http://localhost:5173' : `file://${path.resolve(__dirname, '../renderer')}`;
+    if (!url.startsWith(allowed)) {
+      event.preventDefault();
+      logger.warn(`will-navigate: blocked navigation to ${url}`);
+    }
+  });
+
+  // deny all popup/new-window requests from renderer content
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    logger.warn(`setWindowOpenHandler: blocked new window for ${url}`);
+    return { action: 'deny' };
   });
 
   mainWindow.webContents.on('context-menu', (_event, params) => {
@@ -210,6 +238,11 @@ ipcMain.handle('cloud-sync:createConfig', (_, config: S3Config) => {
 });
 
 ipcMain.handle('cloud-sync:updateConfig', async (_, config: S3Config) => {
+  // if secret was omitted (renderer never receives it), merge from stored config
+  if (!config.aws_secret) {
+    const stored = getConfig();
+    if (stored?.aws_secret) config = { ...config, aws_secret: stored.aws_secret };
+  }
   return updateConfig(config);
 });
 
@@ -222,8 +255,12 @@ ipcMain.handle('cloud-sync:disableSync', () => {
 });
 
 ipcMain.handle('cloud-sync:getConfig', async () => {
-  return getConfig();
+  const config = getConfig();
+  // omit secret from renderer — UI shows placeholder; secret is merged back on update if blank
+  if (!config) return null;
+  return { ...config, aws_secret: '' };
 });
+
 
 // aws client functions
 ipcMain.handle('cloud-sync:initS3Client', async () => {

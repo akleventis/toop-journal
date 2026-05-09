@@ -476,10 +476,11 @@ export function Password() {
 
 const DEFAULT_CONFIG: S3Config = { aws_access: '', aws_secret: '', aws_bucket: '', aws_region: '' }
 
-function AWSConfigModal({ formData, setFormData, syncState, onSave, onCancel }: {
+function AWSConfigModal({ formData, setFormData, syncState, isEdit, onSave, onCancel }: {
     formData: S3Config
     setFormData: (config: S3Config) => void
     syncState: SyncState
+    isEdit: boolean
     onSave: () => void
     onCancel: () => void
 }) {
@@ -492,7 +493,7 @@ function AWSConfigModal({ formData, setFormData, syncState, onSave, onCancel }: 
             )}
             <div className="flex flex-col gap-2">
                 <input type="text" placeholder="Access Key" value={formData.aws_access} onChange={(e) => setFormData({ ...formData, aws_access: e.target.value })} />
-                <input type="text" placeholder="Secret Key" value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
+                <input type="password" placeholder={isEdit ? 'Leave blank to keep current' : 'Secret Key'} value={formData.aws_secret} onChange={(e) => setFormData({ ...formData, aws_secret: e.target.value })} />
                 <input type="text" placeholder="Bucket" value={formData.aws_bucket} onChange={(e) => setFormData({ ...formData, aws_bucket: e.target.value })} />
                 <input type="text" placeholder="Region" value={formData.aws_region} onChange={(e) => setFormData({ ...formData, aws_region: e.target.value })} />
             </div>
@@ -636,6 +637,7 @@ export function AWSConfig() {
                     formData={formData}
                     setFormData={setFormData}
                     syncState={syncState}
+                    isEdit={awsConfig !== null}
                     onSave={handleSaveAWS}
                     onCancel={handleCancelAWS}
                 />
