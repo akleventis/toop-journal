@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import Database from 'better-sqlite3';
 import { logger } from './logger';
 import { getEntryCount, getSetting, setSetting, hasEntriesModifiedSince } from './db/sqlite';
 import type { BackupInfo } from '../shared/types';
@@ -95,6 +96,21 @@ export function restoreBackup(filename: string): void {
   const backupPath = path.join(getBackupDir(), filename);
   if (!fs.existsSync(backupPath)) {
     throw new Error(`Backup not found: ${filename}`);
+  }
+
+  // reject empty or corrupt backup before overwriting the live DB
+  if (fs.statSync(backupPath).size === 0) {
+    throw new Error(`Backup file is empty: ${filename}`);
+  }
+  let backupDb: Database.Database | null = null;
+  try {
+    backupDb = new Database(backupPath, { readonly: true });
+    const row = backupDb.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
+    if (row.integrity_check !== 'ok') {
+      throw new Error(`Backup failed integrity check: ${row.integrity_check}`);
+    }
+  } finally {
+    backupDb?.close();
   }
 
   fs.copyFileSync(backupPath, getDbPath());

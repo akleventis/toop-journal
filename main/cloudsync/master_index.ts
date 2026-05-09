@@ -121,15 +121,16 @@ export const planSync = (localMasterIndex: MasterIndex, s3MasterIndex: MasterInd
     const local = localMasterIndex[id];
     const s3 = s3MasterIndex[id];
 
-    // local-only: entry exists on S3 but not locally — download it
+    // S3-only: entry exists on S3 but not locally — download it
     if (!local) {
       plan.push({ action: 'download', id });
       continue;
     }
 
-    // S3-only: entry exists locally but not on S3 — upload it
+    // local-only: entry exists locally but not on S3
     if (!s3) {
-      plan.push({ action: 'upload', id });
+      // if already deleted locally and never reached S3, nothing to do
+      plan.push({ action: local.deleted ? 'skip' : 'upload', id });
       continue;
     }
 
@@ -175,7 +176,11 @@ const executeSyncPlan = async (
   const fetchS3Entry = async (id: string): Promise<Entry> => {
     const response = await awsClient.send(new GetObjectCommand({ Bucket: awsConfig.aws_bucket, Key: `entries/${id}.json` }));
     const body = await response.Body?.transformToByteArray();
-    return JSON.parse(body ? new TextDecoder().decode(body) : '{}') as Entry;
+    const parsed = JSON.parse(body ? new TextDecoder().decode(body) : '{}') as Entry;
+    if (!parsed.id || !parsed.date || parsed.content === undefined) {
+      throw new Error(`fetchS3Entry: entry ${id} has missing required fields`);
+    }
+    return parsed;
   };
 
   for (const item of plan) {
@@ -292,8 +297,17 @@ const executeSyncPlan = async (
 export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): Promise<MasterIndex> =>
   executeSyncPlan(planSync(localMasterIndex, s3MasterIndex), localMasterIndex, s3MasterIndex);
 
-// Full read-write cycle: reads the whole file, patches one entry, writes it back. Does not touch S3.
-export const updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry): Promise<void> => {
+// Ensures updates run one at a time — two rapid saves could otherwise both read the same
+// snapshot and the second write would silently discard the first entry.
+let updateQueue: Promise<void> = Promise.resolve();
+
+export const updateLocalMasterIndex = (id: string, entry: MasterIndexEntry): Promise<void> => {
+  const next = updateQueue.then(() => _updateLocalMasterIndex(id, entry));
+  updateQueue = next.catch(() => {}); // a failed update shouldn't block future updates
+  return next;
+};
+
+const _updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry): Promise<void> => {
   let masterIndex: MasterIndex;
 
   // load local index
@@ -313,4 +327,4 @@ export const updateLocalMasterIndex = async (id: string, entry: MasterIndexEntry
     throw error;
   }
   logger.debug(`updateLocalMasterIndex: local master index ${id} updated`);
-}
+};

@@ -1,5 +1,6 @@
 import * as db from '../db/sqlite';
 import { cloudSyncPipeline, isSyncConfigured } from './transact';
+import { updateLocalMasterIndex } from './master_index';
 import { logger } from '../logger';
 
 // resolves a conflict by applying the chosen version, deleting the conflict record, and syncing
@@ -11,13 +12,17 @@ export async function resolveConflict(entryId: string, version: 'local' | 'remot
 
   if (version === 'remote') {
     const entry = db.getEntryById(entryId);
-    if (entry) {
-      entry.content = conflict.remoteVersion;
-      entry.lastModified = conflict.remoteModified;
-      db.updateEntry(entryId, entry, false);
-    }
+    if (!entry) throw new Error(`resolveConflict: local entry ${entryId} not found`);
+    entry.content = conflict.remoteVersion;
+    entry.lastModified = conflict.remoteModified;
+    db.updateEntry(entryId, entry, false);
+    // stamp local masterIndex with remote timestamp so follow-up sync uploads remote content as truth
+    await updateLocalMasterIndex(entryId, { lastModified: conflict.remoteModified, deleted: false });
+  } else {
+    // local DB content is already correct; bump masterIndex timestamp above remote's so the
+    // follow-up sync uploads local content to S3 and overwrites any stale remote copy
+    await updateLocalMasterIndex(entryId, { lastModified: Date.now(), deleted: false });
   }
-  // if version === 'local', local entry is already correct — just delete the record
 
   db.deleteConflict(entryId);
 

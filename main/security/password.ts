@@ -1,4 +1,4 @@
-import { pbkdf2Sync, randomBytes } from 'crypto';
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 
 const PBKDF2_ITERATIONS = 100000;
 const SALT_BYTES = 32;
@@ -17,5 +17,5 @@ export function hashPassword(password: string, salt?: string): { hash: string; s
 // Returns true if the password matches the stored hash + salt.
 export function verifyPassword(password: string, hash: string, salt: string): boolean {
   const result = hashPassword(password, salt);
-  return result.hash === hash;
+  return timingSafeEqual(Buffer.from(result.hash, 'hex'), Buffer.from(hash, 'hex'));
 }

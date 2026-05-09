@@ -52,6 +52,13 @@ let pendingSearch: { resolve: (ids: string[]) => void; reject: (err: unknown) =>
 // Spawns the FTS worker thread to build an in-memory FTS5 index in the background.
 // Search works via message passing once the worker posts { type: 'ready' }.
 export function buildInMemoryFts(onReady?: () => void): void {
+  // terminate any existing worker before spawning a new one to avoid leaking the DB read handle
+  if (ftsWorker) {
+    ftsWorker.terminate();
+    ftsWorker = null;
+    ftsWorkerReady = false;
+  }
+
   const workerPath = path.join(__dirname, 'fts-worker.js');
 
   ftsWorker = new Worker(workerPath, {
@@ -92,17 +99,17 @@ export function buildInMemoryFts(onReady?: () => void): void {
 }
 
 function getEntries(limit?: number): Entry[] {
+    const safeLimit = Number.isInteger(limit) && (limit as number) > 0 ? limit : undefined;
     let query = 'SELECT * FROM entries_t order by timestamp DESC';
-    if (limit && limit > 0) {
-        query += ` LIMIT ${limit}`;
-    }
+    if (safeLimit) query += ` LIMIT ${safeLimit}`;
     return db.prepare(query).all() as Entry[];
 }
 
 // for list view — truncated content avoids serializing full entry bodies over IPC
 function getEntriesForList(limit?: number): Entry[] {
+    const safeLimit = Number.isInteger(limit) && (limit as number) > 0 ? limit : undefined;
     let query = "SELECT id, date, location, timestamp, lastModified, substr(content, 1, 500) as content FROM entries_t ORDER BY timestamp DESC";
-    if (limit && limit > 0) query += ` LIMIT ${limit}`;
+    if (safeLimit) query += ` LIMIT ${safeLimit}`;
     return db.prepare(query).all() as Entry[];
 }
 
