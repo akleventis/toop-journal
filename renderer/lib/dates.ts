@@ -1,5 +1,12 @@
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Replaces the time component of a journal date string with the current time.
+export function withCurrentTime(journalDate: string): string {
+  const [datePart] = journalDate.split(' at ');
+  const time = new Date().toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${datePart} at ${time}`;
+}
+
 // Returns the current date in journal format: `Jun 14, 2025 at 12:35`
 export function formatCurrentDate(): string {
   const now = new Date();

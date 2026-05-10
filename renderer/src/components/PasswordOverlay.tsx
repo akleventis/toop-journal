@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { handleError } from '../../lib/error-handler'
 import * as db from '../../db/db'
 
@@ -12,6 +12,11 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
     const [password, setPassword] = useState('')
     const [locked, setLocked] = useState(false)
     const lockTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        if (!locked) inputRef.current?.focus()
+    }, [locked])
 
     const handlePasswordSubmit = async () => {
         if (locked || !password.trim()) return
@@ -49,11 +54,12 @@ export default function PasswordOverlay({ onPasswordVerified }: PasswordOverlayP
     }
 
     return (
-        <div className="h-screen flex items-center justify-center">
+        <div className="h-screen flex items-center justify-center" onClick={() => inputRef.current?.focus()}>
             <div className="text-center">
                 <p className="text-[15px]">Login</p>
                 <div className="mt-[15px]">
                     <input
+                        ref={inputRef}
                         type="password"
                         className="w-[200px] border border-raised rounded bg-surface"
                         value={password}

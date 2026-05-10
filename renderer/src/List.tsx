@@ -49,7 +49,6 @@ export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, 
   const [searchPage, setSearchPage] = useState(1);
   const [activeQuery, setActiveQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [ftsReady, setFtsReady] = useState(false);
   const [atBottom, setAtBottom] = useState(false);
 
   useEffect(() => {
@@ -58,16 +57,6 @@ export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, 
     const onScroll = () => setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 40);
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
-  }, []);
-
-  useEffect(() => {
-    window.sqlite.isFtsReady().then(ready => {
-      if (ready) {
-        setFtsReady(true);
-      } else {
-        window.sqlite.onFtsReady(() => setFtsReady(true));
-      }
-    });
   }, []);
 
   const displayEntries = searchResults ?? entries;
@@ -162,9 +151,8 @@ export default function ListView({ entries, onLoadMore, hasMore, loadMoreCount, 
         <form onSubmit={handleSearchSubmit}>
           <input
             type="text"
-            placeholder={ftsReady ? 'Search' : 'Indexing...'}
+            placeholder="Search"
             value={searchValue}
-            disabled={!ftsReady}
             className="p-[2px] ml-[2px] text-[10px] h-[20px] outline-none disabled:opacity-40"
             onChange={(e) => setSearchValue(e.target.value)}
           />

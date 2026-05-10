@@ -33,10 +33,7 @@ const handleDateClick = (date: string) => {
         if (entry) {
             navigate(`/edit?id=${entry.id}`)
         } else {
-            const confirmed = window.confirm(`Create new entry for ${date}?`);
-            if (confirmed) {
-                navigate(`/new?date=${date}`)
-            }
+            navigate(`/new?date=${date}`)
         }
     }
 

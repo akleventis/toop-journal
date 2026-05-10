@@ -1,6 +1,6 @@
 import { Entry } from '../../shared/types';
 import * as db from '../db/db';
-import { formatCurrentDate, journalDateToId } from './dates';
+import { formatCurrentDate, journalDateToId, withCurrentTime } from './dates';
 
 // Creates or updates an entry from the WYSIWYG editor, then navigates to /list.
 export async function saveEntry(
@@ -15,7 +15,7 @@ export async function saveEntry(
   }
 
   if (entry) {
-    await db.updateEntry(entry.id, { content: currentHtml });
+    await db.updateEntry(entry.id, { content: currentHtml, date: withCurrentTime(entry.date) });
   } else {
     const entryDate = date ?? formatCurrentDate();
     const newEntry = {

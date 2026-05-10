@@ -18,6 +18,7 @@ const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 let skipSyncOnQuit = false;
 let isDirty = false;
+let isQuitting = false;
 
 const iconPath = path.join(__dirname, '../../assets/icon.png');
 
@@ -72,12 +73,9 @@ app.whenReady().then(async () => {
   createWindow();
 
   syncStateMachine.onStateChange((newState) => {
-    mainWindow?.webContents.send('sync-state:changed', newState);
-  });
-
-  // spawn FTS worker thread; sends 'fts:ready' to renderer when index is built
-  db.buildInMemoryFts(() => {
-    mainWindow?.webContents.send('fts:ready');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('sync-state:changed', newState);
+    }
   });
 });
 
@@ -154,20 +152,18 @@ function createWindow() {
     mainWindow?.webContents.setZoomLevel(0);
   });
 
-  // guard red-X close when there are unsaved editor changes
-  mainWindow.on('close', async (event) => {
-    if (isDirty) {
+  // route red-X through app.quit() so before-quit handles dirty check + sync
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
       event.preventDefault();
-      if (await confirmDiscardChanges('Your changes will be lost if you close now.', 'Discard')) {
-        isDirty = false;
-        mainWindow?.close();
-      }
+      isQuitting = true;
+      app.quit();
     }
   });
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(indexHtmlPath);
   }
@@ -194,6 +190,8 @@ app.on('before-quit', async (event) => {
     if (await confirmDiscardChanges('Your changes will be lost if you quit now.', 'Discard & Quit')) {
       isDirty = false;
       app.quit();
+    } else {
+      isQuitting = false;
     }
     return;
   }
@@ -292,9 +290,8 @@ ipcMain.handle('sqlite:getMostRecentEntry', () => {
 });
 
 ipcMain.handle('sqlite:getEntryCount', () => db.getEntryCount());
-ipcMain.handle('sqlite:isFtsReady', () => db.isFtsReady());
 
-ipcMain.handle('sqlite:searchEntries', async (_, query: string, limit?: number) => {
+ipcMain.handle('sqlite:searchEntries', (_, query: string, limit?: number) => {
   return db.searchEntries(query, limit);
 });
 

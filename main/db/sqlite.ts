@@ -1,7 +1,6 @@
 import { app } from 'electron';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import { Worker } from 'worker_threads';
 import { EventEmitter } from 'node:events';
 import { Entry, Conflict } from "../../shared/types";
 import { logger } from '../logger';
@@ -41,61 +40,25 @@ db.exec(`
     localModified INTEGER NOT NULL,
     remoteModified INTEGER NOT NULL
   );
+
+  CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+    id UNINDEXED,
+    content,
+    timestamp UNINDEXED
+  );
 `);
 
-// fts worker — runs in a separate thread so search never blocks the main loop
-let ftsWorker: Worker | null = null;
-let ftsWorkerReady = false;
-// at most one search is in flight at a time; a new search cancels the previous
-let pendingSearch: { resolve: (ids: string[]) => void; reject: (err: unknown) => void } | null = null;
-
-// Spawns the FTS worker thread to build an in-memory FTS5 index in the background.
-// Search works via message passing once the worker posts { type: 'ready' }.
-export function buildInMemoryFts(onReady?: () => void): void {
-  // terminate any existing worker before spawning a new one to avoid leaking the DB read handle
-  if (ftsWorker) {
-    ftsWorker.terminate();
-    ftsWorker = null;
-    ftsWorkerReady = false;
-  }
-
-  const workerPath = path.join(__dirname, 'fts-worker.js');
-
-  ftsWorker = new Worker(workerPath, {
-    workerData: { dbPath },
-  });
-
-  ftsWorker.on('message', (msg: { type: string; count?: number; ids?: string[]; message?: string }) => {
-    if (msg.type === 'ready') {
-      ftsWorkerReady = true;
-      onReady?.();
-      logger.info(`buildInMemoryFts: worker indexed ${msg.count} entries`);
-    } else if (msg.type === 'result') {
-      if (pendingSearch) {
-        pendingSearch.resolve(msg.ids ?? []);
-        pendingSearch = null;
-      }
-    } else if (msg.type === 'warn' && msg.message) {
-      logger.warn(msg.message);
+// one-time migration: populate FTS index from entries_t if the table is empty
+{
+  const ftsCount = (db.prepare('SELECT COUNT(*) as c FROM entries_fts').get() as { c: number }).c;
+  if (ftsCount === 0) {
+    const rows = db.prepare('SELECT id, content, timestamp FROM entries_t').all() as { id: string; content: string; timestamp: number }[];
+    if (rows.length > 0) {
+      const insert = db.prepare('INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)');
+      db.transaction(() => { for (const r of rows) insert.run(r.id, r.content, r.timestamp); })();
+      logger.info(`FTS: indexed ${rows.length} existing entries`);
     }
-  });
-
-  ftsWorker.on('error', (err) => {
-    logger.error('FTS worker error:', err);
-    pendingSearch?.reject(err);
-    pendingSearch = null;
-    ftsWorkerReady = false;
-    ftsWorker = null;
-  });
-
-  ftsWorker.on('exit', (code) => {
-    if (code !== 0) logger.warn(`FTS worker exited with code ${code}`);
-    // resolve any pending search so the Promise doesn't hang forever
-    pendingSearch?.resolve([]);
-    pendingSearch = null;
-    ftsWorkerReady = false;
-    ftsWorker = null;
-  });
+  }
 }
 
 function getEntries(limit?: number): Entry[] {
@@ -149,13 +112,11 @@ function createEntry(entry: Entry, emitEvents = true): void {
 
     const transaction = db.transaction(() => {
         db.prepare('INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)').run(entry.id, entry.date, entry.content, entry.location, entry.timestamp, entry.lastModified);
+        db.prepare('INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)').run(entry.id, entry.content, entry.timestamp);
     });
 
     try {
         transaction();
-        if (ftsWorker) {
-            ftsWorker.postMessage({ type: 'upsert', id: entry.id, content: entry.content, timestamp: entry.timestamp });
-        }
         if (emitEvents) {
             logger.info(`entry created: ${entry.id}`);
             dbEvents.emit('entry:created', { id: entry.id, lastModified: Date.now() });
@@ -189,13 +150,13 @@ function updateEntry(id: string, entry: Entry, emitEvents = true): void {
             db.prepare('UPDATE conflicts_t SET localVersion = ?, localModified = ? WHERE entryId = ?')
                 .run(entry.content, entry.lastModified, id);
         }
+
+        db.prepare('DELETE FROM entries_fts WHERE id = ?').run(id);
+        db.prepare('INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)').run(id, entry.content, entry.timestamp);
     });
 
     try {
         transaction();
-        if (ftsWorker) {
-            ftsWorker.postMessage({ type: 'upsert', id, content: entry.content, timestamp: entry.timestamp });
-        }
         if (emitEvents) {
             logger.info(`entry updated: ${id}`);
             dbEvents.emit('entry:updated', { id, lastModified: Date.now() });
@@ -209,13 +170,11 @@ function updateEntry(id: string, entry: Entry, emitEvents = true): void {
 function deleteEntry(id: string, emitEvents = true): void {
     const transaction = db.transaction(() => {
         db.prepare('DELETE FROM entries_t WHERE id = ?').run(id);
+        db.prepare('DELETE FROM entries_fts WHERE id = ?').run(id);
     });
 
     try {
         transaction();
-        if (ftsWorker) {
-            ftsWorker.postMessage({ type: 'delete', id });
-        }
         if (emitEvents) {
             logger.info(`entry deleted: ${id}`);
             dbEvents.emit('entry:deleted', { id, lastModified: Date.now() });
@@ -324,22 +283,13 @@ function hasEntriesModifiedSince(timestamp: number): boolean {
   return db.prepare('SELECT 1 FROM entries_t WHERE lastModified > ? LIMIT 1').get(timestamp) !== undefined;
 }
 
-function isFtsReady(): boolean {
-  return ftsWorkerReady;
-}
-
-async function searchEntries(query: string, limit?: number): Promise<Entry[]> {
-  if (!ftsWorker || !ftsWorkerReady) return [];
-
-  const ids = await new Promise<string[]>((resolve, reject) => {
-    // cancel any in-flight search — only the latest result is relevant
-    if (pendingSearch) pendingSearch.resolve([]);
-    pendingSearch = { resolve, reject };
-    // SQLite LIMIT -1 means no limit
-    ftsWorker!.postMessage({ type: 'search', query, limit: limit ?? -1 });
-  });
-  return ids
-    .map(id => db.prepare('SELECT * FROM entries_t WHERE id = ?').get(id) as Entry | null)
+function searchEntries(query: string, limit?: number): Entry[] {
+  const stmt = limit != null
+    ? db.prepare('SELECT id FROM entries_fts WHERE entries_fts MATCH ? ORDER BY timestamp DESC LIMIT ?')
+    : db.prepare('SELECT id FROM entries_fts WHERE entries_fts MATCH ? ORDER BY timestamp DESC');
+  const rows = (limit != null ? stmt.all(query, limit) : stmt.all(query)) as { id: string }[];
+  return rows
+    .map(r => db.prepare('SELECT * FROM entries_t WHERE id = ?').get(r.id) as Entry | null)
     .filter((e): e is Entry => e !== null);
 }
 
@@ -353,8 +303,6 @@ function setSetting(key: string, value: string): void {
 }
 
 function closeDb(): void {
-    ftsWorker?.terminate();
-    ftsWorker = null;
     db.close();
 }
 
@@ -369,7 +317,6 @@ export {
     getAdjacentEntry,
     getEntryCount,
     hasEntriesModifiedSince,
-    isFtsReady,
     searchEntries,
     getEntryById,
     getMostRecentEntry,
