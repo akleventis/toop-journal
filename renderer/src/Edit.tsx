@@ -56,6 +56,8 @@ const Edit: React.FC = () => {
     setIsSaving(true);
     try {
       await saveEntry(currentHtml, entry, navigate);
+    } catch (error) {
+      handleError(error);
     } finally {
       setIsSaving(false);
     }

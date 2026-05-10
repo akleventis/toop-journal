@@ -249,8 +249,8 @@ export function ExportEntries() {
 
         setIsExporting(true)
         try {
-            const startTs = new Date(startDate).getTime()
-            const endTs = new Date(endDate).getTime()
+            const startTs = new Date(startDate + 'T00:00:00').getTime()
+            const endTs = new Date(endDate + 'T23:59:59.999').getTime()
             const entries = await db.getEntriesBetweenTimestamps(startTs, endTs)
 
             if (entries.length === 0) {

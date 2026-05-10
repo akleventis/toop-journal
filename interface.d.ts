@@ -51,7 +51,7 @@ export interface ConflictsAPI {
 
 export interface SyncStateAPI {
   getState: () => Promise<SyncState>;
-  onStateChange: (callback: (state: SyncState) => void) => void;
+  onStateChange: (callback: (state: SyncState) => void) => () => void;
 }
 
 export interface DialogAPI {

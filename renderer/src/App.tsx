@@ -54,7 +54,6 @@ function AppContent() {
   // handle reload and initial load when on /list
   useEffect(() => {
     if (!passwordVerified) return
-    if (location.pathname == '/new') return
     if (location.pathname !== '/list') return
 
     const reload = searchParams.get('reload') === 'true'
@@ -66,7 +65,7 @@ function AppContent() {
         setSearchParams({})
       }
     }
-  }, [passwordVerified, location.pathname, searchParams])
+  }, [passwordVerified, location.pathname, searchParams, loadEntries])
 
   // monitor network status and reinitialize S3 client when connection is restored
   useNetworkSync();

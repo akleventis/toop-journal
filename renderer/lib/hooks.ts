@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import * as db from '../db/db';
 import { SyncState, Entry } from '../../shared/types';
 import { networkManager } from './network-manager';
@@ -10,7 +10,7 @@ export const useSyncState = () => {
 
   useEffect(() => {
     window.syncState.getState().then(setSyncState)
-    window.syncState.onStateChange(setSyncState)
+    return window.syncState.onStateChange(setSyncState)
   }, [])
 
   return syncState
@@ -80,7 +80,7 @@ export const useEntryList = (passwordVerified: boolean) => {
   // ref keeps limit current for onEntriesChanged without re-registering the effect on pagination
   const loadedLimitRef = useRef<number | undefined>(undefined)
 
-  const loadEntries = async () => {
+  const loadEntries = useCallback(async () => {
     setLoading(true)
     const limit = db.getEntryLimitFromStorage()
     const [listEntries, calEntries] = await Promise.all([
@@ -92,7 +92,7 @@ export const useEntryList = (passwordVerified: boolean) => {
     loadedLimitRef.current = limit
     setCalendarEntries(calEntries)
     setLoading(false)
-  }
+  }, [])
 
   const handleLoadMore = async () => {
     const perPage = db.getEntryLimitFromStorage()

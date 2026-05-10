@@ -65,8 +65,10 @@ contextBridge.exposeInMainWorld('dialog', {
 
 contextBridge.exposeInMainWorld('syncState', {
   getState: (): Promise<SyncState> => ipcRenderer.invoke('sync-state:getState'),
-  onStateChange: (callback: (state: SyncState) => void) => {
-    ipcRenderer.on('sync-state:changed', (_event: unknown, state: SyncState) => callback(state));
+  onStateChange: (callback: (state: SyncState) => void): (() => void) => {
+    const handler = (_event: unknown, state: SyncState) => callback(state);
+    ipcRenderer.on('sync-state:changed', handler);
+    return () => ipcRenderer.removeListener('sync-state:changed', handler);
   },
 })
 
