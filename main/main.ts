@@ -185,6 +185,7 @@ ipcMain.on('app-state:set-dirty', (_event, dirty: boolean) => {
 
 // sync before app quits (including reloads)
 app.on('before-quit', async (event) => {
+  isQuitting = true;
   if (isDirty) {
     event.preventDefault();
     if (await confirmDiscardChanges('Your changes will be lost if you quit now.', 'Discard & Quit')) {
