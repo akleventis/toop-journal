@@ -57,7 +57,7 @@ const TextEditor: React.FC<TextEditProps> = ({
     const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Tab') {
             e.preventDefault();
-            document.execCommand('insertText', false, ' ');
+            document.execCommand('insertText', false, '	');
         }
     };
 

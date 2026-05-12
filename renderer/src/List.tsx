@@ -31,7 +31,7 @@ function EntryRow({ entry, onClick }: { entry: Entry; onClick: () => void }) {
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
           <div
-            className="max-h-[75px] overflow-hidden break-words cursor-default"
+            className="max-h-[75px] overflow-hidden break-words cursor-default whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ __html: entry.content }}
           />
         </div>
