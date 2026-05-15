@@ -57,7 +57,17 @@ const TextEditor: React.FC<TextEditProps> = ({
     const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Tab') {
             e.preventDefault();
-            document.execCommand('insertText', false, '	');
+            const sel = window.getSelection();
+            if (!sel?.rangeCount) return;
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const tab = document.createTextNode('\t');
+            range.insertNode(tab);
+            range.setStartAfter(tab);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            tab.parentElement?.dispatchEvent(new Event('input', { bubbles: true }));
         }
     };
 
