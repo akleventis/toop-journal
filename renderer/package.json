@@ -12,12 +12,13 @@
   "dependencies": {
     "@tailwindcss/vite": "4.2.2",
     "@tanstack/react-virtual": "3.13.24",
+    "@types/quill": "^2.0.14",
     "clsx": "2.1.1",
     "jspdf": "4.2.1",
+    "quill": "^2.0.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-router-dom": "7.9.4",
-    "react-simple-wysiwyg": "3.4.1",
     "tailwindcss": "4.2.2"
   },
   "devDependencies": {

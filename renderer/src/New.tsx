@@ -4,7 +4,7 @@ import { formatCurrentDate, calendarToJournal, journalToCalendar, getCurrentCale
 import { saveEntry } from '../lib/entries';
 import { setNavGuard, clearNavGuard } from '../lib/nav-guard';
 import { handleError } from '../lib/error-handler';
-import TextEditor from './components/TextEditor';
+import TextEditor from './components/QuillEditor';
 import * as db from '../db/db';
 
 const New: React.FC = () => {

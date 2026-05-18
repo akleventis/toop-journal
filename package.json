@@ -34,7 +34,7 @@
   },
   "build": {
     "appId": "com.toopjournal.app",
-    "productName": "toop journal",
+    "productName": "Book of Toop",
     "asar": true,
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",

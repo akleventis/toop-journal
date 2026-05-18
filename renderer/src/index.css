@@ -138,20 +138,18 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   .border-raised  { border-color: var(--color-third-bg); }
 }
 
-/* react-simple-wysiwyg overrides */
-.rsw-toolbar { border: none !important; }
-.rsw-editor {
+/* Quill overrides */
+.ql-container {
   border: none !important;
-  margin: 0 20px;
-  line-height: 1.5;
+  font-family: inherit;
+  font-size: 13px;
 }
-.rsw-ce {
-  white-space: pre-wrap;
-}
-.rsw-ce[contenteditable="true"] {
+.ql-editor {
   min-height: 100vh;
-  cursor: text;
+  line-height: 1.5;
+  padding: 12px 20px;
+  white-space: pre-wrap;
+  color: var(--text-primary);
 }
-.rsw-ce img {
-  -webkit-user-drag: none;
-}
+.ql-editor img { -webkit-user-drag: none; }
+.ql-editor.ql-blank::before { color: var(--text-muted); font-style: normal; }

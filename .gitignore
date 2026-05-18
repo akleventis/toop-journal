@@ -2,12 +2,10 @@
 node_modules/
 renderer/node_modules/
 dist/
-*.log
-
-# Vite / Tailwind
-renderer/node_modules/
 renderer/dist/
 renderer/.vite/
+*.log
+*.tsbuildinfo
 
 # macOS
 .DS_Store
@@ -15,20 +13,27 @@ renderer/.vite/
 # VS Code
 .vscode/
 
-# TypeScript
-*.tsbuildinfo
-
-notes.txt
-launchplan.md
-admin/
+# Build output
 release/
+
+# Secrets / local config
 aws_config.json
 masterIndex.json
-todo.md
-claude.md
-scripts/cleanup.sh
+
+# Scripts (personal / not for repo)
 scripts/import_pdf.py
+scripts/cleanup.sh
 scripts/__pycache__/
-.claude/
+export.pdf
+
+# Docs / notes (personal)
+notes.txt
+todo.md
+launchplan.md
+admin/
 encrypt.md
+claude.md
 docs/releases.md
+
+# Claude Code
+.claude/
