@@ -42,6 +42,16 @@ toop-journal/
 └── scripts/               # build and maintenance scripts
 ```
 
+## Download
+
+Download the latest `Book of Toop-x.x.x-arm64.dmg` from [Releases](https://github.com/akleventis/toop-journal/releases). Open the DMG, drag the app to Applications, then run:
+
+```bash
+xattr -cr "/Applications/Book of Toop.app"
+```
+
+macOS blocks unsigned apps downloaded from the internet — this removes the quarantine flag.
+
 ## Installation
 
 ```bash
