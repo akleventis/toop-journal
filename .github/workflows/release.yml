@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -22,9 +24,7 @@ jobs:
           npm --prefix renderer ci
 
       - name: Build & Package
-        run: npm run package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build && npx electron-builder --publish never
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
