@@ -1,5 +1,6 @@
 {
   "name": "toop-journal",
+  "productName": "Book of Toop",
   "version": "1.0.0",
   "author": "tooper",
   "description": "personal electron-based journaling app with react",
