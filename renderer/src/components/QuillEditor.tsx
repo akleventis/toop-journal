@@ -128,7 +128,6 @@ const QuillEditor: React.FC<TextEditProps> = ({
         });
 
         quillRef.current = quill;
-        if (editable) quill.focus();
     }, []);
 
     // Reload content when entry changes or edit mode toggles
@@ -146,6 +145,8 @@ const QuillEditor: React.FC<TextEditProps> = ({
         setSelectedImg(null);
         onEditModeChange?.(editable);
         onContentChangeRef.current?.(entry?.content ?? '');
+        // Focus after enable — init-effect focus is overridden by enable(false) above
+        if (editable) quill.focus();
     }, [entry?.id, editable]);
 
     const handleDelete = async () => {
