@@ -51,24 +51,29 @@ const QuillEditor: React.FC<TextEditProps> = ({
             },
         });
 
-        // Plain text only paste — preserves tabs and newlines
+        // Plain text only paste — capture phase + stopImmediatePropagation prevents
+        // Quill's own capture-phase clipboard handler from also inserting rich content.
         quill.root.addEventListener('paste', (e) => {
             e.preventDefault();
+            e.stopImmediatePropagation();
             const text = e.clipboardData?.getData('text/plain') ?? '';
             if (!text) return;
             const sel = quill.getSelection(true);
             quill.deleteText(sel.index, sel.length, 'user');
             quill.insertText(sel.index, text, 'user');
             quill.setSelection(sel.index + text.length, 0, 'silent');
-        });
+        }, { capture: true });
 
-        // Plain text only copy
+        // Plain text only copy — capture phase + stopImmediatePropagation mirrors the paste fix:
+        // prevents Quill's own clipboard handler from overwriting or interfering.
+        // quill.getText reads from Delta (authoritative) instead of the DOM.
         quill.root.addEventListener('copy', (e) => {
-            const sel = window.getSelection();
-            if (!sel?.rangeCount) return;
-            e.clipboardData?.setData('text/plain', sel.toString());
+            const range = quill.getSelection();
+            if (!range || !range.length) return;
+            e.clipboardData?.setData('text/plain', quill.getText(range.index, range.length));
             e.preventDefault();
-        });
+            e.stopImmediatePropagation();
+        }, { capture: true });
 
         // Image drag-drop
         // capture: true so our handler runs before Quill's clipboard drop handler,
@@ -123,6 +128,7 @@ const QuillEditor: React.FC<TextEditProps> = ({
         });
 
         quillRef.current = quill;
+        if (editable) quill.focus();
     }, []);
 
     // Reload content when entry changes or edit mode toggles

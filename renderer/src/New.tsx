@@ -40,7 +40,7 @@ const New: React.FC = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await saveEntry(currentHtml, null, navigate, dateParam ? dateRef.current : undefined);
+      await saveEntry(currentHtml, null, navigate, dateRef.current);
     } catch (error) {
       handleError(error);
     } finally {
