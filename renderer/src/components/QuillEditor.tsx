@@ -48,6 +48,21 @@ const QuillEditor: React.FC<TextEditProps> = ({
                 // matchVisual: false prevents Quill from adding spurious line breaks when pasting
                 clipboard: { matchVisual: false },
                 history: { delay: 1000, maxStack: 500, userOnly: true },
+                keyboard: {
+                    bindings: {
+                        // Override Quill's default Tab: inconsistent between line-start (block indent) and mid-text (\t).
+                        tab: {
+                            key: 'Tab',
+                            shiftKey: false,
+                            handler(range: { index: number; length: number }) {
+                                quill.deleteText(range.index, range.length, 'user');
+                                quill.insertText(range.index, '    ', 'user');
+                                quill.setSelection(range.index + 4, 0, 'silent');
+                                return false;
+                            },
+                        },
+                    },
+                },
             },
         });
 
