@@ -34,6 +34,8 @@ admin/
 encrypt.md
 claude.md
 docs/releases.md
+toop_agent_spec.txt
 
 # Claude Code
 .claude/
+main_claude.md
