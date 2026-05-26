@@ -13,13 +13,18 @@ Full-text search (FTS5) makes it easy to find anything across thousands of entri
 ## Tech Stack
 
 - **Electron** — desktop app framework
-- **React + React Router** — UI and client-side routing
 - **TypeScript** — end-to-end type safety
-- **Vite** — renderer build tool
+- **Vanilla TypeScript + DOM APIs** — renderer UI (no framework)
+- **Quill** — rich text editor
+- **esbuild** — renderer bundler
+- **@tailwindcss/cli** — CSS
 - **better-sqlite3** — local SQLite storage
-- **@tanstack/react-virtual** — virtual scrolling for the entry list (only ~20 DOM nodes rendered at a time)
 - **AWS SDK v3** — S3 cloud sync
 - **electron-builder** — app packaging and DMG creation
+
+## Why No React
+
+Started with React + Vite. The app has 8 views and doesn't really change — there's no state management problem worth solving, no component reuse story. I ripped it out and replaced it with vanilla TypeScript and direct DOM manipulation. Loads faster, easier to trace bugs, and I don't have to think about what React version I'm on in five years.
 
 ## Project Structure
 
@@ -27,19 +32,24 @@ Full-text search (FTS5) makes it easy to find anything across thousands of entri
 toop-journal/
 ├── main/                  # Electron main process (Node.js)
 │   ├── main.ts            # window setup, IPC handlers, app lifecycle
-│   ├── db/                # SQLite operations + FTS worker thread
+│   ├── db/                # SQLite operations + FTS5
 │   ├── cloudsync/         # AWS S3 sync pipeline
 │   ├── security/          # AES-256-GCM encryption, password hashing
 │   ├── backup.ts          # daily backup creation and restore
 │   ├── health.ts          # health check system
 │   └── logger.ts          # structured logger, streams to in-app viewer
-├── renderer/              # React frontend
-│   ├── src/               # pages and components
+├── renderer/              # vanilla TypeScript frontend
+│   ├── src/
+│   │   ├── views/         # one file per page (list, edit, new, calendar, more, …)
+│   │   ├── components/    # reusable DOM constructors (navbar, modal, quill-editor, …)
+│   │   ├── router.ts      # hash-based router: navigate(), registerRoutes(), initRouter()
+│   │   └── main.ts        # app init, password gate, route registration
 │   ├── db/                # renderer-side DB wrapper
-│   └── lib/               # hooks, utilities, date/markdown helpers
+│   ├── lib/               # utilities (dates, entries, error-handler, network-manager)
+│   └── scripts/           # esbuild build scripts (dev.js, build.js)
 ├── preload/               # contextBridge IPC bridge
 ├── shared/                # types and API contracts shared across processes
-└── scripts/               # build and maintenance scripts
+└── scripts/               # maintenance scripts
 ```
 
 ## Download
@@ -67,15 +77,16 @@ npm --prefix renderer install
 npm run dev
 ```
 
-Runs the Vite dev server (`localhost:5173`) and Electron concurrently. Renderer changes hot-reload; main process changes require restart.
+Starts esbuild in watch/serve mode and tailwindcss in watch mode concurrently with Electron. The renderer is served from `dist/renderer/` via esbuild's built-in dev server; Electron loads `dist/renderer/index.html` directly. Renderer changes rebuild automatically; main process changes require restart.
+
+Build scripts: `renderer/scripts/dev.js` (esbuild watch + tailwindcss watch) and `renderer/scripts/build.js` (esbuild + tailwindcss, outputs to `dist/renderer/`).
 
 ## Build & Distribution
 
 ```bash
-./scripts/build.sh
+npm run build    # compile renderer (esbuild + tailwindcss) + main process
+npm run package  # build + electron-builder → release/*.dmg
 ```
-
-Installs dependencies, compiles everything, and produces `release/toop journal-<version>-arm64.dmg`.
 
 ### npm scripts
 
@@ -88,7 +99,7 @@ Installs dependencies, compiles everything, and produces `release/toop journal-<
 
 ## Data Locations
 
-All runtime data lives in `~/Library/Application Support/toop-journal/`:
+All runtime data lives in `~/Library/Application Support/Book of Toop/`:
 
 | Path | Description |
 |---|---|
