@@ -63,6 +63,16 @@ async function init() {
 
   root.replaceChildren(appShell);
 
+  // ── Maintenance toast ─────────────────────────────────────────────────────
+  const maintenanceToast = document.createElement('div');
+  maintenanceToast.textContent = 'Optimizing database...';
+  maintenanceToast.style.cssText = 'display:none;position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none';
+  maintenanceToast.className = 'bg-surface text-muted text-xs px-3 py-1 rounded-full shadow';
+  document.body.appendChild(maintenanceToast);
+  window.maintenance.onStatus((running) => {
+    maintenanceToast.style.display = running ? 'block' : 'none';
+  });
+
   // ── Navbar ────────────────────────────────────────────────────────────────
   initNavBar(navbarContainer);
   onRouteChange((path) => {

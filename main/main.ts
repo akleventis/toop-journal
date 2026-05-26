@@ -72,6 +72,16 @@ app.whenReady().then(async () => {
 
   createWindow();
 
+  // Send toast to renderer before blocking main thread with VACUUM; 500ms gap lets renderer render it
+  setTimeout(() => {
+    const due = db.isMaintenanceDue();
+    if (due) mainWindow?.webContents.send('maintenance:status', true);
+    setTimeout(() => {
+      db.runMaintenance();
+      if (due) mainWindow?.webContents.send('maintenance:status', false);
+    }, due ? 500 : 0);
+  }, 5000);
+
   syncStateMachine.onStateChange((newState) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('sync-state:changed', newState);

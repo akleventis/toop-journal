@@ -77,6 +77,10 @@ export interface AppStateAPI {
   setDirty: (dirty: boolean) => void;
 }
 
+export interface MaintenanceAPI {
+  onStatus: (callback: (running: boolean) => void) => () => void;
+}
+
 declare global {
   interface Window {
     cloudSync: CloudSyncAPI
@@ -90,5 +94,6 @@ declare global {
     logs: LogsAPI
     health: HealthAPI
     appState: AppStateAPI
+    maintenance: MaintenanceAPI
   }
 }

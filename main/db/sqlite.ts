@@ -302,6 +302,33 @@ function setSetting(key: string, value: string): void {
     db.prepare('INSERT OR REPLACE INTO settings_t (key, value) VALUES (?, ?)').run(key, value);
 }
 
+const SEVEN_DAYS_MS  = 7  * 24 * 60 * 60 * 1000;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+function isMaintenanceDue(): boolean {
+  const lastOptimize = getSetting('lastOptimizeTime');
+  const lastVacuum   = getSetting('lastVacuumTime');
+  const now = Date.now();
+  return (!lastOptimize || now - parseInt(lastOptimize, 10) >= SEVEN_DAYS_MS)
+      || (!lastVacuum   || now - parseInt(lastVacuum,   10) >= THIRTY_DAYS_MS);
+}
+
+function runMaintenance(): void {
+  const now = Date.now();
+  const lastOptimize = getSetting('lastOptimizeTime');
+  if (!lastOptimize || now - parseInt(lastOptimize, 10) >= SEVEN_DAYS_MS) {
+    logger.info('maintenance: FTS5 optimize');
+    db.prepare("INSERT INTO entries_fts(entries_fts) VALUES('optimize')").run();
+    setSetting('lastOptimizeTime', String(now));
+  }
+  const lastVacuum = getSetting('lastVacuumTime');
+  if (!lastVacuum || now - parseInt(lastVacuum, 10) >= THIRTY_DAYS_MS) {
+    logger.info('maintenance: VACUUM');
+    db.exec('VACUUM');
+    setSetting('lastVacuumTime', String(now));
+  }
+}
+
 function closeDb(): void {
     db.close();
 }
@@ -338,4 +365,6 @@ export {
     setSetting,
     closeDb,
     integrityCheck,
+    isMaintenanceDue,
+    runMaintenance,
 };

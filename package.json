@@ -54,7 +54,7 @@
       "category": "public.app-category.productivity",
       "target": {
         "target": "dmg",
-        "arch": "arm64"
+        "arch": "universal"
       },
       "icon": "assets/icon.png"
     }

@@ -94,3 +94,11 @@ contextBridge.exposeInMainWorld('health', {
 contextBridge.exposeInMainWorld('appState', {
   setDirty: (dirty: boolean) => ipcRenderer.send('app-state:set-dirty', dirty),
 })
+
+contextBridge.exposeInMainWorld('maintenance', {
+  onStatus: (callback: (running: boolean) => void): (() => void) => {
+    const handler = (_event: unknown, running: boolean) => callback(running);
+    ipcRenderer.on('maintenance:status', handler);
+    return () => ipcRenderer.removeListener('maintenance:status', handler);
+  },
+})
