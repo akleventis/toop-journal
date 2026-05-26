@@ -6,6 +6,12 @@ import * as db from '../db/sqlite';
 import fs from 'node:fs';
 import { logger } from '../logger';
 
+// Strips HTML tags and normalises whitespace for content comparison.
+const extractText = (html: string): string =>
+  html.replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ').trim();
+
 // Creates masterIndex.json in userData if it doesn't exist. Called on startup.
 export const initLocalMasterIndex = async (): Promise<void> => {
   if (!fs.existsSync(MASTER_INDEX_PATH)) {
@@ -191,7 +197,7 @@ const executeSyncPlan = async (
     switch (action) {
       case 'download': {
         // skip if already in local DB (index out of date)
-        if (db.getEntryById(id) !== null) {
+        if (db.getEntryById(id) != null) {
           syncedIndex[id] = s3;
           break;
         }
@@ -257,7 +263,7 @@ const executeSyncPlan = async (
           logger.error(`syncMasterIndex: error fetching S3 entry for conflict check ${id}:`, error);
           throw error;
         }
-        if (localEntry && s3Entry && localEntry.content !== s3Entry.content) {
+        if (localEntry && s3Entry && extractText(localEntry.content) !== extractText(s3Entry.content)) {
           logger.warn(`syncMasterIndex: conflict detected for entry ${id}`);
           db.createConflict({
             entryId: id,
@@ -270,8 +276,9 @@ const executeSyncPlan = async (
           syncedIndex[id] = local; // hold local until user resolves
           conflicts++;
         } else {
-          // content identical despite timestamp diff — accept S3 index
+          // content identical despite timestamp diff — accept S3 index and clear any stale conflict
           db.updateEntry(id, s3Entry!, false);
+          db.deleteConflict(id);
           syncedIndex[id] = s3;
           downloaded++;
         }
@@ -279,6 +286,30 @@ const executeSyncPlan = async (
       }
 
       case 'skip': {
+        // stale conflict: timestamps agree but conflict record exists — re-check S3 content
+        if (local && !local.deleted && db.getConflictByEntryId(id) != null) {
+          try {
+            const s3Entry = await fetchS3Entry(id);
+            const localEntry = db.getEntryById(id);
+            if (localEntry && extractText(localEntry.content) === extractText(s3Entry.content)) {
+              db.deleteConflict(id);
+              logger.info(`syncMasterIndex: auto-cleared stale conflict for ${id}`);
+            }
+          } catch (error) {
+            logger.warn(`syncMasterIndex: could not check S3 content for conflict ${id}:`, error);
+          }
+        }
+        // masterIndex says in-sync, but DB row might be missing — self-heal
+        if (local && !local.deleted && db.getEntryById(id) == null) {
+          try {
+            const entry = await fetchS3Entry(id);
+            db.createEntry(entry, false);
+            downloaded++;
+            logger.warn(`syncMasterIndex: re-downloaded missing entry ${id}`);
+          } catch (error) {
+            logger.warn(`syncMasterIndex: could not re-download missing entry ${id}:`, error);
+          }
+        }
         syncedIndex[id] = local ?? s3;
         break;
       }

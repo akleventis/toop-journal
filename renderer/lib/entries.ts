@@ -1,12 +1,12 @@
 import { Entry } from '../../shared/types';
 import * as db from '../db/db';
 import { formatCurrentDate, journalDateToId, withCurrentTime } from './dates';
+import { clearNavGuard } from './nav-guard';
+import { navigate } from '../src/router';
 
-// Creates or updates an entry from the WYSIWYG editor, then navigates to /list.
 export async function saveEntry(
   currentHtml: string,
   entry: Entry | null,
-  navigate: (path: string) => void,
   date?: string
 ): Promise<void> {
   if (currentHtml === '' || currentHtml === '<br>' || currentHtml === '<p><br></p>') {
@@ -25,11 +25,11 @@ export async function saveEntry(
     };
     await db.createEntry(newEntry);
   }
-  navigate('/list?reload=true');
+  clearNavGuard();
+  navigate('/list', { reload: 'true' });
 }
 
-// Deletes an entry and navigates to /list.
-export async function deleteEntry(id: string, navigate: (path: string) => void): Promise<void> {
+export async function deleteEntry(id: string): Promise<void> {
   await db.deleteEntry(id);
-  navigate('/list?reload=true');
+  navigate('/list', { reload: 'true' });
 }

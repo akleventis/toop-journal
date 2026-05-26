@@ -1,25 +1,27 @@
-type NetworkListener = (online: boolean) => void;
+type NetworkCallback = (online: boolean) => void;
 
-// Wraps window.network.* to provide a subscribable online/offline status.
 class NetworkManager {
-  private listeners: Set<NetworkListener> = new Set();
+  private online: boolean;
+  private subscribers: Set<NetworkCallback> = new Set();
 
   constructor() {
-    window.network.onStatusChange((online) => {
-      this.listeners.forEach(l => l(online));
-    });
+    this.online = navigator.onLine;
+    window.addEventListener('online', () => this.setOnline(true));
+    window.addEventListener('offline', () => this.setOnline(false));
   }
 
-  isOnline(): boolean {
-    return window.network.isOnline();
+  private setOnline(val: boolean) {
+    if (this.online === val) return;
+    this.online = val;
+    this.subscribers.forEach(cb => cb(val));
   }
 
-  // Registers a listener; returns an unsubscribe function.
-  subscribe(listener: NetworkListener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+  isOnline(): boolean { return this.online; }
+
+  subscribe(cb: NetworkCallback): () => void {
+    this.subscribers.add(cb);
+    return () => this.subscribers.delete(cb);
   }
 }
 
-// singleton — import this instead of window.network.* in components
 export const networkManager = new NetworkManager();
