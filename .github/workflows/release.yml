@@ -7,12 +7,14 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
 
       - uses: actions/setup-node@v4
         with:
@@ -20,15 +22,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
+          bun install
           npm --prefix renderer ci
 
       - name: Build & Package
-        run: npm run build && npx electron-builder --publish never
+        run: npm run package
+
+      - name: Zip app bundle
+        run: |
+          cd build/dev-macos-arm64
+          ditto -c -k --sequesterRsrc --keepParent "Book of Toop-dev.app" "Book-of-Toop-${{ github.ref_name }}.zip"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.dmg
+          files: build/dev-macos-arm64/Book-of-Toop-${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

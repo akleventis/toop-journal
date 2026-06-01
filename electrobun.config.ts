@@ -4,7 +4,7 @@ export default {
   app: {
     name: "Book of Toop",
     identifier: "com.bookoftoop.app",
-    version: "1.0.1",
+    version: "2.0.0",
   },
   build: {
     bun: {
