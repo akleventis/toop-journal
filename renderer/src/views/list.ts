@@ -30,7 +30,7 @@ export function initListView(container: HTMLElement) {
   container.style.cssText = 'height:100%;display:flex;flex-direction:column;overflow-x:hidden';
 
   scrollEl = document.createElement('div');
-  scrollEl.style.cssText = 'flex:1;min-height:0;overflow-y:auto';
+  scrollEl.style.cssText = 'flex:1;min-height:0;overflow-y:auto;overflow-x:hidden';
 
   itemsEl = document.createElement('div');
   scrollEl.appendChild(itemsEl);

@@ -2,9 +2,11 @@ import Quill from 'quill';
 import 'quill/dist/quill.core.css';
 import type { Entry } from '../../../shared/types';
 import { deleteEntry } from '../../lib/entries';
+import { confirmModal } from './modal';
 import { NavDirection } from '../../lib/constants';
 import { ImageResizeOverlay } from './image-resize';
 import { TextEditNav } from './text-edit-nav';
+import { FindBar } from './find-bar';
 
 const DEFAULT_IMAGE_WIDTH = 200;
 const Delta = Quill.import('delta') as any;
@@ -25,6 +27,8 @@ export class QuillEditor {
   private isEditing: boolean;
   private overlay: ImageResizeOverlay | null = null;
   private nav: TextEditNav | null = null;
+  private findBar: FindBar | null = null;
+  private readonly onCmdF: (e: KeyboardEvent) => void;
   private onContentChange: ((html: string) => void) | undefined;
   private onEditModeChange: ((editing: boolean) => void) | undefined;
 
@@ -34,7 +38,7 @@ export class QuillEditor {
     this.onEditModeChange = opts.onEditModeChange;
 
     this.el = document.createElement('div');
-    this.el.className = 'flex flex-col';
+    this.el.className = 'flex flex-col flex-1 min-h-0';
 
     if (opts.displayNav && !opts.editable) {
       this.nav = new TextEditNav(
@@ -46,7 +50,7 @@ export class QuillEditor {
     }
 
     this.editorWrapper = document.createElement('div');
-    this.editorWrapper.style.position = 'relative';
+    this.editorWrapper.style.cssText = 'position:relative;flex:1;min-height:0;display:flex;flex-direction:column';
     this.el.appendChild(this.editorWrapper);
 
     const editorDiv = document.createElement('div');
@@ -153,6 +157,14 @@ export class QuillEditor {
     });
 
     this.loadEntry(opts.entry, opts.editable);
+
+    this.onCmdF = (e: KeyboardEvent) => {
+      if (e.key === 'f' && e.metaKey && !this.isEditing) {
+        e.preventDefault();
+        this.findBar ? this.findBar.focus() : this.openFindBar();
+      }
+    };
+    document.addEventListener('keydown', this.onCmdF);
   }
 
   loadEntry(entry: Entry | null, editable: boolean) {
@@ -169,7 +181,19 @@ export class QuillEditor {
     this.onContentChange?.(q.root.innerHTML);
   }
 
+  private openFindBar() {
+    this.findBar = new FindBar(this.quill, () => this.closeFindBar());
+    this.editorWrapper.appendChild(this.findBar.el);
+    this.findBar.focus();
+  }
+
+  private closeFindBar() {
+    this.findBar?.destroy();
+    this.findBar = null;
+  }
+
   private enableEditing() {
+    this.closeFindBar();
     this.quill.enable(true);
     this.isEditing = true;
     this.nav?.destroy();
@@ -179,7 +203,7 @@ export class QuillEditor {
 
   private async handleDelete(entry: Entry | null) {
     if (!entry) return;
-    if (window.confirm('Are you sure you want to delete this entry?')) {
+    if (await confirmModal('Are you sure you want to delete this entry?', 'Delete')) {
       await deleteEntry(entry.id);
     }
   }
@@ -209,6 +233,8 @@ export class QuillEditor {
   }
 
   destroy() {
+    this.closeFindBar();
+    document.removeEventListener('keydown', this.onCmdF);
     this.hideOverlay();
     this.nav?.destroy();
   }

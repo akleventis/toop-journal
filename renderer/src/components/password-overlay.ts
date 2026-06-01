@@ -44,7 +44,7 @@ export async function showPasswordOverlay(container: HTMLElement): Promise<void>
       try {
         const storedHash = await db.getPasswordHash();
         const storedSalt = await db.getPasswordSalt();
-        if (!storedHash || !storedSalt) { alert('Password not configured'); return; }
+        if (!storedHash || !storedSalt) { setError('Password not configured'); return; }
         const isValid = await window.security.verifyPassword(input.value, storedHash, storedSalt);
         if (isValid) {
           if (lockTimer) clearTimeout(lockTimer);

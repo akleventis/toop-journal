@@ -1,13 +1,10 @@
-import { SyncState } from '../../shared/types';
+import { SyncState } from "../../../shared/types.js";
 export { SyncState };
 
-// Manages sync state and notifies registered listeners on every transition.
-// State changes originate in aws_client/transact/aws_config and are pushed to the renderer via IPC.
 class SyncStateMachine {
   private state: SyncState = SyncState.UNINITIALIZED;
   private listeners: ((state: SyncState) => void)[] = [];
 
-  // Updates state and synchronously notifies all registered listeners.
   setState(newState: SyncState) {
     this.state = newState;
     this.listeners.forEach(l => l(newState));
@@ -17,7 +14,6 @@ class SyncStateMachine {
     return this.state;
   }
 
-  // Registers a listener; returns an unsubscribe function.
   onStateChange(listener: (state: SyncState) => void): () => void {
     this.listeners.push(listener);
     return () => {
@@ -26,5 +22,4 @@ class SyncStateMachine {
   }
 }
 
-// imported and used directly by aws_client, transact, and aws_config.
 export const syncStateMachine = new SyncStateMachine();

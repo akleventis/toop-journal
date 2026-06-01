@@ -6,5 +6,5 @@ export function handleError(error: unknown, userMessage?: string): void {
 
   window.logs?.error(msg);
 
-  if (userMessage) alert(userMessage);
+  if (userMessage) import('../src/components/modal').then(({ alertModal }) => alertModal(userMessage!));
 }

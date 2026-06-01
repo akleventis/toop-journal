@@ -143,13 +143,21 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   border: none !important;
   font-family: inherit;
   font-size: 13px;
+  flex: 1;
+  height: auto !important;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .ql-editor {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
+  height: auto !important;
   line-height: 1.5;
   padding: 12px 20px;
   white-space: pre-wrap;
   color: var(--text-primary);
+  overflow-y: auto;
 }
 .ql-editor img { -webkit-user-drag: none; }
 .ql-editor.ql-blank::before { color: var(--text-muted); font-style: normal; }
