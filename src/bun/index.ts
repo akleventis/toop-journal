@@ -123,7 +123,7 @@ const rpc = BrowserView.defineRPC<AppRPC>({
         const awsClient = getAWSClient();
         const awsConfig = getAWSConfig();
         const [masterIndexIntegrity, s3Connectivity, diskSpace] = await Promise.all([
-          loadLocalMasterIndex().then(() => true).catch(() => false),
+          Promise.resolve().then(() => { loadLocalMasterIndex(); return true; }).catch(() => false),
           awsClient && awsConfig
             ? awsClient.send(new HeadBucketCommand({ Bucket: awsConfig.aws_bucket })).then(() => true).catch(() => false)
             : Promise.resolve(null),
