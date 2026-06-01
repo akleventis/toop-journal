@@ -9,7 +9,7 @@
     "build:assets": "npm run build:renderer && npm run build:jspdf && npm run build:css",
     "dev": "npm run build:assets && bunx electrobun dev",
     "build": "npm run build:assets && bunx electrobun build",
-    "package": "npm run build:assets && bunx electrobun package"
+    "package": "npm run build:assets && bunx electrobun build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.850.0",

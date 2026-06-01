@@ -26,7 +26,7 @@ jobs:
           npm --prefix renderer ci
 
       - name: Build & Package
-        run: npm run package
+        run: npm run build
 
       - name: Find build output
         run: find . -name "*.app" -maxdepth 6 2>/dev/null || echo "no .app found"; ls -la
