@@ -29,13 +29,16 @@ jobs:
         run: npm run package
 
       - name: Zip app bundle
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          cd build/dev-macos-arm64
-          ditto -c -k --sequesterRsrc --keepParent "Book of Toop-dev.app" "Book-of-Toop-${{ github.ref_name }}.zip"
+          APP_PATH=$(find build -name "*.app" -maxdepth 3 | head -1)
+          echo "Found app at: $APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "Book-of-Toop-${REF_NAME}.zip"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/dev-macos-arm64/Book-of-Toop-${{ github.ref_name }}.zip
+          files: Book-of-Toop-${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
