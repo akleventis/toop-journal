@@ -1,13 +1,13 @@
-import type { Entry, S3Config, Conflict, SyncState, HealthCheck, BackupInfo } from './shared/types';
+import type { Entry, S3Config, SyncState, HealthCheck, BackupInfo } from './shared/types';
 
 export interface CloudSyncAPI {
   initS3Client: () => Promise<void>,
-  cloudSyncPipeline: () => Promise<boolean>,
-  createConfig: (config: S3Config) => Promise<void>,
-  updateConfig: (config: S3Config) => Promise<void>,
+  cloudSyncPipeline: () => Promise<void>,
+  createConfig: (config: S3Config) => Promise<S3Config>,
+  updateConfig: (config: S3Config) => Promise<S3Config>,
   deleteConfig: () => Promise<void>,
   disableSync: () => Promise<void>,
-  getConfig: () => Promise<S3Config>,
+  getConfig: () => Promise<S3Config | null>,
 }
 
 export interface SQLiteAPI {
@@ -42,13 +42,6 @@ export interface NetworkAPI {
   isOnline: () => boolean;
 }
 
-export interface ConflictsAPI {
-  getConflicts: () => Promise<Conflict[]>;
-  getConflictCount: () => Promise<number>;
-  getConflictByEntryId: (entryId: string) => Promise<Conflict | null>;
-  resolveConflict: (entryId: string, version: 'local' | 'remote') => Promise<void>;
-}
-
 export interface SyncStateAPI {
   getState: () => Promise<SyncState>;
   onStateChange: (callback: (state: SyncState) => void) => () => void;
@@ -75,10 +68,16 @@ export interface HealthAPI {
 
 export interface AppStateAPI {
   setDirty: (dirty: boolean) => void;
+  onQuitting: (callback: () => void) => () => void;
 }
 
 export interface MaintenanceAPI {
   onStatus: (callback: (running: boolean) => void) => () => void;
+}
+
+export interface UtilsAPI {
+  saveToDownloads: (filename: string, content: string, encoding: 'utf8' | 'base64') => Promise<{ path: string }>;
+  revealInFinder: (path: string) => Promise<void>;
 }
 
 declare global {
@@ -87,7 +86,6 @@ declare global {
     sqlite: SQLiteAPI
     network: NetworkAPI
     security: SecurityAPI
-    conflicts: ConflictsAPI
     syncState: SyncStateAPI
     dialog: DialogAPI
     backup: BackupAPI
@@ -95,5 +93,6 @@ declare global {
     health: HealthAPI
     appState: AppStateAPI
     maintenance: MaintenanceAPI
+    utils: UtilsAPI
   }
 }

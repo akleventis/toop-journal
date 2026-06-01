@@ -1,23 +1,9 @@
 import * as db from '../db/db';
 import { handleError } from '../lib/error-handler';
 
-// Apply saved zoom immediately so layout is correct before first paint
-document.documentElement.style.zoom = localStorage.getItem('zoom') ?? '1';
-
-document.addEventListener('keydown', (e) => {
-  if (!e.metaKey && !e.ctrlKey) return;
-  const current = parseFloat(localStorage.getItem('zoom') ?? '1');
-  let next: number | null = null;
-  if (e.key === '=' || e.key === '+') next = Math.min(2.0, parseFloat((current + 0.1).toFixed(1)));
-  else if (e.key === '-') next = Math.max(0.5, parseFloat((current - 0.1).toFixed(1)));
-  else if (e.key === '0') next = 1.0;
-  else return;
-  e.preventDefault();
-  document.documentElement.style.zoom = String(next);
-  localStorage.setItem('zoom', String(next));
-});
-import { journalToCalendar, getCurrentCalendarDate } from '../lib/dates';
+import { journalDateToId, formatCurrentDate } from '../lib/dates';
 import { networkManager } from '../lib/network-manager';
+import { SyncState } from '../../shared/types';
 import { initNavBar, updateNavBarActive } from './components/navbar';
 import { showPasswordOverlay } from './components/password-overlay';
 import { initListView, updateListEntries, updateListState, setLoadingMore, getLoadedLimit } from './views/list';
@@ -25,13 +11,98 @@ import { mountNew } from './views/new';
 import { mountEdit } from './views/edit';
 import { mountCalendar } from './views/calendar';
 import { mountMore } from './views/more';
-import { mountConflicts } from './views/conflicts';
 import { mountLogs } from './views/logs';
 import { mountBackups } from './views/backups';
 import { registerRoutes, initRouter, navigate, handleRoute, onRouteChange } from './router';
 
+let zoom = 1;
+document.addEventListener('keydown', (e) => {
+  if (!e.metaKey && !e.ctrlKey) return;
+  if (e.key === '+') zoom = parseFloat((zoom + 0.1).toFixed(1));
+  else if (e.key === '-') zoom = parseFloat((zoom - 0.1).toFixed(1));
+  else return;
+  e.preventDefault();
+  document.documentElement.style.zoom = String(zoom);
+});
+
+function logLineColor(line: string): string {
+  if (line.includes('[SHUTDOWN]')) return '#fb923c';
+  if (line.includes('[ERROR]')) return '#f87171';
+  if (line.includes('[WARN]'))  return '#facc15';
+  if (line.includes('[DEBUG]')) return '#6b7280';
+  return '#d1d5db';
+}
+
+function buildStartupOverlay() {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:9999;overflow-y:auto;padding:12px;font-family:monospace;font-size:11px;line-height:1.6;background:var(--color-app-bg);';
+  const appendLine = (line: string) => {
+    const div = document.createElement('div');
+    div.style.color = logLineColor(line);
+    div.textContent = line;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+  };
+  return { el, appendLine, remove: () => el.remove() };
+}
+
+function waitForSyncSettled(): Promise<SyncState> {
+  return new Promise((resolve) => {
+    const settled = (s: SyncState) =>
+      s === SyncState.READY || s === SyncState.DISABLED || s === SyncState.ERROR;
+    const check = (s: SyncState) => { if (settled(s)) { cleanup(); resolve(s); } };
+    const cleanup = window.syncState.onStateChange(check);
+    window.syncState.getState().then(check);
+  });
+}
+
 async function init() {
   const root = document.getElementById('root')!;
+
+  // ── Startup sync (if S3 configured) ──────────────────────────────────────
+  const s3Config = await window.cloudSync.getConfig();
+  if (s3Config) {
+    const overlay = buildStartupOverlay();
+    document.body.appendChild(overlay.el);
+
+    const skipBtn = document.createElement('button');
+    skipBtn.textContent = 'Skip Sync';
+    skipBtn.style.cssText = 'position:sticky;bottom:8px;float:right;margin-top:12px;padding:4px 12px;font-family:monospace;font-size:11px;background:#1f2937;color:#6b7280;border:1px solid #374151;border-radius:4px;cursor:pointer';
+    overlay.el.appendChild(skipBtn);
+
+    let skipResolve!: () => void;
+    const skipPromise = new Promise<void>(res => { skipResolve = res; });
+    skipBtn.addEventListener('click', () => skipResolve());
+
+    const recentLines = await window.logs.getRecent();
+    recentLines.forEach(overlay.appendLine);
+    const cleanupLogs = window.logs.onLine(overlay.appendLine);
+
+    try {
+      const settled = await Promise.race([
+        waitForSyncSettled(),
+        skipPromise.then(() => null),
+      ]);
+      if (settled !== null && settled === SyncState.READY && networkManager.isOnline()) {
+        // late errors handled by .catch; race lets user skip or auto-timeout
+        const syncPromise = window.cloudSync.cloudSyncPipeline().catch((err: unknown) => handleError(err));
+        await Promise.race([
+          syncPromise,
+          skipPromise,
+          new Promise<void>(res => setTimeout(res, 40_000)),
+        ]);
+      }
+    } catch (err) {
+      handleError(err);
+    } finally {
+      cleanupLogs();
+      overlay.remove();
+    }
+  }
+
+  // Track entriesChanged events that fire before the handler is wired up
+  let pendingEntriesChanged = false;
+  const cleanupEarlyListener = window.sqlite.onEntriesChanged(() => { pendingEntriesChanged = true; });
 
   // ── Password gate ─────────────────────────────────────────────────────────
   const hash = await db.getPasswordHash();
@@ -87,19 +158,12 @@ async function init() {
   viewList.style.display = 'none'; // initListView overwrites cssText; restore until router shows it
 
   // ── Load initial entries ──────────────────────────────────────────────────
-  const loadEntries = async () => {
-    const limit = db.getEntryLimitFromStorage();
-    const [listEntries, calEntries] = await Promise.all([
-      db.getEntriesForList(limit),
-      db.getEntriesForCalendar(),
-    ]);
-    return { listEntries, calEntries, limit };
-  };
-
-  let calendarEntries: Awaited<ReturnType<typeof loadEntries>>['calEntries'] = [];
-
-  const { listEntries, calEntries, limit } = await loadEntries();
-  calendarEntries = calEntries;
+  const limit = db.getEntryLimitFromStorage();
+  const [listEntries, calEntries] = await Promise.all([
+    db.getEntriesForList(limit),
+    db.getEntriesForCalendar(),
+  ]);
+  let calendarEntries = calEntries;
 
   const handleLoadMore = async () => {
     const perPage = db.getEntryLimitFromStorage();
@@ -119,76 +183,73 @@ async function init() {
 
   updateListState(listEntries, limit, handleLoadMore);
 
-  // ── Silent reload when sync pipeline pushes remote entries ────────────────
+  // ── Refresh list entries (local writes + sync) ────────────────────────────
+  const refreshEntries = async () => {
+    db.clearDecodedCache();
+    const [updated, cal] = await Promise.all([
+      db.getEntriesForList(getLoadedLimit()),
+      db.getEntriesForCalendar(),
+    ]);
+    calendarEntries = cal;
+    updateListEntries(updated);
+  };
+
+  cleanupEarlyListener();
+  if (pendingEntriesChanged) refreshEntries().catch(handleError);
   window.sqlite.onEntriesChanged(async () => {
-    try {
-      const [updated, cal] = await Promise.all([
-        db.getEntriesForList(getLoadedLimit()),
-        db.getEntriesForCalendar(),
-      ]);
-      calendarEntries = cal;
-      updateListEntries(updated);
-    } catch (error) {
-      handleError(error);
-    }
+    try { await refreshEntries(); } catch (error) { handleError(error); }
   });
 
-  // ── Network sync ──────────────────────────────────────────────────────────
-  const trySync = async () => {
-    if (!networkManager.isOnline()) return;
-    try {
-      await window.cloudSync.initS3Client();
-      await window.cloudSync.cloudSyncPipeline();
-    } catch (err) {
-      handleError(err);
+  // ── Network reconnect sync ────────────────────────────────────────────────
+  networkManager.subscribe((online: boolean) => {
+    if (online) {
+      window.syncState.getState().then((state: SyncState) => {
+        if (state === SyncState.READY) window.cloudSync.cloudSyncPipeline().catch(handleError);
+      });
     }
-  };
-  networkManager.subscribe((online) => { if (online) trySync(); });
-  trySync();
+  });
 
   // ── Routes ────────────────────────────────────────────────────────────────
   registerRoutes({
     '/': (params) => {
       // Handled by onRouteChange showing viewList; decide /list vs /new
-      db.getMostRecentEntry().then(entry => {
-        const hasToday = entry && journalToCalendar(entry.date) === getCurrentCalendarDate();
-        navigate(hasToday ? '/list' : '/new');
+      db.getEntryById(journalDateToId(formatCurrentDate())).then(entry => {
+        navigate(entry ? '/list' : '/new');
       }).catch(handleError);
     },
-    '/list': (params) => {
-      const reload = params.get('reload') === 'true';
-      if (reload) {
-        Promise.all([
-          db.getEntriesForList(getLoadedLimit()),
-          db.getEntriesForCalendar(),
-        ]).then(([entries, cal]) => {
-          calendarEntries = cal;
-          updateListEntries(entries);
-        }).catch(handleError);
-      }
+    '/list': () => {
+      Promise.all([
+        db.getEntriesForList(getLoadedLimit()),
+        db.getEntriesForCalendar(),
+      ]).then(([entries, cal]) => {
+        calendarEntries = cal;
+        updateListEntries(entries);
+      }).catch(handleError);
     },
     '/new': (params) => mountNew(viewMain, params),
     '/edit': (params) => mountEdit(viewMain, params),
     '/calendar': () => mountCalendar(viewMain, calendarEntries),
     '/more': () => mountMore(viewMain),
-    '/conflicts': () => mountConflicts(viewMain),
     '/logs': () => mountLogs(viewMain),
     '/backups': () => mountBackups(viewMain),
   });
 
   initRouter();
 
+  // ── Teardown log overlay ──────────────────────────────────────────────────
+  window.appState.onQuitting(async () => {
+    const overlay = buildStartupOverlay();
+    document.body.appendChild(overlay.el);
+    const recentLines = await window.logs.getRecent();
+    recentLines.forEach(overlay.appendLine);
+    window.logs.onLine(overlay.appendLine);
+  });
+
   // ── Initial route ─────────────────────────────────────────────────────────
-  if (!window.location.hash || window.location.hash === '#/') {
-    const mostRecent = await db.getMostRecentEntry();
-    const hasToday = mostRecent && journalToCalendar(mostRecent.date) === getCurrentCalendarDate();
-    navigate(hasToday ? '/list' : '/new');
-  } else {
-    handleRoute();
-  }
+  handleRoute();
 }
 
 init().catch((err) => {
-  console.error('App init failed', err);
+  handleError(err);
   document.getElementById('root')!.textContent = 'Failed to start. Please reload.';
 });

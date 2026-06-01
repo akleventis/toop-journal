@@ -4,6 +4,7 @@ import { saveEntry } from '../../lib/entries';
 import { setNavGuard, clearNavGuard } from '../../lib/nav-guard';
 import { handleError } from '../../lib/error-handler';
 import { QuillEditor } from '../components/quill-editor';
+import { confirmModal } from '../components/modal';
 import * as db from '../../db/db';
 import { navigate } from '../router';
 
@@ -14,7 +15,7 @@ export function mountNew(container: HTMLElement, params: URLSearchParams): Clean
   const entryDate = dateParam ? calendarToJournal(dateParam) : formatCurrentDate();
 
   const wrap = document.createElement('div');
-  wrap.className = 'flex flex-col';
+  wrap.className = 'flex flex-col h-full';
 
   const dateLabel = document.createElement('div');
   dateLabel.className = 'text-center text-[12px] text-gray-400';
@@ -33,16 +34,18 @@ export function mountNew(container: HTMLElement, params: URLSearchParams): Clean
     onContentChange: (html) => {
       currentHtml = html;
       const empty = !html || html === '<br>' || html === '<p><br></p>';
-      empty ? clearNavGuard() : setNavGuard(() => window.confirm('You have unsaved changes. Leave anyway?'));
+      empty ? clearNavGuard() : setNavGuard(() => confirmModal('You have unsaved changes. Leave without saving?'));
     },
   });
   wrap.appendChild(editor.el);
   editor.focus();
 
+  const footer = document.createElement('div');
+  footer.className = 'flex justify-end px-2.5 py-2';
+
   const saveBtn = document.createElement('button');
   saveBtn.className = 'px-2 py-1 text-[12px]';
   saveBtn.textContent = 'Done';
-  saveBtn.style.cssText = 'position:fixed;bottom:0;right:0;margin:0 10px 10px 0';
   saveBtn.onclick = async () => {
     if (isSaving) return;
     isSaving = true;
@@ -58,7 +61,8 @@ export function mountNew(container: HTMLElement, params: URLSearchParams): Clean
       saveBtn.disabled = false;
     }
   };
-  container.appendChild(saveBtn);
+  footer.appendChild(saveBtn);
+  wrap.appendChild(footer);
 
   // Redirect to today's edit if entry already exists (only when no specific date requested)
   if (!dateParam) {

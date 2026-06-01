@@ -21,7 +21,10 @@ export function initNavBar(container: HTMLElement) {
     a.dataset.path = tab.path;
     a.className = 'w-[68px] py-[5px] rounded-sm text-center text-[12px] font-medium opacity-50';
     a.textContent = tab.label;
-    a.addEventListener('click', (e) => { if (!checkNavGuard()) e.preventDefault(); });
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (await checkNavGuard()) window.location.hash = a.getAttribute('href')!;
+    });
     nav.appendChild(a);
   }
 

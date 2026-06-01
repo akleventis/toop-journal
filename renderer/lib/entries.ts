@@ -3,6 +3,7 @@ import * as db from '../db/db';
 import { formatCurrentDate, journalDateToId, withCurrentTime } from './dates';
 import { clearNavGuard } from './nav-guard';
 import { navigate } from '../src/router';
+import { alertModal } from '../src/components/modal';
 
 export async function saveEntry(
   currentHtml: string,
@@ -10,7 +11,7 @@ export async function saveEntry(
   date?: string
 ): Promise<void> {
   if (currentHtml === '' || currentHtml === '<br>' || currentHtml === '<p><br></p>') {
-    alert('empty! please enter thoughts');
+    alertModal('empty! please enter thoughts');
     return;
   }
 
@@ -31,5 +32,6 @@ export async function saveEntry(
 
 export async function deleteEntry(id: string): Promise<void> {
   await db.deleteEntry(id);
+  clearNavGuard();
   navigate('/list', { reload: 'true' });
 }

@@ -1,6 +1,7 @@
 import type { Cleanup } from '../router';
 
 function lineColor(line: string): string {
+  if (line.includes('[SHUTDOWN]')) return '#fb923c';
   if (line.includes('[ERROR]')) return '#f87171';
   if (line.includes('[WARN]'))  return '#facc15';
   if (line.includes('[DEBUG]')) return '#6b7280';
@@ -8,8 +9,13 @@ function lineColor(line: string): string {
 }
 
 export function mountLogs(container: HTMLElement): Cleanup {
+  const savedCss = container.style.cssText;
   container.replaceChildren();
-  container.style.cssText = 'height:100%;display:flex;flex-direction:column;background:black;overflow:hidden';
+  container.style.cssText = 'height:100%;overflow:hidden';
+
+  const inner = document.createElement('div');
+  inner.style.cssText = 'height:100%;display:flex;flex-direction:column;overflow:hidden';
+  container.appendChild(inner);
 
   const scroll = document.createElement('div');
   scroll.style.cssText = 'flex:1;overflow-y:auto;padding:12px;font-family:monospace;font-size:11px;line-height:1.6';
@@ -19,7 +25,7 @@ export function mountLogs(container: HTMLElement): Cleanup {
   emptyMsg.textContent = 'No logs yet.';
   scroll.appendChild(emptyMsg);
 
-  container.appendChild(scroll);
+  inner.appendChild(scroll);
 
   const appendLine = (line: string) => {
     if (emptyMsg.parentNode) emptyMsg.remove();
@@ -30,12 +36,12 @@ export function mountLogs(container: HTMLElement): Cleanup {
     scroll.scrollTop = scroll.scrollHeight;
   };
 
-  if (!window.logs) return () => {};
+  if (!window.logs) return () => { container.style.cssText = savedCss; };
 
   window.logs.getRecent().then(lines => {
     for (const line of lines) appendLine(line);
   });
 
   const cleanup = window.logs.onLine(appendLine);
-  return cleanup;
+  return () => { cleanup(); container.style.cssText = savedCss; };
 }

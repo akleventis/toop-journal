@@ -2,41 +2,35 @@
 
 ## System Overview
 
-toop-journal is an Electron app with two isolated processes that communicate exclusively via IPC:
+toop-journal is an Electrobun app with two isolated processes that communicate exclusively via RPC:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Renderer Process (React + Vite)                                │
+│  Renderer Process (vanilla TypeScript + esbuild, WebKit)        │
 │                                                                 │
-│  App.tsx → Router → List / Edit / New / Calendar / More / ...   │
+│  router → List / Edit / New / Calendar / More / ...             │
 │               ↕ via window.sqlite.*, window.cloudSync.*, etc.   │
 ├─────────────────────────────────────────────────────────────────┤
-│  Preload (contextBridge)                                        │
-│  Exposes: sqlite, cloudSync, security, conflicts,               │
-│           syncState, network, logs, backup, dialog              │
+│  RPC Bridge (Electrobun typed RPC)                              │
+│  src/mainview/index.ts  ←→  src/bun/index.ts                    │
+│  shared/rpc-schema.ts (AppRPC — typed contract)                 │
 ├─────────────────────────────────────────────────────────────────┤
-│  Main Process (Node.js / Electron)                              │
+│  Bun Process (Electrobun)                                       │
 │                                                                 │
 │  ┌──────────────┐  ┌───────────────────┐  ┌─────────────────┐   │
 │  │  SQLite DB   │  │  Cloud Sync       │  │  Logger         │   │
-│  │  (sqlite.ts) │  │  (cloudsync/)     │  │  (logger.ts)    │   │
-│  └──────┬───────┘  └───────────────────┘  └─────────────────┘   │
-│         │ postMessage                                           │
-│  ┌──────▼───────┐  ┌───────────────────┐  ┌─────────────────┐   │
-│  │  FTS Worker  │  │  Password         │  │  Encryption     │   │
-│  │ (fts-worker) │  │  (password.ts)    │  │  (enc-key.ts +  │   │
-│  │  own thread  │  │                   │  │  encryption.ts) │   │
+│  │  (db.ts)     │  │  (cloudsync/)     │  │  (logger.ts)    │   │
 │  └──────────────┘  └───────────────────┘  └─────────────────┘   │
 │                                                                 │
-│  ┌──────────────┐                                               │
-│  │  Backup      │                                               │
-│  │  (backup.ts) │                                               │
-│  └──────────────┘                                               │
+│  ┌──────────────┐  ┌───────────────────┐                        │
+│  │  Backup      │  │  Password         │                        │
+│  │  (backup.ts) │  │  (security.ts)    │                        │
+│  └──────────────┘  └───────────────────┘                        │
 └─────────────────────────────────────────────────────────────────┘
                               │
                      AWS S3 (optional)
-                    masterIndex.json
-                    entries/{id}.json
+                     masterIndex.json
+                     entries/{id}.json
 ```
 
 ---
@@ -46,6 +40,7 @@ toop-journal is an Electron app with two isolated processes that communicate exc
 ### Data Structures
 
 **MasterIndex** (`masterIndex.json` — local + S3):
+
 ```
 {
   "jun.14.2025": { "lastModified": 1749926155000, "deleted": false },
@@ -55,11 +50,12 @@ toop-journal is an Electron app with two isolated processes that communicate exc
 ```
 
 **Entry** (SQLite `entries_t` + `entries/{id}.json` on S3):
+
 ```
 {
   id: "jun.14.2025",
   date: "Jun 14, 2025 at 12:35",
-  content: "markdown string",
+  content: "<p>HTML string</p>",   ← Quill editor format
   location?: "string",
   timestamp: 1749926155000,
   lastModified: 1749926155000
@@ -91,9 +87,6 @@ cloudSyncPipeline()
 │   │   ├── deleted?  → DELETE entries/{id}.json from S3
 │   │   └── updated?  → PUT entries/{id}.json to S3 (local content)
 │   │
-│   ├── [CONFLICT: both modified, content differs]
-│   │   └── db.createConflict() → skip sync, shown in More → Conflicts
-│   │
 │   └── [S3 newer]
 │       ├── deleted?  → db.deleteEntry(id, skipSync)
 │       └── updated?  → fetch entries/{id}.json → db.updateEntry(id, entry, skipSync)
@@ -111,19 +104,21 @@ If any step throws, the temp file is cleaned up and state transitions to `ERROR`
 
 ### Sync Triggers
 
-| Trigger | Action |
-|---|---|
-| App startup | `initS3Client()` → `cloudSyncPipeline()` |
-| App quit (`before-quit`) | `cloudSyncPipeline()` (skipped on backup restore) |
-| Manual "Sync" button | `cloudSyncPipeline()` |
-| Network restored | `useNetworkSync` hook → `initS3Client()` |
+
+| Trigger                    | Action                                                      |
+| -------------------------- | ----------------------------------------------------------- |
+| App startup                | `initS3Client()` → `cloudSyncPipeline()`                    |
+| App quit (`before-quit`)   | `cloudSyncPipeline()` (with 5s timeout)                     |
+| Manual "Sync" button       | `cloudSyncPipeline()`                                       |
+| Network restored           | `NetworkManager` → `cloudSyncPipeline()` (if state is READY) |
 | Entry create/update/delete | `dbEvents.emit()` → `updateLocalMasterIndex()` (local only) |
+
 
 ---
 
 ### Local-only Master Index Updates
 
-Every DB write emits an event via `dbEvents` (in `sqlite.ts`). `sync_coordinator.ts` listens and calls `updateLocalMasterIndex()` — which only writes to the local `masterIndex.json`, without touching S3. This keeps the local index current for the next full `cloudSyncPipeline()` run.
+Every DB write emits an event via `dbEvents` (in `db.ts`). `sync_coordinator.ts` listens and calls `updateLocalMasterIndex()` — which only writes to the local `masterIndex.json`, without touching S3. This keeps the local index current for the next full `cloudSyncPipeline()` run.
 
 ```
 db.createEntry()
@@ -132,13 +127,11 @@ db.createEntry()
                     └── updateLocalMasterIndex(id, { lastModified, deleted: false })
 ```
 
-The `skipSync = true` flag on `createEntry/updateEntry/deleteEntry` breaks the recursive loop when sync writes entries received from S3.
+The `emitEvents = false` flag on `createEntry/updateEntry/deleteEntry` breaks the recursive loop when sync writes entries received from S3.
 
 ---
 
 ## SyncState Machine
-
-States and transitions:
 
 ```
               ┌─────────────────────────────────────┐
@@ -164,32 +157,28 @@ States and transitions:
   disableSync() ──────────────────── DISABLED
 ```
 
-The state is owned by `SyncStateMachine` singleton in `main/cloudsync/sync_state.ts`. State changes are pushed to the renderer via `webContents.send('sync-state:changed', newState)`. The renderer subscribes via `useSyncState()` hook and displays a colored dot in the navbar and More screen.
+State is owned by `SyncStateMachine` in `src/bun/cloudsync/sync_state.ts`. Changes are pushed to the renderer via `rpc.send.syncStateChanged`. The renderer subscribes via `window.syncState.onStateChange` and displays a colored dot in the navbar and More screen.
 
 ---
 
 ## Data Flow: Writing an Entry
 
 ```
-User edits in TextEditor (WYSIWYG HTML)
+User edits in Quill editor
     │
     │ Save button
     ▼
-htmlToMarkdown(html)           ← turndown (renderer/lib/markdown.ts)
-    │
-    ▼
 db.updateEntry(id, entry)      ← renderer/db/db.ts (clears memoized cache)
     │
-    │ window.sqlite.updateEntry(id, entry)   ← IPC via preload
+    │ window.sqlite.updateEntry(id, entry)   ← RPC via shim
     ▼
-ipcMain.handle('sqlite:updateEntry')        ← main/main.ts
+rpc.request.sqliteUpdateEntry()             ← src/bun/index.ts
     │
     ▼
-sqlite.updateEntry(id, entry)              ← main/db/sqlite.ts
+db.updateEntry(id, entry)                   ← src/bun/db.ts (bun:sqlite)
     │
-    ├── encrypt(entry.content) → AES-256-GCM ciphertext
-    ├── writes to entries_t (encrypted content)
-    ├── posts { type:'upsert', id, content, timestamp } to FTS worker (plaintext — worker stores in in-memory FTS5)
+    ├── writes to entries_t (plain HTML content)
+    ├── upserts entries_fts (FTS5 index — same process)
     └── dbEvents.emit('entry:updated', { id, lastModified })
             │
             ▼
@@ -203,42 +192,42 @@ sqlite.updateEntry(id, entry)              ← main/db/sqlite.ts
 ```
 App startup → getDecodedEntries()     ← renderer/db/db.ts (memoized)
     │
-    │ window.sqlite.getEntries()      ← IPC
+    │ window.sqlite.getEntries()      ← RPC
     ▼
-sqlite.getEntries()                   ← entries_t ORDER BY timestamp DESC
+db.getEntries()                       ← entries_t ORDER BY timestamp DESC
     │
     ▼
-decryptEntry(row)                     ← AES-256-GCM decrypt per row
+Entry[] returned (plain HTML content)
     │
     ▼
-entries returned as Entry[] (plaintext content)
-    │
-    ▼
-markdownToHtml(entry.content)         ← marked (on display, not stored)
+rendered directly by Quill / innerHTML
 ```
 
-`getDecodedEntries()` is memoized per session. Cache is cleared automatically on create/update/delete via `clearDecodedCache()`.
+`getDecodedEntries()` is memoized per session. Cache is cleared automatically on create/update/delete.
 
 ---
 
 ## File Locations (macOS)
 
-| File | Dev (`Electron/`) | Prod (`toop-journal/`) |
-|---|---|---|
-| Database | `journal-dev.db` | `journal.db` |
-| Master index | `masterIndex.json` | `masterIndex.json` |
-| AWS config | `config.json` | `config.json` |
-| Backups | `backups/` | `backups/` |
-| Logs | `logs/app-YYYY-MM-DD.log` | `logs/app-YYYY-MM-DD.log` |
 
-Both paths are under `~/Library/Application Support/`. Dev uses the `Electron/` directory (Electron's default when `app.isPackaged === false`); prod uses `toop-journal/`.
+| File         | Dev                                       | Prod                                  |
+| ------------ | ----------------------------------------- | ------------------------------------- |
+| Database     | `com.bookoftoop.app/dev/journal.db`       | `com.bookoftoop.app/stable/journal.db`       |
+| Master index | `com.bookoftoop.app/dev/masterIndex.json` | `com.bookoftoop.app/stable/masterIndex.json` |
+| AWS config   | `com.bookoftoop.app/dev/config.json`      | `com.bookoftoop.app/stable/config.json`      |
+| Backups      | `com.bookoftoop.app/dev/backups/`         | `com.bookoftoop.app/stable/backups/`         |
+| Logs         | `com.bookoftoop.app/dev/logs/`            | `com.bookoftoop.app/stable/logs/`            |
+
+All paths are under `~/Library/Application Support/`. The `channel` field in `version.json` (`dev` or `stable`) determines the subdirectory — set automatically by Electrobun.
 
 ---
 
 ## Key Design Decisions
 
-- **No direct renderer↔SQLite**: all DB access goes through IPC. The renderer never touches `better-sqlite3` directly.
+- **No direct renderer↔SQLite**: all DB access goes through RPC. The renderer never touches `bun:sqlite` directly.
 - **Atomic S3 commit**: local `masterIndex.json` is only updated after S3 upload succeeds, preventing local/S3 divergence on network failure.
-- **skipSync flag**: prevents recursive loops when sync writes entries received from S3 back into the DB (which would re-trigger sync).
-- **Memoized entry cache**: `getDecodedEntries()` fetches all entries once per session. This keeps navigation fast but requires `clearDecodedCache()` after any write.
-- **Dev/prod DB separation**: dev uses `journal-dev.db` so development never touches the real journal data.
+- **emitEvents = false**: prevents recursive loops when sync writes entries received from S3 back into the DB.
+- **Memoized entry cache**: `getDecodedEntries()` fetches all entries once per session. Requires cache clear after any write.
+- **FTS5 persistent**: `entries_fts` is a persistent virtual table in the DB file. No rebuild on launch — populated once on first run from `entries_t`, then kept in sync on every write.
+- **Dev/prod DB separation**: `Utils.paths.userData` uses the `channel` from `version.json` (`dev` in dev mode, `stable` in packaged builds) — dev never touches the production database.
+

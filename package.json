@@ -1,62 +1,22 @@
 {
-  "name": "toop-journal",
-  "productName": "Book of Toop",
+  "name": "toop-journal-electrobun",
   "version": "1.0.1",
-  "author": "tooper",
-  "description": "personal electron-based journaling app with react",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/akleventis/toop-journal.git"
-  },
-  "main": "dist/main/main.js",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:electron\"",
-    "dev:renderer": "npm --prefix renderer run dev",
-    "dev:electron": "npm run build:main && electron dist/main/main.js",
-    "build": "npm run build:renderer && npm run build:main",
-    "build:renderer": "npm --prefix renderer run build",
-    "build:main": "tsc -p tsconfig.main.json",
-    "package": "npm run build && electron-builder",
-    "package:dir": "npm run build && electron-builder --dir",
-    "postinstall": "electron-builder install-app-deps"
-  },
-  "license": "ISC",
-  "devDependencies": {
-    "@types/better-sqlite3": "7.6.13",
-    "concurrently": "9.2.0",
-    "electron": "^37.1.0",
-    "electron-builder": "26.0.12",
-    "typescript": "5.8.3"
+    "build:renderer": "renderer/node_modules/.bin/esbuild renderer/src/main.ts --bundle --outfile=src/mainview/renderer.js --platform=browser",
+    "build:jspdf": "renderer/node_modules/.bin/esbuild renderer/node_modules/jspdf/dist/jspdf.es.min.js --bundle --outfile=src/mainview/jspdf.bundle.js --platform=browser --format=esm",
+    "build:css": "renderer/node_modules/.bin/tailwindcss -i renderer/src/index.css -o src/mainview/tailwind.css",
+    "build:assets": "npm run build:renderer && npm run build:jspdf && npm run build:css",
+    "dev": "npm run build:assets && bunx electrobun dev",
+    "build": "npm run build:assets && bunx electrobun build",
+    "package": "npm run build:assets && bunx electrobun package"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.850.0",
-    "better-sqlite3": "12.6.0"
+    "electrobun": "1.18.1"
   },
-  "build": {
-    "appId": "com.bookoftoop.app",
-    "productName": "Book of Toop",
-    "asar": true,
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**/*",
-      "node_modules/bindings/**/*",
-      "node_modules/file-uri-to-path/**/*"
-    ],
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "assets/**/*",
-      "package.json"
-    ],
-    "mac": {
-      "category": "public.app-category.productivity",
-      "target": {
-        "target": "dmg",
-        "arch": "universal"
-      },
-      "icon": "assets/icon.png"
-    }
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.3"
   }
 }

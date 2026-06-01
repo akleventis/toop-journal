@@ -15,8 +15,8 @@ export function onRouteChange(cb: (path: string) => void) {
   routeChangeCallback = cb;
 }
 
-export function navigate(path: string, params?: Record<string, string>) {
-  if (!checkNavGuard()) return;
+export async function navigate(path: string, params?: Record<string, string>) {
+  if (!await checkNavGuard()) return;
   const search = params ? '?' + new URLSearchParams(params).toString() : '';
   window.location.hash = '#' + path + search;
 }

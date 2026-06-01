@@ -18,7 +18,7 @@ export type S3Config = {
 export type Entry = {
   id: string;           // format: "jun.14.2025"
   date: string;         // format: "Jun 14, 2025 at 12:35"
-  content: string;      // HTML — WYSIWYG editor native format
+  content: string;      // HTML — Quill editor native format
   location?: string;
   timestamp?: number;   // ms
   lastModified?: number; // ms
@@ -32,22 +32,12 @@ export type MasterIndexEntry = {
   deleted: boolean;
 };
 
-export type Conflict = {
-  entryId: string;
-  entryDate: string;
-  localVersion: string;
-  remoteVersion: string;
-  localModified: number;
-  remoteModified: number;
-};
-
 export type SyncAction =
-  | { action: 'download';       id: string }
-  | { action: 'upload';         id: string }
-  | { action: 'delete-remote';  id: string }
-  | { action: 'delete-local';   id: string }
-  | { action: 'check-conflict'; id: string }
-  | { action: 'skip';           id: string }
+  | { action: 'download';      id: string }
+  | { action: 'upload';        id: string }
+  | { action: 'delete-remote'; id: string }
+  | { action: 'delete-local';  id: string }
+  | { action: 'skip';          id: string }
 
 export type BackupInfo = {
   filename: string;

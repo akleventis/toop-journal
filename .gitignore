@@ -1,9 +1,12 @@
 # Node
 node_modules/
 renderer/node_modules/
+build/
+src/mainview/renderer.js
+src/mainview/renderer.css
+src/mainview/tailwind.css
+src/mainview/jspdf.bundle.js
 dist/
-renderer/dist/
-renderer/.vite/
 *.log
 *.tsbuildinfo
 
@@ -16,10 +19,6 @@ renderer/.vite/
 # Build output
 release/
 
-# Secrets / local config
-aws_config.json
-masterIndex.json
-
 # Scripts (personal / not for repo)
 scripts/import_pdf.py
 scripts/cleanup.sh
@@ -27,15 +26,9 @@ scripts/__pycache__/
 export.pdf
 
 # Docs / notes (personal)
-notes.txt
 todo.md
-launchplan.md
 admin/
-encrypt.md
-claude.md
-docs/releases.md
-toop_agent_spec.txt
 
-# Claude Code
+# Claude
 .claude/
-main_claude.md
+claude.md

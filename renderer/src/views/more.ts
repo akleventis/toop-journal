@@ -1,12 +1,11 @@
 import type { Cleanup } from '../router';
-import { jsPDF } from 'jspdf';
 import { S3Config, SyncState, HealthCheck } from '../../../shared/types';
 import { networkManager } from '../../lib/network-manager';
 import { handleError } from '../../lib/error-handler';
 import { formatBytes, formatRelativeTime } from '../../lib/format';
 import * as db from '../../db/db';
 import { navigate } from '../router';
-import { openModal } from '../components/modal';
+import { openModal, alertModal } from '../components/modal';
 
 export function mountMore(container: HTMLElement): Cleanup {
   container.replaceChildren();
@@ -40,7 +39,6 @@ export function mountMore(container: HTMLElement): Cleanup {
   inner.appendChild(card3);
 
   const card4 = card();
-  buildConflictsRow(card4);
   buildNavRow(card4, 'Logs', () => navigate('/logs'));
   buildNavRow(card4, 'Backups', () => navigate('/backups'));
   inner.appendChild(card4);
@@ -267,7 +265,7 @@ function buildAWS(parent: HTMLElement): () => void {
   async function handleToggle() {
     const isActive = syncState === SyncState.READY || syncState === SyncState.SYNCING;
     if (!awsConfig) {
-      if (!networkManager.isOnline()) { alert('Please connect to the internet to create an AWS config'); return; }
+      if (!networkManager.isOnline()) { alertModal('Please connect to the internet to create an AWS config'); return; }
       openAWSModal();
     } else if (isActive) {
       confirmingDisable = true;
@@ -304,6 +302,7 @@ function buildAWS(parent: HTMLElement): () => void {
       succeeded = true;
     } catch (_) { /* syncState transitions to 'error', shown inline */ }
     finally { if (wasDisabled && succeeded) await window.cloudSync.disableSync(); }
+    if (succeeded) db.clearDecodedCache();
   }
 
   function openAWSModal() {
@@ -407,7 +406,7 @@ function buildEntryLimit(parent: HTMLElement) {
       localStorage.removeItem('entryLimit');
     } else {
       const parsed = parseInt(trimmed, 10);
-      if (isNaN(parsed) || parsed <= 0) { alert('Please enter a valid number'); return; }
+      if (isNaN(parsed) || parsed <= 0) { alertModal('Please enter a valid number'); return; }
       localStorage.setItem('entryLimit', trimmed);
     }
     saveBtn.textContent = 'Saved ✓';
@@ -443,7 +442,7 @@ function buildSearchLimit(parent: HTMLElement) {
       localStorage.removeItem('searchLimit');
     } else {
       const parsed = parseInt(trimmed, 10);
-      if (isNaN(parsed) || parsed <= 0) { alert('Please enter a valid number'); return; }
+      if (isNaN(parsed) || parsed <= 0) { alertModal('Please enter a valid number'); return; }
       localStorage.setItem('searchLimit', trimmed);
     }
     saveBtn.textContent = 'Saved ✓';
@@ -482,19 +481,21 @@ function buildExport(parent: HTMLElement) {
   parent.appendChild(grid);
 
   exportBtn.onclick = async () => {
-    if (!startInput.value || !endInput.value) { alert('Please select start and end dates'); return; }
+    if (!startInput.value || !endInput.value) { alertModal('Please select start and end dates'); return; }
     exportBtn.textContent = 'Exporting…';
     exportBtn.disabled = true;
     try {
       const startTs = new Date(startInput.value + 'T00:00:00').getTime();
       const endTs = new Date(endInput.value + 'T23:59:59.999').getTime();
       const entries = await db.getEntriesBetweenTimestamps(startTs, endTs);
-      if (entries.length === 0) { alert('No entries found in selected date range'); return; }
+      if (entries.length === 0) { alertModal('No entries found in selected date range'); return; }
 
       const filename = `journal_export_${startInput.value}_${endInput.value}`;
       const fmt = formatSel.value;
 
       if (fmt === 'pdf') {
+        const jspdfPath = './jspdf.bundle.js';
+        const { jsPDF } = await import(jspdfPath);
         const doc = new jsPDF({ unit: 'pt', format: 'letter' });
         const margin = 40;
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -504,21 +505,25 @@ function buildExport(parent: HTMLElement) {
         const checkY = (needed: number) => { if (y + needed > pageHeight - margin) { doc.addPage(); y = margin; } };
         for (const entry of entries) {
           doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-          checkY(20); doc.text(entry.date, margin, y); y += 18;
+          checkY(20); doc.text(entry.date, margin, y); y += 20;
           if (entry.location) {
             doc.setFontSize(9); doc.setFont('helvetica', 'italic');
             checkY(14); doc.text(entry.location, margin, y); y += 14;
           }
-          // Extract plain text from HTML for PDF rendering
-          const tmp = document.createElement('div');
-          tmp.innerHTML = entry.content; // nosec: trusted app data for text extraction
-          const plainText = (tmp.textContent ?? '').trim();
           doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-          const lines = doc.splitTextToSize(plainText, maxWidth) as string[];
-          for (const line of lines) { checkY(13); doc.text(line, margin, y); y += 13; }
-          y += 12;
+          for (const line of htmlToLines(entry.content)) {
+            if (line === '') { y += 6; continue; }
+            const wrapped = doc.splitTextToSize(line, maxWidth) as string[];
+            for (const wl of wrapped) { checkY(13); doc.text(wl, margin, y); y += 13; }
+          }
+          y += 18;
         }
-        downloadBlob(doc.output('blob'), filename + '.pdf');
+        const ab = doc.output('arraybuffer');
+        const bytes = new Uint8Array(ab);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        const { path: savedPath } = await window.utils.saveToDownloads(filename + '.pdf', btoa(binary), 'base64');
+        showExportToast(savedPath);
         return;
       }
 
@@ -526,22 +531,27 @@ function buildExport(parent: HTMLElement) {
       const ext: Record<string, string> = { html: '.html', json: '.json', csv: '.csv', txt: '.txt', encoded_html: '.json' };
       switch (fmt) {
         case 'html':
-          content = `<html><body>${entries.map(e => `<div><h3>${e.date}</h3>${e.content}</div><hr>`).join('')}</body></html>`;
+          content = `<html><head><style>body{font-family:serif;max-width:800px;margin:0 auto;padding:2em}p{white-space:pre-wrap;margin:0}h3{margin:2em 0 0.25em}hr{margin:1.5em 0;border:none;border-top:1px solid #ccc}</style></head><body>${entries.map(e => `<div><h3>${e.date}</h3>${e.location ? `<p><em>${e.location}</em></p>` : ''}<div>${e.content}</div><hr>`).join('')}</body></html>`;
           break;
-        case 'json': content = JSON.stringify(entries, null, 2); break;
-        case 'csv':
+        case 'json':
+          content = JSON.stringify(entries.map(e => ({ ...e, content: htmlToText(e.content) })), null, 2);
+          break;
+        case 'csv': {
+          const escape = (s: string) => s.replace(/"/g, '""');
           content = 'Date,Location,Content\n' + entries.map(e =>
-            `"${e.date}","${(e.location ?? '').replace(/"/g, '""')}","${e.content.replace(/"/g, '""')}"`
+            `"${escape(e.date)}","${escape(e.location ?? '')}","${escape(htmlToText(e.content))}"`
           ).join('\n');
           break;
+        }
         case 'txt':
-          content = entries.map(e => `${e.date}\n${e.content}\n${e.location ?? ''}\n---\n`).join('\n');
+          content = entries.map(e => `${e.date}\n${htmlToText(e.content)}\n${e.location ?? ''}\n---\n`).join('\n');
           break;
         case 'encoded_html':
-          content = JSON.stringify(entries.map(e => ({ id: e.id, date: e.date, location: e.location ?? '', content: e.content, timestamp: e.timestamp })), null, 2);
+          content = JSON.stringify(entries.map(e => ({ id: e.id, date: e.date, location: e.location ?? '', content: htmlToText(e.content), timestamp: e.timestamp })), null, 2);
           break;
       }
-      downloadBlob(new Blob([content], { type: 'text/plain' }), filename + (ext[fmt] ?? ''));
+      const { path: savedPath } = await window.utils.saveToDownloads(filename + (ext[fmt] ?? ''), content, 'utf8');
+      showExportToast(savedPath);
     } catch (error) {
       handleError(error, 'Export failed');
     } finally {
@@ -551,11 +561,65 @@ function buildExport(parent: HTMLElement) {
   };
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+function htmlToText(html: string): string {
+  return htmlToLines(html).join(' ').replace(/  +/g, ' ').trim();
+}
+
+function htmlToLines(html: string): string[] {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html; // nosec: trusted app data for text extraction
+  const BLOCK = new Set(['P','DIV','H1','H2','H3','H4','H5','H6','BLOCKQUOTE','PRE']);
+  function walk(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const el = node as Element;
+    const tag = el.tagName;
+    if (tag === 'BR') return '\n';
+    const inner = Array.from(node.childNodes).map(walk).join('');
+    if (tag === 'LI') return '• ' + inner.trim() + '\n';
+    if (BLOCK.has(tag)) return inner.trimEnd() + '\n';
+    return inner;
+  }
+  return walk(tmp).replace(/\n{3,}/g, '\n\n').trim().split('\n').map(l => sanitizeForPDF(l.trimStart()));
+}
+
+// jsPDF's built-in Helvetica is Latin-1 only — non-Latin-1 chars corrupt the text run
+function sanitizeForPDF(s: string): string {
+  return s
+    .replace(/ /g, ' ')
+    .replace(/[‘’‚‛′]/g, "'")
+    .replace(/[“”„‟″]/g, '"')
+    .replace(/–/g, '-')
+    .replace(/—/g, '--')
+    .replace(/…/g, '...')
+    .replace(/→/g, '->')
+    .replace(/←/g, '<-')
+    .replace(/↔/g, '<->')
+    .replace(/[^\x20-\xFF]/g, '');
+}
+
+function showExportToast(filePath: string) {
+  const filename = filePath.split('/').pop() ?? filePath;
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--color-secondary-bg);border:1px solid var(--color-third-bg);font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,0.6);opacity:0;transform:translateY(6px);transition:opacity 0.2s,transform 0.2s';
+
+  const msg = document.createElement('span');
+  msg.textContent = filename;
+
+  const btn = document.createElement('button');
+  btn.textContent = 'Show in Finder';
+  btn.style.cssText = 'flex-shrink:0;font-size:11px;padding:3px 9px';
+  btn.onclick = () => window.utils.revealInFinder(filePath);
+
+  toast.appendChild(msg);
+  toast.appendChild(btn);
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+  setTimeout(() => {
+    toast.style.opacity = '0'; toast.style.transform = 'translateY(6px)';
+    setTimeout(() => toast.remove(), 200);
+  }, 5000);
 }
 
 function dateInput(value: string): HTMLInputElement {
@@ -587,13 +651,6 @@ function labeledField(labelText: string, input: HTMLElement): HTMLElement {
 }
 
 // ─── Nav rows ──────────────────────────────────────────────────────────────
-
-function buildConflictsRow(parent: HTMLElement) {
-  window.conflicts.getConflictCount().then(count => {
-    if (count === 0) return;
-    parent.appendChild(navRow('Conflicts', () => navigate('/conflicts'), count));
-  });
-}
 
 function buildNavRow(parent: HTMLElement, label: string, onClick: () => void) {
   parent.appendChild(navRow(label, onClick));
