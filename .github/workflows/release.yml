@@ -28,6 +28,9 @@ jobs:
       - name: Build & Package
         run: npm run package
 
+      - name: Find build output
+        run: find . -name "*.app" -maxdepth 6 2>/dev/null || echo "no .app found"; ls -la
+
       - name: Zip app bundle
         env:
           REF_NAME: ${{ github.ref_name }}
