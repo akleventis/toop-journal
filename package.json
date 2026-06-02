@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.850.0",
-    "electrobun": "github:akleventis/electrobun#c2e5636b1842ce60c859625ca33de5a5dd6b732f"
+    "electrobun": "file:../electrobun/package"
   },
   "devDependencies": {
     "@types/bun": "latest",
