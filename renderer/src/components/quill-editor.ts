@@ -82,6 +82,7 @@ export class QuillEditor {
       },
     });
     this.quill = q;
+    q.root.setAttribute('spellcheck', 'true');
 
     // Plain text only paste
     q.root.addEventListener('paste', (e) => {

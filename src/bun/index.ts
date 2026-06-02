@@ -163,7 +163,8 @@ const mainWindow = new BrowserWindow({
   url: "views://mainview/index.html",
   rpc,
   frame: { width: 600, height: 750, x: 100, y: 100 },
-  styleMask: { Closable: false },
+  styleMask: { Closable: true },
+  spellCheck: true,
 });
 
 // guard: webview RPC is unavailable until the view has loaded
@@ -221,6 +222,11 @@ function handleClose(): void {
   }
   Utils.quit();
 }
+
+mainWindow.on("will-close", (event: any) => {
+  event.response = { allow: false };
+  handleClose();
+});
 
 Electrobun.events.on("before-quit", (event: any) => {
   if (isQuitting) return;
