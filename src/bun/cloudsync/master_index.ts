@@ -173,6 +173,7 @@ const executeSyncPlan = async (
         } catch (error: any) {
           if (error.name === "NoSuchKey") {
             logger.warn(`syncMasterIndex: entry ${id} in masterIndex but missing from S3, removing from index`);
+            changed = true;
           } else {
             logger.error(`syncMasterIndex: error downloading entry ${id}:`, error);
             throw error;
