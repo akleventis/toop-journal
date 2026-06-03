@@ -120,3 +120,12 @@ Dev and stable builds use separate data directories:
 ## Cloud Sync
 
 Optional. Uses AWS S3 for cross-device sync. Configure credentials via More → AWS Config. The app syncs on startup, shutdown, and manual trigger. Conflicts are detected per-entry and resolvable via More → Conflicts.
+
+## Demo
+<div align="center">
+
+https://github.com/user-attachments/assets/fe578221-017b-436f-89d0-53d3d4874eb6
+
+</div>
+
+
