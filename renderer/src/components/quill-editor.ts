@@ -72,8 +72,8 @@ export class QuillEditor {
               shiftKey: false,
               handler(range: { index: number; length: number }) {
                 q.deleteText(range.index, range.length, 'user');
-                q.insertText(range.index, '    ', 'user');
-                q.setSelection(range.index + 4, 0, 'silent');
+                q.insertText(range.index, '\t', 'user');
+                q.setSelection(range.index + 1, 0, 'silent');
                 return false;
               },
             },
@@ -83,6 +83,7 @@ export class QuillEditor {
     });
     this.quill = q;
     q.root.setAttribute('spellcheck', 'true');
+    q.root.setAttribute('autocorrect', 'off');
 
     // Plain text only paste
     q.root.addEventListener('paste', (e) => {
@@ -160,7 +161,7 @@ export class QuillEditor {
     this.loadEntry(opts.entry, opts.editable);
 
     this.onCmdF = (e: KeyboardEvent) => {
-      if (e.key === 'f' && e.metaKey && !this.isEditing) {
+      if (e.key === 'f' && e.metaKey) {
         e.preventDefault();
         this.findBar ? this.findBar.focus() : this.openFindBar();
       }

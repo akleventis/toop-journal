@@ -158,11 +158,33 @@ const rpc = BrowserView.defineRPC<AppRPC>({
 let isDirty = false;
 let isQuitting = false;
 
+function getMainScreenSize(): { width: number; height: number } {
+  try {
+    const result = Bun.spawnSync([
+      "osascript", "-l", "JavaScript", "-e",
+      "ObjC.import('AppKit'); var f = $.NSScreen.mainScreen.frame; f.size.width + ',' + f.size.height",
+    ]);
+    const [w, h] = result.stdout.toString().trim().split(",").map(Number);
+    if (w > 0 && h > 0) return { width: w, height: h };
+  } catch {}
+  return { width: 1440, height: 900 };
+}
+
+const WIN_W = 600;
+const WIN_H = 750;
+const screen = getMainScreenSize();
+const centeredFrame = {
+  width: WIN_W,
+  height: WIN_H,
+  x: Math.round((screen.width - WIN_W) / 2),
+  y: Math.round((screen.height - WIN_H) / 2),
+};
+
 const mainWindow = new BrowserWindow({
   title: "Book of Toop",
   url: "views://mainview/index.html",
   rpc,
-  frame: { width: 600, height: 750, x: 100, y: 100 },
+  frame: centeredFrame,
   styleMask: { Closable: true },
   spellCheck: true,
 });

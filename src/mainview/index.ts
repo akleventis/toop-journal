@@ -112,6 +112,9 @@ document.addEventListener("contextmenu", (e) => {
   const target = e.target as HTMLElement;
   const isEditable = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ||
     (target as HTMLElement).isContentEditable;
+  // Let native WKWebView menu handle editable areas — it includes spell-check suggestions,
+  // "Add to Dictionary", cut/copy/paste. Showing a custom NSMenu would replace it.
+  if (isEditable) return;
   const hasSelection = (window.getSelection()?.toString().length ?? 0) > 0;
   rpc.send.showContextMenu({ data: { isEditable, hasSelection } });
 });
