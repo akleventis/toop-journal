@@ -112,8 +112,8 @@ export const planSync = (localMasterIndex: MasterIndex, s3MasterIndex: MasterInd
     const local = localMasterIndex[id];
     const s3 = s3MasterIndex[id];
 
-    if (!local) { plan.push({ action: "download", id }); continue; }
-    if (!s3)    { plan.push({ action: local.deleted ? "skip" : "upload", id }); continue; }
+    if (!local) { plan.push({ action: s3.deleted ? "skip" : "download", id }); continue; }
+    if (!s3)    { plan.push({ action: "upload", id }); continue; }
 
     if (local.lastModified > s3.lastModified) {
       plan.push({ action: local.deleted ? "delete-remote" : "upload", id }); continue;
@@ -172,7 +172,9 @@ const executeSyncPlan = async (
           changed = true;
         } catch (error: any) {
           if (error.name === "NoSuchKey") {
-            logger.warn(`syncMasterIndex: entry ${id} in masterIndex but missing from S3, removing from index`);
+            // Index lists the entry but its file is gone — never drop the row; tombstone it.
+            logger.warn(`syncMasterIndex: entry ${id} file missing from S3; preserving as deleted tombstone`);
+            syncedIndex[id] = { ...s3, deleted: true };
             changed = true;
           } else {
             logger.error(`syncMasterIndex: error downloading entry ${id}:`, error);
@@ -242,9 +244,8 @@ const executeSyncPlan = async (
             downloaded++;
             changed = true;
           } catch (error) {
-            // omit from syncedIndex so next sync retries the download
+            // Keep the row (retry is driven by the db-missing check, not index absence).
             logger.warn(`syncMasterIndex: could not re-download missing entry ${id}:`, error);
-            break;
           }
         }
         syncedIndex[id] = local ?? s3;

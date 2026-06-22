@@ -129,4 +129,5 @@ w.utils = {
   saveToDownloads: (filename: string, content: string, encoding: 'utf8' | 'base64') =>
     rpc.request.utilsSaveToDownloads({ filename, content, encoding }),
   revealInFinder: (path: string) => rpc.request.utilsRevealInFinder({ path }),
+  compressImage: (content: string, ext: string) => rpc.request.utilsCompressImage({ content, ext }),
 };

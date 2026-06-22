@@ -1,17 +1,16 @@
 import Electrobun, { BrowserView, BrowserWindow, Utils, ContextMenu, ApplicationMenu } from "electrobun/bun";
-import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import type { AppRPC } from "../../shared/rpc-schema.js";
 import * as db from "./db.js";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { logger } from "./logger.js";
 import { createBackup, listBackups, restoreBackup } from "./backup.js";
 import { hashPassword, verifyPassword } from "./security.js";
+import { compressImage } from "./image.js";
+import { saveToDownloads, revealInFinder } from "./files.js";
+import { healthRun } from "./health.js";
 import { syncStateMachine, SyncState } from "./cloudsync/sync_state.js";
-import { initS3Client, createConfig, updateConfig, deleteConfig, disableSync, getConfig, getAWSClient, getAWSConfig } from "./cloudsync/aws-connection.js";
+import { initS3Client, createConfig, updateConfig, deleteConfig, disableSync, getConfig } from "./cloudsync/aws-connection.js";
 import { cloudSyncPipeline, isSyncConfigured, getLastSyncTime } from "./cloudsync/transact.js";
-import { initLocalMasterIndex, loadLocalMasterIndex } from "./cloudsync/master_index.js";
+import { initLocalMasterIndex } from "./cloudsync/master_index.js";
 import { awaitCurrentSync, isSyncInFlight } from "./cloudsync/sync_coordinator.js"; // registers dbEvents listeners as side effect
 
 ApplicationMenu.setApplicationMenu([
@@ -108,35 +107,10 @@ const rpc = BrowserView.defineRPC<AppRPC>({
         Utils.quit();
       },
       logsGetRecent: () => logger.getRecentLines(),
-      utilsSaveToDownloads: async ({ filename, content, encoding }) => {
-        const safeName = path.basename(filename);
-        if (!safeName || safeName.startsWith('.') || safeName.includes('\0')) throw new Error('invalid filename');
-        const downloadsDir = path.resolve(os.homedir(), 'Downloads');
-        const filePath = path.resolve(downloadsDir, safeName);
-        if (path.dirname(filePath) !== downloadsDir) throw new Error('path escapes Downloads');
-        const data = encoding === 'base64' ? Buffer.from(content, 'base64') : content;
-        await Bun.write(filePath, data);
-        return { path: filePath };
-      },
-      utilsRevealInFinder: ({ path: filePath }) => { Bun.spawn(['open', '-R', filePath]); },
-      healthRun: async () => {
-        const awsClient = getAWSClient();
-        const awsConfig = getAWSConfig();
-        const [masterIndexIntegrity, s3Connectivity, diskSpace] = await Promise.all([
-          Promise.resolve().then(() => { loadLocalMasterIndex(); return true; }).catch(() => false),
-          awsClient && awsConfig
-            ? awsClient.send(new HeadBucketCommand({ Bucket: awsConfig.aws_bucket })).then(() => true).catch(() => false)
-            : Promise.resolve(null),
-          (fs.promises as any).statfs(Utils.paths.userData).then((s: any) => s.bavail * s.bsize).catch(() => -1),
-        ]);
-        return {
-          databaseIntegrity: db.integrityCheck(),
-          masterIndexIntegrity,
-          s3Connectivity,
-          diskSpace,
-          lastSyncTime: getLastSyncTime(),
-        };
-      },
+      utilsSaveToDownloads: ({ filename, content, encoding }) => saveToDownloads({ filename, content, encoding }),
+      utilsRevealInFinder:  ({ path })                       => revealInFinder({ path }),
+      utilsCompressImage:   ({ content, ext })               => compressImage({ content, ext }),
+      healthRun:            ()                                => healthRun(),
     },
     messages: {
       logsError: ({ data }) => logger.error(`[renderer] ${data}`),

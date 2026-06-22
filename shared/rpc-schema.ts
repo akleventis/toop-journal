@@ -44,6 +44,7 @@ export type AppRPC = {
       healthRun:        { params: Record<string, never>; response: HealthCheck };
       utilsSaveToDownloads: { params: { filename: string; content: string; encoding: 'utf8' | 'base64' }; response: { path: string } };
       utilsRevealInFinder:  { params: { path: string }; response: void };
+      utilsCompressImage:   { params: { content: string; ext: string }; response: { dataUrl: string } };
     };
     messages: {
       logsError:       { data: string };

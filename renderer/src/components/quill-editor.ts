@@ -7,9 +7,20 @@ import { NavDirection } from '../../lib/constants';
 import { ImageResizeOverlay } from './image-resize';
 import { TextEditNav } from './text-edit-nav';
 import { FindBar } from './find-bar';
+import { handleError } from '../../lib/error-handler';
 
 const DEFAULT_IMAGE_WIDTH = 200;
 const Delta = Quill.import('delta') as any;
+
+// Read a File as a bare base64 string (no data-URL prefix).
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(',')[1] ?? '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export type QuillEditorOptions = {
   displayNav: boolean;
@@ -111,19 +122,12 @@ export class QuillEditor {
     q.root.addEventListener('drop', (e) => {
       e.preventDefault();
       e.stopImmediatePropagation();
-      const files = Array.from(e.dataTransfer?.files ?? []).filter(f => f.type.startsWith('image/'));
+      const files = Array.from(e.dataTransfer?.files ?? []).filter(
+        f => f.type.startsWith('image/') || /\.(heic|heics|webp|png|jpe?g)$/i.test(f.name),
+      );
       if (!files.length) return;
       const range = q.getSelection(true) ?? { index: q.getLength(), length: 0 };
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          q.insertEmbed(range.index, 'image', reader.result as string, 'user');
-          const img = q.root.querySelector<HTMLImageElement>(`img[src="${reader.result}"]`);
-          if (img) img.setAttribute('width', String(DEFAULT_IMAGE_WIDTH));
-          this.onContentChange?.(q.root.innerHTML);
-        };
-        reader.readAsDataURL(file);
-      });
+      void this.insertCompressedImages(files, range.index);
     }, { capture: true });
 
     // Image click → resize overlay
@@ -207,6 +211,26 @@ export class QuillEditor {
     if (!entry) return;
     if (await confirmModal('Are you sure you want to delete this entry?', 'Delete')) {
       await deleteEntry(entry.id);
+    }
+  }
+
+  // Compress + convert each dropped image to JPEG (via bun/sips), then embed sequentially.
+  private async insertCompressedImages(files: File[], startIndex: number) {
+    const q = this.quill;
+    let index = startIndex;
+    for (const file of files) {
+      try {
+        const base64 = await fileToBase64(file);
+        const ext = file.name.split('.').pop() || file.type.split('/').pop() || 'jpg';
+        const { dataUrl } = await window.utils.compressImage(base64, ext);
+        q.insertEmbed(index, 'image', dataUrl, 'user');
+        const img = q.root.querySelector<HTMLImageElement>(`img[src="${dataUrl}"]`);
+        if (img) img.setAttribute('width', String(DEFAULT_IMAGE_WIDTH));
+        index += 1;
+        this.onContentChange?.(q.root.innerHTML);
+      } catch (err) {
+        handleError(err, `Failed to import image "${file.name}"`);
+      }
     }
   }
 

@@ -78,6 +78,7 @@ export interface MaintenanceAPI {
 export interface UtilsAPI {
   saveToDownloads: (filename: string, content: string, encoding: 'utf8' | 'base64') => Promise<{ path: string }>;
   revealInFinder: (path: string) => Promise<void>;
+  compressImage: (content: string, ext: string) => Promise<{ dataUrl: string }>;
 }
 
 declare global {
