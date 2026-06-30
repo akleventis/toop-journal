@@ -34,16 +34,31 @@ db.query(`CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
   timestamp UNINDEXED
 )`).run();
 
-// one-time migration: populate FTS index from entries_t if the table is empty
+// FTS indexes this, not raw HTML — keeps base64 images out of the index (entries_t keeps full HTML)
+function toSearchText(html: string): string {
+  return html
+    .replace(/<img[^>]*>/gi, " ")   // drop images (incl. base64 data URIs)
+    .replace(/<[^>]+>/g, " ")       // strip tags
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&[a-z]+;/gi, " ")     // named entities
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// one-time FTS rebuild from stripped text — bump FTS_INDEX_VERSION when toSearchText changes
+const FTS_INDEX_VERSION = "2-stripped";
 {
-  const ftsCount = (db.query("SELECT COUNT(*) as c FROM entries_fts").get() as { c: number }).c;
-  if (ftsCount === 0) {
+  if (getSetting("ftsIndexVersion") !== FTS_INDEX_VERSION) {
     const rows = db.query("SELECT id, content, timestamp FROM entries_t").all() as { id: string; content: string; timestamp: number }[];
-    if (rows.length > 0) {
-      const insert = db.prepare("INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)");
-      db.transaction(() => { for (const r of rows) insert.run(r.id, r.content, r.timestamp); })();
-      logger.info(`FTS: indexed ${rows.length} existing entries`);
-    }
+    const insert = db.prepare("INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)");
+    db.transaction(() => {
+      db.query("DELETE FROM entries_fts").run();
+      for (const r of rows) insert.run(r.id, toSearchText(r.content), r.timestamp);
+    })();
+    db.prepare("INSERT INTO entries_fts(entries_fts) VALUES('optimize')").run();
+    setSetting("ftsIndexVersion", FTS_INDEX_VERSION);
+    setSetting("lastVacuumTime", "0"); // force next maintenance to VACUUM the freed pages
+    logger.info(`FTS: re-indexed ${rows.length} entries with stripped search text`);
   }
 }
 
@@ -94,7 +109,7 @@ export function createEntry(entry: Entry, emitEvents = true): void {
 
   const transaction = db.transaction(() => {
     db.prepare("INSERT INTO entries_t (id, date, content, location, timestamp, lastModified) VALUES (?, ?, ?, ?, ?, ?)").run(entry.id, entry.date, entry.content, entry.location ?? null, entry.timestamp!, entry.lastModified!);
-    db.prepare("INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)").run(entry.id, entry.content, entry.timestamp!);
+    db.prepare("INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)").run(entry.id, toSearchText(entry.content), entry.timestamp!);
   });
 
   try {
@@ -127,7 +142,7 @@ export function updateEntry(id: string, entry: Entry, emitEvents = true): void {
   const transaction = db.transaction(() => {
     db.prepare("UPDATE entries_t SET date = ?, content = ?, location = ?, timestamp = ?, lastModified = ? WHERE id = ?").run(entry.date, entry.content, entry.location ?? null, entry.timestamp!, entry.lastModified!, id);
     db.prepare("DELETE FROM entries_fts WHERE id = ?").run(id);
-    db.prepare("INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)").run(id, entry.content, entry.timestamp!);
+    db.prepare("INSERT INTO entries_fts(id, content, timestamp) VALUES (?, ?, ?)").run(id, toSearchText(entry.content), entry.timestamp!);
   });
 
   try {

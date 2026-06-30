@@ -21,7 +21,7 @@ class Logger {
     this.level = level;
     this.logDir = path.join(Utils.paths.userData, "logs");
     fs.mkdirSync(this.logDir, { recursive: true });
-    this.clearCurrentLog();
+    this.markSessionStart();
     this.pruneOldLogs();
   }
 
@@ -35,8 +35,12 @@ class Logger {
     return path.join(this.logDir, `app-${date}.log`);
   }
 
-  private clearCurrentLog(): void {
-    try { fs.writeFileSync(this.logFile, ""); } catch { /* non-fatal */ }
+  // append a session marker instead of truncating, so crash logs survive to next launch
+  private markSessionStart(): void {
+    try {
+      const marker = `[${new Date().toISOString()}] [INFO] ===== session start (pid ${process.pid}) =====\n`;
+      fs.appendFileSync(this.logFile, marker);
+    } catch { /* non-fatal */ }
   }
 
   private pruneOldLogs(): void {
