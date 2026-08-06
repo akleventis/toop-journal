@@ -16,7 +16,7 @@ export type AppRPC = {
       // sqlite
       sqliteGetEntries:                 { params: { limit?: number }; response: Entry[] };
       sqliteGetEntriesForList:          { params: { limit?: number }; response: Entry[] };
-      sqliteGetAdjacentEntry:           { params: { id: string; direction: "prev" | "next" }; response: Entry | null };
+      sqliteGetAdjacentEntry:           { params: { id: string; direction: "prev" | "next" }; response: { id: string } | null };
       sqliteGetEntryById:               { params: { id: string }; response: Entry | null };
       sqliteGetMostRecentEntry:         { params: Record<string, never>; response: Entry | null };
       sqliteGetEntryCount:              { params: Record<string, never>; response: number };

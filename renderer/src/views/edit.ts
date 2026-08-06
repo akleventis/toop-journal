@@ -14,6 +14,7 @@ export function mountEdit(container: HTMLElement, params: URLSearchParams): Clea
 
   const entryId = params.get('id');
   let entry: Entry | null = null;
+  let disposed = false;
   let isSaving = false;
   let isEditing = false;
   let currentHtml = '';
@@ -79,7 +80,8 @@ export function mountEdit(container: HTMLElement, params: URLSearchParams): Clea
     if (!entryId) { navigate('/list'); return; }
     try {
       entry = await db.getEntryById(entryId);
-      if (!entry) return;
+      // cleanup may have run while the fetch was in flight — building the editor now would strand it with unremovable document listeners
+      if (!entry || disposed) return;
       dateLabel.textContent = entry.date;
 
       editor = new QuillEditor({
@@ -113,8 +115,10 @@ export function mountEdit(container: HTMLElement, params: URLSearchParams): Clea
   init();
 
   return () => {
+    disposed = true;
     clearNavGuard();
     hideSaveBtn();
     editor?.destroy();
+    editor = null;
   };
 }

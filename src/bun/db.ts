@@ -78,13 +78,13 @@ export function getEntriesForList(limit?: number): Entry[] {
   return db.query("SELECT id, date, location, timestamp, lastModified, substr(content, 1, 500) as content FROM entries_t ORDER BY timestamp DESC").all() as Entry[];
 }
 
-export function getAdjacentEntry(id: string, direction: "prev" | "next"): Entry | null {
+export function getAdjacentEntry(id: string, direction: "prev" | "next"): { id: string } | null {
   const current = db.query("SELECT timestamp FROM entries_t WHERE id = ?").get(id) as { timestamp: number } | null;
   if (!current) return null;
   if (direction === "prev") {
-    return db.query("SELECT * FROM entries_t WHERE timestamp < ? ORDER BY timestamp DESC LIMIT 1").get(current.timestamp) as Entry | null;
+    return db.query("SELECT id FROM entries_t WHERE timestamp < ? ORDER BY timestamp DESC LIMIT 1").get(current.timestamp) as { id: string } | null;
   }
-  return db.query("SELECT * FROM entries_t WHERE timestamp > ? ORDER BY timestamp ASC LIMIT 1").get(current.timestamp) as Entry | null;
+  return db.query("SELECT id FROM entries_t WHERE timestamp > ? ORDER BY timestamp ASC LIMIT 1").get(current.timestamp) as { id: string } | null;
 }
 
 export function getEntryById(id: string): Entry | null {

@@ -86,7 +86,7 @@ export async function deleteEntry(id: string): Promise<void> {
   clearDecodedCache();
 }
 
-export async function getAdjacentEntry(id: string, direction: 'prev' | 'next'): Promise<Entry | null> {
+export async function getAdjacentEntry(id: string, direction: 'prev' | 'next'): Promise<{ id: string } | null> {
   return await window.sqlite.getAdjacentEntry(id, direction);
 }
 
