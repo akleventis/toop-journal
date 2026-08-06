@@ -87,6 +87,11 @@ export function getAdjacentEntry(id: string, direction: "prev" | "next"): { id: 
   return db.query("SELECT id FROM entries_t WHERE timestamp > ? ORDER BY timestamp ASC LIMIT 1").get(current.timestamp) as { id: string } | null;
 }
 
+// existence check only — never SELECT * just to test presence; sync does this per entry
+export function entryExists(id: string): boolean {
+  return db.query("SELECT 1 FROM entries_t WHERE id = ?").get(id) != null;
+}
+
 export function getEntryById(id: string): Entry | null {
   return db.query("SELECT * FROM entries_t WHERE id = ?").get(id) as Entry | null;
 }

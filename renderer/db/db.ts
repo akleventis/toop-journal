@@ -18,14 +18,6 @@ export function getEntryLimitFromStorage(): number | undefined {
   return isNaN(parsed) ? undefined : parsed;
 }
 
-export async function getDecodedEntries(): Promise<Entry[]> {
-  if (__decodedEntriesMemo) return __decodedEntriesMemo;
-
-  const limit = getEntryLimitFromStorage();
-  __decodedEntriesMemo = await window.sqlite.getEntries(limit);
-  return __decodedEntriesMemo;
-}
-
 // truncated content (500 chars) — sufficient for list preview, much smaller IPC payload
 export async function getEntriesForList(limitOverride?: number): Promise<Entry[]> {
   const limit = limitOverride ?? getEntryLimitFromStorage();

@@ -163,7 +163,7 @@ const executeSyncPlan = async (
 
     switch (action) {
       case "download": {
-        if (db.getEntryById(id) != null) { syncedIndex[id] = { ...s3 }; break; }
+        if (db.entryExists(id)) { syncedIndex[id] = { ...s3 }; break; }
         try {
           const entry = await fetchS3Entry(id);
           db.createEntry(entry, false);
@@ -236,7 +236,7 @@ const executeSyncPlan = async (
       }
 
       case "skip": {
-        if (local && !local.deleted && db.getEntryById(id) == null) {
+        if (local && !local.deleted && !db.entryExists(id)) {
           logger.warn(`sync: entry ${id} in master index but missing from db — re-downloading`);
           try {
             const entry = await fetchS3Entry(id);

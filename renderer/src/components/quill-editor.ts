@@ -32,6 +32,7 @@ export type QuillEditorOptions = {
 };
 
 export class QuillEditor {
+  private destroyed = false;
   readonly el: HTMLElement;
   private quill: Quill;
   private editorWrapper: HTMLElement;
@@ -259,6 +260,8 @@ export class QuillEditor {
   }
 
   destroy() {
+    if (this.destroyed) return; // teardown runs from both cleanup and nav; keep it idempotent
+    this.destroyed = true;
     this.closeFindBar();
     document.removeEventListener('keydown', this.onCmdF);
     this.hideOverlay();
