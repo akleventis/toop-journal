@@ -1,5 +1,5 @@
 import type { MasterIndex, Entry, MasterIndexEntry, SyncAction } from "../../../shared/types.js";
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getAWSClient, getAWSConfig } from "./aws-connection.js";
 import { MASTER_INDEX_PATH, MASTER_INDEX_FILE } from "./paths.js";
 import * as db from "../db.js";
@@ -80,6 +80,29 @@ export const loadS3MasterIndex = async (): Promise<MasterIndex> => {
   return verifyMasterIndex(parsed);
 };
 
+// Entry ids that actually have a file in the bucket — one request per 1000 entries.
+export const listS3EntryIds = async (): Promise<Set<string>> => {
+  const awsClient = getAWSClient();
+  const awsConfig = getAWSConfig();
+  if (!awsClient || !awsConfig) {
+    throw new Error("listS3EntryIds: no s3 client or config found");
+  }
+  const ids = new Set<string>();
+  let token: string | undefined = undefined;
+  do {
+    const page: any = await awsClient.send(new ListObjectsV2Command({
+      Bucket: awsConfig.aws_bucket,
+      Prefix: "entries/",
+      ContinuationToken: token,
+    }));
+    for (const object of page.Contents ?? []) {
+      if (object.Key?.endsWith(".json")) ids.add(object.Key.slice("entries/".length, -".json".length));
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+  return ids;
+};
+
 // Validates all entries in a parsed MasterIndex; throws if any entry is malformed.
 const verifyMasterIndex = (masterIndex: MasterIndex): MasterIndex => {
   if (typeof masterIndex !== "object" || masterIndex === null) {
@@ -102,15 +125,23 @@ const verifyMasterIndex = (masterIndex: MasterIndex): MasterIndex => {
   return validated;
 };
 
-// Pure planner: compares two indexes and returns a typed action plan with no I/O.
+// Pure planner: compares two indexes plus the files present in the bucket, returns a plan with no I/O.
+// s3Files === null means the listing couldn't be trusted — drift repair is skipped, never guessed.
 // Single-writer assumption: last-write-wins, no conflict detection.
-export const planSync = (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): SyncAction[] => {
+export const planSync = (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex, s3Files: Set<string> | null): SyncAction[] => {
   const ids = new Set([...Object.keys(localMasterIndex), ...Object.keys(s3MasterIndex)]);
   const plan: SyncAction[] = [];
 
   for (const id of ids) {
     const local = localMasterIndex[id];
     const s3 = s3MasterIndex[id];
+
+    // Live here but no file in the bucket — re-upload regardless of timestamps, since an index
+    // that drifted ahead of the bucket is otherwise invisible. A newer remote tombstone still wins.
+    if (s3Files && local && !local.deleted && !s3Files.has(id)) {
+      const remoteDeletedNewer = s3 && s3.deleted && s3.lastModified > local.lastModified;
+      if (!remoteDeletedNewer) { plan.push({ action: "upload", id }); continue; }
+    }
 
     if (!local) { plan.push({ action: s3.deleted ? "skip" : "download", id }); continue; }
     if (!s3)    { plan.push({ action: "upload", id }); continue; }
@@ -120,6 +151,11 @@ export const planSync = (localMasterIndex: MasterIndex, s3MasterIndex: MasterInd
     }
     if (local.lastModified < s3.lastModified) {
       plan.push({ action: s3.deleted ? "delete-local" : "download", id }); continue;
+    }
+
+    // Same timestamp, disagreeing tombstones: live wins, else both sides skip each other forever.
+    if (local.deleted !== s3.deleted) {
+      plan.push({ action: local.deleted ? "download" : "upload", id }); continue;
     }
 
     plan.push({ action: "skip", id });
@@ -163,18 +199,30 @@ const executeSyncPlan = async (
 
     switch (action) {
       case "download": {
-        if (db.entryExists(id)) { syncedIndex[id] = { ...s3 }; break; }
+        // Compare against the row we actually hold, not the index. Skipping the fetch whenever the
+        // id existed dropped every edit made on another device while still adopting its timestamp,
+        // so both sides then believed they were in sync.
+        const localLastModified = db.getEntryLastModified(id);
+        if (localLastModified !== null && s3.lastModified <= localLastModified) {
+          // Our row is the newer one — record its own version, not S3's, so it uploads next sync
+          // rather than being silently pinned to an older remote timestamp.
+          syncedIndex[id] = { lastModified: localLastModified, deleted: false };
+          changed = true;
+          break;
+        }
         try {
           const entry = await fetchS3Entry(id);
-          db.createEntry(entry, false);
+          if (localLastModified === null) db.createEntry(entry, false);
+          else db.updateEntry(id, entry, false);
           syncedIndex[id] = { ...s3 };
           downloaded++;
           changed = true;
         } catch (error: any) {
           if (error.name === "NoSuchKey") {
-            // Index lists the entry but its file is gone — never drop the row; tombstone it.
-            logger.warn(`syncMasterIndex: entry ${id} file missing from S3; preserving as deleted tombstone`);
-            syncedIndex[id] = { ...s3, deleted: true };
+            // Failing to fetch says nothing about whether the entry exists elsewhere — keep the
+            // row as-is, since a tombstone here would propagate "deleted" to every other device.
+            logger.warn(`syncMasterIndex: entry ${id} file missing from S3; leaving index row live, will retry`);
+            syncedIndex[id] = { ...s3 };
             changed = true;
           } else {
             logger.error(`syncMasterIndex: error downloading entry ${id}:`, error);
@@ -187,20 +235,28 @@ const executeSyncPlan = async (
       case "upload": {
         const entry = db.getEntryById(id);
         if (!entry) {
-          // masterIndex says entry exists but DB has no row — treat as deleted and clean up S3
-          logger.warn(`syncMasterIndex: entry ${id} in masterIndex but missing from DB; marking deleted`);
+          // masterIndex says it exists but this DB has no row — pull it back from S3 rather than
+          // deleting, which would destroy the last remaining copy.
           try {
-            await awsClient.send(new DeleteObjectCommand({ Bucket: awsConfig.aws_bucket, Key: `entries/${id}.json` }));
-          } catch (e: any) {
-            if (e.name !== "NoSuchKey") logger.warn(`syncMasterIndex: could not remove orphaned S3 entry ${id}:`, e);
+            const remote = await fetchS3Entry(id);
+            logger.warn(`syncMasterIndex: entry ${id} in masterIndex but missing from DB; restored from S3`);
+            db.createEntry(remote, false);
+            syncedIndex[id] = { ...(local ?? s3) };
+            downloaded++;
+            changed = true;
+            break;
+          } catch (error: any) {
+            if (error.name !== "NoSuchKey") throw error;
           }
-          syncedIndex[id] = { lastModified: Date.now(), deleted: true };
-          changed = true;
+          // Gone from both, but another device may still hold it — leave the row untouched and
+          // retry. Only a real user delete may write a tombstone.
+          logger.warn(`syncMasterIndex: entry ${id} missing from both DB and S3; leaving index row live, will retry`);
+          syncedIndex[id] = { ...(local ?? s3) };
           break;
         }
         try {
           await awsClient.send(new PutObjectCommand({ Bucket: awsConfig.aws_bucket, Key: `entries/${id}.json`, Body: JSON.stringify(entry) }));
-          syncedIndex[id] = { ...local };
+          syncedIndex[id] = { ...(local ?? s3) };
           uploaded++;
           changed = true;
         } catch (error) {
@@ -265,8 +321,29 @@ const executeSyncPlan = async (
   return { index: syncedIndex, changed };
 };
 
-export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): Promise<{ index: MasterIndex; changed: boolean }> =>
-  executeSyncPlan(planSync(localMasterIndex, s3MasterIndex), localMasterIndex, s3MasterIndex);
+export const syncMasterIndex = async (localMasterIndex: MasterIndex, s3MasterIndex: MasterIndex): Promise<{ index: MasterIndex; changed: boolean }> => {
+  let s3Files: Set<string> | null = await listS3EntryIds();
+
+  // An index full of live rows over an empty listing means the listing failed, not that every
+  // file vanished. Distrust it rather than re-uploading the whole journal off a bad read.
+  const liveS3Rows = Object.values(s3MasterIndex).filter((row) => !row.deleted).length;
+  if (s3Files.size === 0 && liveS3Rows > 0) {
+    logger.error(`syncMasterIndex: S3 listed 0 entry files but the index claims ${liveS3Rows} live — skipping drift repair this sync`);
+    s3Files = null;
+  }
+
+  const plan = planSync(localMasterIndex, s3MasterIndex, s3Files);
+
+  // Index/bucket drift is never normal — log it, capped so a first sync can't dump 3000 ids.
+  const repairs = s3Files === null ? [] : plan.filter((p) => p.action === "upload" && !s3Files!.has(p.id) && localMasterIndex[p.id] && s3MasterIndex[p.id]);
+  if (repairs.length > 0) {
+    const shown = repairs.slice(0, 20).map((p) => p.id).join(", ");
+    const more = repairs.length > 20 ? `, +${repairs.length - 20} more` : "";
+    logger.warn(`syncMasterIndex: ${repairs.length} indexed entries have no file in S3; re-uploading: ${shown}${more}`);
+  }
+
+  return executeSyncPlan(plan, localMasterIndex, s3MasterIndex);
+};
 
 // ensure updates run one at a time
 let updateQueue: Promise<void> = Promise.resolve();

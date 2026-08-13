@@ -92,6 +92,13 @@ export function entryExists(id: string): boolean {
   return db.query("SELECT 1 FROM entries_t WHERE id = ?").get(id) != null;
 }
 
+// Version probe for sync — never SELECT * just to compare timestamps. null = no row at all,
+// 0 = row predating lastModified, so callers can tell "absent" from "unversioned".
+export function getEntryLastModified(id: string): number | null {
+  const row = db.query("SELECT lastModified FROM entries_t WHERE id = ?").get(id) as { lastModified: number | null } | undefined;
+  return row == null ? null : (row.lastModified ?? 0);
+}
+
 export function getEntryById(id: string): Entry | null {
   return db.query("SELECT * FROM entries_t WHERE id = ?").get(id) as Entry | null;
 }
@@ -142,6 +149,7 @@ export function updateEntry(id: string, entry: Entry, emitEvents = true): void {
     logger.error(`updateEntry: validation failed for entry ${id}:`, error);
     throw error;
   }
+  if (!entry.timestamp) entry.timestamp = Date.now();
   if (!entry.lastModified) entry.lastModified = Date.now();
 
   const transaction = db.transaction(() => {
