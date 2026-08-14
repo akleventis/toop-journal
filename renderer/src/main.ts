@@ -218,6 +218,7 @@ async function init() {
       }).catch(handleError);
     },
     '/list': () => {
+      viewMain.replaceChildren(); // list only hides #view-main — a hidden Quill still holds the caret and re-arms the nav guard
       Promise.all([
         db.getEntriesForList(getLoadedLimit()),
         db.getEntriesForCalendar(),
