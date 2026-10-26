@@ -79,7 +79,7 @@ Entries are validated in `src/bun/db.ts` before insert. Valid format:
 - `content`: any non-empty HTML string
 - `timestamp`: milliseconds integer
 
-If importing entries (e.g. via `scripts/import_pdf.py`), malformed dates will be rejected with a validation error in the logs.
+If importing entries, malformed dates will be rejected with a validation error in the logs.
 
 ---
 

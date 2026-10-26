@@ -21,7 +21,6 @@ release/
 artifacts/
 
 # Scripts (personal / not for repo)
-scripts/import_pdf.py
 scripts/cleanup.sh
 scripts/__pycache__/
 export.pdf
