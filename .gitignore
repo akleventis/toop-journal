@@ -20,6 +20,7 @@ dist/
 release/
 artifacts/
 .hutch/
+.cottontail-tmp/
 
 # Scripts (personal / not for repo)
 scripts/cleanup.sh
