@@ -1,4 +1,4 @@
-import { Utils } from "electrobun/bun";
+import { Utils } from "electrobun/main";
 import { Database } from "bun:sqlite";
 import fs from "node:fs";
 import path from "node:path";

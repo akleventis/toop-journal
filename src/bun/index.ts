@@ -1,4 +1,4 @@
-import Electrobun, { BrowserView, BrowserWindow, Utils, ContextMenu, ApplicationMenu } from "electrobun/bun";
+import Electrobun, { BrowserView, BrowserWindow, Utils, ContextMenu, ApplicationMenu } from "electrobun/main";
 import type { AppRPC } from "../../shared/rpc-schema.js";
 import * as db from "./db.js";
 import { logger } from "./logger.js";

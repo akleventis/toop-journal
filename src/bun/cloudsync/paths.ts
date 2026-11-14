@@ -1,4 +1,4 @@
-import { Utils } from "electrobun/bun";
+import { Utils } from "electrobun/main";
 import path from "node:path";
 
 export const USER_DATA_PATH = Utils.paths.userData;
