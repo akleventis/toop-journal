@@ -2,43 +2,22 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     permissions:
       contents: write
-
     steps:
       - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Install dependencies
-        run: |
-          bun install
-          npm --prefix renderer ci
-
-      - name: Build & Package
-        run: npm run package
-
-      - name: Find and upload DMG
+      # node + bun versions come from mise.toml, same as local
+      - uses: jdx/mise-action@v5
+      - run: bun install && npm --prefix renderer ci
+      - run: npm run package
+      - name: Release DMG
         env:
-          REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          DMG_PATH=$(find artifacts -name "*.dmg" -maxdepth 3 | head -1)
-          echo "Found DMG at: $DMG_PATH"
-          mv "$DMG_PATH" "Book-of-Toop-${REF_NAME}.dmg"
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: Book-of-Toop-${{ github.ref_name }}.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          mv artifacts/*.dmg "Book-of-Toop-$GITHUB_REF_NAME.dmg"
+          gh release create "$GITHUB_REF_NAME" "Book-of-Toop-$GITHUB_REF_NAME.dmg" --generate-notes
