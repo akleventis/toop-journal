@@ -40,7 +40,7 @@ export class QuillEditor {
   private overlay: ImageResizeOverlay | null = null;
   private nav: TextEditNav | null = null;
   private findBar: FindBar | null = null;
-  private readonly onCmdF: (e: KeyboardEvent) => void;
+  private readonly onKeydown: (e: KeyboardEvent) => void;
   private onContentChange: ((html: string) => void) | undefined;
   private onEditModeChange: ((editing: boolean) => void) | undefined;
 
@@ -165,13 +165,16 @@ export class QuillEditor {
 
     this.loadEntry(opts.entry, opts.editable);
 
-    this.onCmdF = (e: KeyboardEvent) => {
-      if (e.key === 'f' && e.metaKey) {
+    this.onKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && this.findBar) {
+        e.preventDefault();
+        this.closeFindBar(true);
+      } else if (e.key === 'f' && e.metaKey) {
         e.preventDefault();
         this.findBar ? this.findBar.focus() : this.openFindBar();
       }
     };
-    document.addEventListener('keydown', this.onCmdF);
+    document.addEventListener('keydown', this.onKeydown);
   }
 
   loadEntry(entry: Entry | null, editable: boolean) {
@@ -189,14 +192,15 @@ export class QuillEditor {
   }
 
   private openFindBar() {
-    this.findBar = new FindBar(this.quill, () => this.closeFindBar());
+    this.findBar = new FindBar(this.quill, () => this.closeFindBar(true));
     this.editorWrapper.appendChild(this.findBar.el);
     this.findBar.focus();
   }
 
-  private closeFindBar() {
+  private closeFindBar(refocus = false) {
     this.findBar?.destroy();
     this.findBar = null;
+    if (refocus && this.isEditing) this.quill.focus();
   }
 
   private enableEditing() {
@@ -263,7 +267,7 @@ export class QuillEditor {
     if (this.destroyed) return; // teardown runs from both cleanup and nav; keep it idempotent
     this.destroyed = true;
     this.closeFindBar();
-    document.removeEventListener('keydown', this.onCmdF);
+    document.removeEventListener('keydown', this.onKeydown);
     this.hideOverlay();
     this.nav?.destroy();
   }

@@ -25,6 +25,7 @@ ApplicationMenu.setApplicationMenu([
   {
     label: "Window",
     submenu: [
+      { role: "minimize", accelerator: "m" },
       { label: "Close", action: "closeWindow", accelerator: "w" },
     ],
   },

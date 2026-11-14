@@ -49,6 +49,19 @@ export function initListView(container: HTMLElement) {
   searchInput.placeholder = 'Search';
   searchInput.style.cssText = 'padding:2px;margin-left:2px;font-size:10px;height:20px;outline:none;background:transparent;border:none';
   searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
+
+  // list stays mounted while hidden, so only act when it's on screen
+  document.addEventListener('keydown', (e) => {
+    if (container.offsetParent === null) return;
+    if (e.key === 'f' && e.metaKey) {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+      e.preventDefault();
+      searchInput.blur();
+    }
+  });
   searchInput.addEventListener('input', () => {
     searchValue = searchInput.value;
     if (!searchValue) handleClearSearch();
