@@ -26,7 +26,6 @@ export class FindBar {
       this.countEl.textContent = '';
     });
     this.input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { onClose(); e.preventDefault(); return; }
       if (e.key === 'Enter') {
         e.preventDefault();
         // first Enter triggers the search; subsequent Enter cycles matches
