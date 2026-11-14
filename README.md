@@ -61,7 +61,7 @@ toop-journal/
 
 ## Download
 
-Download the latest `Book of Toop-x.x.x-arm64.dmg` from [Releases](https://github.com/akleventis/toop-journal/releases). Open the DMG, drag the app to Applications, then run:
+Requires macOS 14+ on Apple silicon. Download the latest `Book of Toop-x.x.x-arm64.dmg` from [Releases](https://github.com/akleventis/toop-journal/releases). Open the DMG, drag the app to Applications (don't launch it from the DMG window: 2.x unpacks itself on first launch), then run:
 
 ```bash
 xattr -cr "/Applications/Book of Toop.app"
@@ -77,6 +77,11 @@ cd toop-journal
 npm install
 npm --prefix renderer install
 ```
+
+## Runtime exceptions
+
+- Electrobun is pinned to 2.0.6 although it is newer than the usual 6-12 month rule: it retires the fork (ENG-5), and its bundled Bun 1.4.x may fix the Bun 1.3 segfaults.
+- The app's Bun runtime comes from Electrobun (Bun 1.4.4 in 2.0.6); mise's Bun 1.3 is only for installs and scripts.
 
 ## Development
 

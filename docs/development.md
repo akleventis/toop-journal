@@ -4,7 +4,7 @@
 
 - [Bun](https://bun.sh) (used as runtime and bundler for the bun process)
 - Node.js / npm (for renderer build tooling via `renderer/node_modules`)
-- macOS arm64
+- macOS 14 (Sonoma) or newer, arm64 — Electrobun 2.x minimum
 
 ## Setup
 
@@ -16,6 +16,8 @@ bun install
 # Install renderer dependencies (esbuild, tailwindcss, Quill)
 npm --prefix renderer install
 ```
+
+The first `npm run dev`/`build` downloads Electrobun's Hutch devkit into `~/.hutch` and `.hutch/` (gitignored), so it needs network once. Root `tsc` reads Electrobun's types from `.hutch/devkit`, so on a fresh clone run `npm run build` once before typechecking.
 
 ## Running in Dev Mode
 

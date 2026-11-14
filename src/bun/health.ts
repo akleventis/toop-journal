@@ -1,5 +1,5 @@
 import { HeadBucketCommand } from "@aws-sdk/client-s3";
-import { Utils } from "electrobun/bun";
+import { Utils } from "electrobun/main";
 import fs from "node:fs";
 import type { HealthCheck } from "../../shared/types.js";
 import * as db from "./db.js";

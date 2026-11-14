@@ -14,21 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clone electrobun fork
-        run: |
-          git clone https://github.com/akleventis/electrobun.git ${{ github.workspace }}/../electrobun
-          git -C ${{ github.workspace }}/../electrobun checkout d6ebc58c4fc02d5b4db336ebf1b1d02e4502878a
-
       - uses: oven-sh/setup-bun@v2
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-
-      - name: Build electrobun fork
-        run: |
-          bun install --cwd ${{ github.workspace }}/../electrobun/package
-          bun run --cwd ${{ github.workspace }}/../electrobun/package build:release
+          node-version: '24'
 
       - name: Install dependencies
         run: |

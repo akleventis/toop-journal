@@ -12,11 +12,11 @@
     "package": "npm run build:assets && bunx electrobun build --env=stable"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.850.0",
-    "electrobun": "file:../electrobun/package"
+    "@aws-sdk/client-s3": "3.850.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "electrobun": "2.0.6",
     "typescript": "^5.8.3"
   },
   "engines": {

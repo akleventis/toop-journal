@@ -7,6 +7,7 @@ export default {
     version: "2.0.0",
   },
   build: {
+    mainProcess: "bun",
     bun: {
       entrypoint: "src/bun/index.ts",
     },

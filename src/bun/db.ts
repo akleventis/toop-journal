@@ -1,4 +1,4 @@
-import { Utils } from "electrobun/bun";
+import { Utils } from "electrobun/main";
 import path from "node:path";
 import { Database } from "bun:sqlite";
 import { EventEmitter } from "node:events";

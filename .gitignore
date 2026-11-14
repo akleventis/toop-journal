@@ -19,6 +19,7 @@ dist/
 # Build output
 release/
 artifacts/
+.hutch/
 
 # Scripts (personal / not for repo)
 scripts/cleanup.sh

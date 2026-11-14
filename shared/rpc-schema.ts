@@ -1,4 +1,4 @@
-import type { RPCSchema } from "electrobun/bun";
+import type { RPCSchema } from "electrobun/main";
 import type { Entry, S3Config, SyncState, BackupInfo, HealthCheck } from "./types.js";
 
 export type AppRPC = {
