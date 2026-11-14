@@ -61,7 +61,7 @@ toop-journal/
 
 ## Download
 
-Requires macOS 14+ on Apple silicon. Download the latest `Book of Toop-x.x.x-arm64.dmg` from [Releases](https://github.com/akleventis/toop-journal/releases). Open the DMG, drag the app to Applications, then run:
+Requires macOS 14+ on Apple silicon. Download the latest `Book of Toop-x.x.x-arm64.dmg` from [Releases](https://github.com/akleventis/toop-journal/releases). Open the DMG, drag the app to Applications (don't launch it from the DMG window: 2.x unpacks itself on first launch), then run:
 
 ```bash
 xattr -cr "/Applications/Book of Toop.app"
