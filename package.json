@@ -1,6 +1,6 @@
 {
   "name": "toop-journal-electrobun",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "type": "module",
   "scripts": {
     "build:renderer": "renderer/node_modules/.bin/esbuild renderer/src/main.ts --bundle --outfile=src/mainview/renderer.js --platform=browser",
