@@ -20,4 +20,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mv artifacts/*.dmg "Book-of-Toop-$GITHUB_REF_NAME.dmg"
-          gh release create "$GITHUB_REF_NAME" "Book-of-Toop-$GITHUB_REF_NAME.dmg" --generate-notes
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$GITHUB_REF_NAME" --jq .body \
+            | sed -E 's/ by @[A-Za-z0-9-]+ in / in /' > notes.md
+          gh release create "$GITHUB_REF_NAME" "Book-of-Toop-$GITHUB_REF_NAME.dmg" --notes-file notes.md
