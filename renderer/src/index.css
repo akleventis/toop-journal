@@ -161,3 +161,5 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .ql-editor img { -webkit-user-drag: none; }
 .ql-editor.ql-blank::before { color: var(--text-muted); font-style: normal; }
+::highlight(find-match) { background-color: rgba(241, 196, 15, 0.35); }
+::highlight(find-current) { background-color: rgba(255, 150, 0, 0.75); color: #000; }
